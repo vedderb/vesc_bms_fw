@@ -194,7 +194,7 @@ static THD_FUNCTION(ltc_thd, p) {
 		}
 
 		if (read_reg_group(LTC_RDAUXB, buffer)) {
-			m_v_gpio[4] = (float)((uint16_t)buffer[0] | (uint16_t)buffer[1] << 8) / 1e4;
+			m_v_gpio[3] = (float)((uint16_t)buffer[0] | (uint16_t)buffer[1] << 8) / 1e4;
 			m_v_gpio[4] = (float)((uint16_t)buffer[2] | (uint16_t)buffer[3] << 8) / 1e4;
 		}
 
