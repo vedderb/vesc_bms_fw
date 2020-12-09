@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+FWPATH="../"
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+################## HW 12s7p #######################
+
+COPYDIR=12s7p
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_12s7p_v1.c\" -DHW_HEADER=\"hw_12s7p_v1.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/vesc_bms.bin $COPYDIR/vesc_default.bin
+
+################## HW 18s_light #######################
+
+COPYDIR=18s_light
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_18s_light.c\" -DHW_HEADER=\"hw_18s_light.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/vesc_bms.bin $COPYDIR/vesc_default.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+
