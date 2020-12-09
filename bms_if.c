@@ -34,7 +34,6 @@
 // Settings
 #define I_IN_FILTER_CONST			0.006
 #define I_IN_FILTER_CONST_IC		0.006
-#define SOC_FILTER_CONST			1.0e-5
 #define IC_ISENSE_I_GAIN_CORR		0.997 // This gain correction is a hack and should probably be set in config or in hw config
 
 // Private variables
@@ -307,7 +306,7 @@ static THD_FUNCTION(if_thd, p) {
 			m_soc_filter_init_done = true;
 			m_soc_filtered = soc_now;
 		} else {
-			UTILS_LP_FAST(m_soc_filtered, soc_now, SOC_FILTER_CONST);
+			UTILS_LP_FAST(m_soc_filtered, soc_now, backup.config.soc_filter_const);
 		}
 
 		// RED LED

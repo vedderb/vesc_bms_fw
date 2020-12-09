@@ -584,6 +584,28 @@ p, li { white-space: pre-wrap; }
             <suffix> s</suffix>
             <vTx>6</vTx>
         </sleep_timeout_reset_ms>
+        <soc_filter_const>
+            <longName>SoC Filter Constant</longName>
+            <type>1</type>
+            <transmittable>1</transmittable>
+            <description>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Roboto'; ; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;State of Charge filter constant. Range 0.1 to 1 000 000. Lower values give more filtering. 1 000 000 disables filtering.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</description>
+            <cDefine>CONF_SOC_FILTER_CONST</cDefine>
+            <editorDecimalsDouble>1</editorDecimalsDouble>
+            <editorScale>1e+06</editorScale>
+            <editAsPercentage>0</editAsPercentage>
+            <maxDouble>1</maxDouble>
+            <minDouble>0</minDouble>
+            <showDisplay>0</showDisplay>
+            <stepDouble>1</stepDouble>
+            <valDouble>1e-05</valDouble>
+            <vTxDoubleScale>1</vTxDoubleScale>
+            <suffix></suffix>
+            <vTx>9</vTx>
+        </soc_filter_const>
     </Params>
     <SerOrder>
         <ser>controller_id</ser>
@@ -612,6 +634,7 @@ p, li { white-space: pre-wrap; }
         <ser>ext_pch_r_bot</ser>
         <ser>max_charge_current</ser>
         <ser>sleep_timeout_reset_ms</ser>
+        <ser>soc_filter_const</ser>
     </SerOrder>
     <Grouping>
         <group>
@@ -621,6 +644,7 @@ p, li { white-space: pre-wrap; }
                 <subgroupParams>
                     <param>cell_num</param>
                     <param>cell_first_index</param>
+                    <param>soc_filter_const</param>
                 </subgroupParams>
             </subgroup>
             <subgroup>

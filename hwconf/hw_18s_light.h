@@ -34,7 +34,7 @@
 #ifndef HWCONF_HW_12S7P_V1_H_
 #define HWCONF_HW_12S7P_V1_H_
 
-#define HW_NAME					"18slight"
+#define HW_NAME					"18s_light"
 
 // HW-specific
 #define HW_INIT_HOOK()			palSetLineMode(LINE_CAN_EN, PAL_MODE_OUTPUT_PUSHPULL); \
@@ -51,6 +51,7 @@
 
 // Settings
 #define HW_CELLS_SERIES			18
+#define HW_MAX_BAL_CH			10
 #define HW_SHUNT_RES			(1.0e-3)
 #define HW_SHUNT_AMP_GAIN		(50.0)
 #define V_REG					3.3

@@ -6,7 +6,7 @@
 # Compiler options here.
 ifeq ($(USE_OPT),)
   USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
-  USE_OPT += -DBOARD_OTG_NOVBUSSENS
+  USE_OPT += -DBOARD_OTG_NOVBUSSENS $(build_args)
 endif
 
 # C specific options here (added to USE_OPT).
@@ -234,13 +234,11 @@ ULIBS = -lm --specs=nosys.specs
 # End of user defines
 ##############################################################################
 
-.PHONY: upload upload_remote
+RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk
+include $(RULESPATH)/rules.mk
 
 upload: build/$(PROJECT).bin
 	openocd -f stm32l4_stlinkv2.cfg -c "reset_config trst_only combined connect_assert_srst" -c "program build/$(PROJECT).elf verify reset exit"
 
 upload_remote: build/$(PROJECT).bin
 	./upload_remote build/$(PROJECT).bin benjamin 127.0.0.1 62122
-
-RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk
-include $(RULESPATH)/rules.mk

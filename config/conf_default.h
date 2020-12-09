@@ -133,6 +133,11 @@
 #define CONF_SLEEP_TIMEOUT_MS 240000
 #endif
 
+// SoC Filter Constant
+#ifndef CONF_SOC_FILTER_CONST
+#define CONF_SOC_FILTER_CONST 1e-05
+#endif
+
 // CONF_DEFAULT_H_
 #endif
 

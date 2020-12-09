@@ -23,6 +23,9 @@
 void conf_general_apply_hw_limits(main_config_t *config) {
 	utils_truncate_number_int(&config->cell_first_index, 0, HW_CELLS_SERIES);
 	utils_truncate_number_int(&config->cell_num, 2, HW_CELLS_SERIES - config->cell_first_index);
+#ifdef HW_MAX_BAL_CH
+	utils_truncate_number_int(&config->max_bal_ch, 0, HW_MAX_BAL_CH);
+#endif
 }
 
 

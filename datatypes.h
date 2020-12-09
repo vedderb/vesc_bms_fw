@@ -130,6 +130,9 @@ typedef struct __attribute__((packed)) {
 
 	// Maximum allowed charging current
 	float max_charge_current;
+
+	// Filter constant for SoC filter
+	float soc_filter_const;
 } main_config_t;
 
 typedef struct __attribute__((packed)) {

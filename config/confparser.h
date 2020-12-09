@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 // Constants
-#define MAIN_CONFIG_T_SIGNATURE		3506841767
+#define MAIN_CONFIG_T_SIGNATURE		2703216987
 
 // Functions
 int32_t confparser_serialize_main_config_t(uint8_t *buffer, const main_config_t *conf);

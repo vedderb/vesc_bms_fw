@@ -103,6 +103,8 @@ int main(void) {
 		backup.config.controller_id = backup.controller_id;
 	}
 
+	conf_general_apply_hw_limits((main_config_t*)&backup.config);
+
 	palSetLineMode(LINE_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_LED_GREEN, PAL_MODE_OUTPUT_PUSHPULL);
 
