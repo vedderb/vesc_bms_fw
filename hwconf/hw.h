@@ -42,8 +42,12 @@
 #endif
 
 // Macros
+#ifndef LED_OFF
 #define LED_OFF(led)			palClearLine(led)
+#endif
+#ifndef LED_ON
 #define LED_ON(led)				palSetLine(led)
+#endif
 #define LED_TOGGLE(led)			palToggleLine(led)
 
 #ifndef HW_DEFAULT_ID

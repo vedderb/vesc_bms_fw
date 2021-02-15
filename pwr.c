@@ -116,19 +116,21 @@ static THD_FUNCTION(adc_thd, p) {
 }
 
 void pwr_init(void) {
+	HW_INIT_HOOK();
+
+#ifdef LINE_BQ_CHG_EN
 	palSetLineMode(LINE_BQ_CHG_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_BQ_CP_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_BQ_DSG_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_BQ_PMON_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_BQ_PCHG_EN, PAL_MODE_OUTPUT_PUSHPULL);
 
-	HW_INIT_HOOK();
-
 	BQ_CHG_OFF();
 	BQ_CP_OFF();
 	BQ_DSG_OFF();
 	BQ_PMON_OFF();
 	BQ_PCHG_OFF();
+#endif
 
 	palSetLineMode(LINE_V_CHARGE, PAL_MODE_INPUT_ANALOG);
 	palSetLineMode(LINE_CURRENT, PAL_MODE_INPUT_ANALOG);
@@ -149,8 +151,11 @@ void pwr_init(void) {
 
 	CURR_MEASURE_ON();
 	HW_CAN_ON();
+
+#ifdef LINE_BQ_CHG_EN
 	BQ_CP_ON();
 	BQ_PMON_ON();
+#endif
 
 	chThdSleepMilliseconds(10);
 

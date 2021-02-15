@@ -31,8 +31,8 @@
  * * External current measurement support
  */
 
-#ifndef HWCONF_HW_12S7P_V1_H_
-#define HWCONF_HW_12S7P_V1_H_
+#ifndef HWCONF_HW_18S_LIGHT_H_
+#define HWCONF_HW_18S_LIGHT_H_
 
 #define HW_NAME					"18s_light"
 
@@ -124,4 +124,4 @@
 #define CONF_I_MEASURE_MODE		I_MEASURE_MODE_VESC
 #endif
 
-#endif /* HWCONF_HW_12S7P_V1_H_ */
+#endif /* HWCONF_HW_18S_LIGHT_H_ */

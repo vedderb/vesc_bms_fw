@@ -49,11 +49,15 @@ static void go_to_sleep(void) {
 	chSysLock();
 
 	CURR_MEASURE_OFF();
+
+#ifdef LINE_BQ_CHG_EN
 	BQ_CHG_OFF();
 	BQ_CP_OFF();
 	BQ_DSG_OFF();
 	BQ_PMON_OFF();
 	BQ_PCHG_OFF();
+#endif
+
 	TEMP_MEASURE_OFF();
 	HW_CAN_OFF();
 
