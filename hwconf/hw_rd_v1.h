@@ -37,9 +37,9 @@
 								palSetLineMode(LINE_5V_HP_EN, PAL_MODE_OUTPUT_PUSHPULL); \
 								palSetLineMode(LINE_3V3P_EN, PAL_MODE_OUTPUT_PUSHPULL); \
 								palSetLineMode(LINE_12V_HP_EN, PAL_MODE_OUTPUT_PUSHPULL); \
-								palClearLine(LINE_5V_HP_EN); \
-								palClearLine(LINE_3V3P_EN); \
-								palClearLine(LINE_12V_HP_EN); \
+								palSetLine(LINE_5V_HP_EN); \
+								palSetLine(LINE_3V3P_EN); \
+								palSetLine(LINE_12V_HP_EN); \
 								palSetLine(LINE_LED_BLUE)
 
 #define HW_CAN_ON()				palClearLine(LINE_CAN_EN)
