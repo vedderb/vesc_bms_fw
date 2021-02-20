@@ -58,6 +58,17 @@
 #define HW_ADC_TEMP_SENSORS		6
 #endif
 
+#ifndef ADC_CH_TEMP6
+#define ADC_CH_TEMP6			ADC_CH_TEMP5
+#define LINE_TEMP_6				LINE_TEMP_5
+#define LINE_TEMP_6_EN			LINE_TEMP_5_EN
+#endif
+
+#ifndef ADC_CH_V_FUSE
+#define ADC_CH_V_FUSE			ADC_CH_V_CHARGE
+#define LINE_V_FUSE				LINE_V_CHARGE
+#endif
+
 #ifndef HW_INIT_HOOK
 #define HW_INIT_HOOK()
 #endif

@@ -28,36 +28,34 @@
  * * Charge enable and disable
  * * Powerkey
  * * UART-comm
- * * Last temp sensor
+ * * [OK] Last temp sensor
  * * Black magic probe
  */
 
 // HW-specific
-#define HW_INIT_HOOK()			palSetLineMode(LINE_CURR_MEASURE_EN, PAL_MODE_OUTPUT_PUSHPULL); \
-								palSetLineMode(LINE_5V_HP_EN, PAL_MODE_OUTPUT_PUSHPULL); \
-								palSetLineMode(LINE_3V3P_EN, PAL_MODE_OUTPUT_PUSHPULL); \
-								palSetLineMode(LINE_12V_HP_EN, PAL_MODE_OUTPUT_PUSHPULL); \
-								palSetLine(LINE_5V_HP_EN); \
-								palSetLine(LINE_3V3P_EN); \
-								palSetLine(LINE_12V_HP_EN); \
-								palSetLine(LINE_LED_BLUE)
+#define HW_INIT_HOOK()			hw_board_init()
 
 #define HW_CAN_ON()				palClearLine(LINE_CAN_EN)
 #define HW_CAN_OFF()			palSetLine(LINE_CAN_EN)
 #define CURR_MEASURE_ON()		palClearLine(LINE_CURR_MEASURE_EN)
 #define CURR_MEASURE_OFF()		palSetLine(LINE_CURR_MEASURE_EN)
 
+#define HW_RELAY_MAIN_ON()		palSetLine(LINE_RELAY_MAIN)
+#define HW_RELAY_MAIN_OFF()		palClearLine(LINE_RELAY_MAIN)
+#define HW_RELAY_PCH_ON()		palSetLine(LINE_RELAY_PCH)
+#define HW_RELAY_PCH_OFF()		palClearLine(LINE_RELAY_PCH)
+
 // Macros
-#define CHARGE_ENABLE()
-#define CHARGE_DISABLE()
+#define CHARGE_ENABLE()			hw_board_chg_en(true)
+#define CHARGE_DISABLE()		hw_board_chg_en(false)
 
 // Settings
 #define HW_CELLS_SERIES			14
 #define HW_MAX_BAL_CH			8
-#define HW_SHUNT_RES			(0.2e-3)
+#define HW_SHUNT_RES			(0.1e-3)
 #define HW_SHUNT_AMP_GAIN		(50.0)
 #define V_REG					3.3
-#define R_CHARGE_TOP			(100e3)
+#define R_CHARGE_TOP			(110e3)
 #define R_CHARGE_BOTTOM			(3e3)
 
 // Enable pins
@@ -65,6 +63,15 @@
 #define LINE_5V_HP_EN			PAL_LINE(GPIOA, 15)
 #define LINE_3V3P_EN			PAL_LINE(GPIOB, 0)
 #define LINE_12V_HP_EN			PAL_LINE(GPIOB, 1)
+#define LINE_AFTER_FUSE_EN		PAL_LINE(GPIOD, 2)
+
+// Relays
+#define LINE_RELAY_PCH			PAL_LINE(GPIOC, 13)
+#define LINE_RELAY_MAIN			PAL_LINE(GPIOC, 1)
+
+// External connectors
+#define LINE_PWRKEY_1			PAL_LINE(GPIOH, 0)
+#define LINE_PWRKEY_2			PAL_LINE(GPIOH, 1)
 
 // LEDs
 #define LINE_LED_RED			PAL_LINE(GPIOB, 10)
@@ -92,7 +99,10 @@
 #define HDC1080_SCL_PIN			7
 
 // Analog
-#define LINE_V_CHARGE			PAL_LINE(GPIOC, 2)
+#define HW_ADC_TEMP_SENSORS		7
+
+#define LINE_V_CHARGE			PAL_LINE(GPIOC, 5)
+#define LINE_V_FUSE				PAL_LINE(GPIOC, 2)
 #define LINE_CURRENT			PAL_LINE(GPIOC, 3)
 #define LINE_TEMP_0				PAL_LINE(GPIOA, 0)
 #define LINE_TEMP_1				PAL_LINE(GPIOA, 1)
@@ -100,7 +110,7 @@
 #define LINE_TEMP_3				PAL_LINE(GPIOA, 3)
 #define LINE_TEMP_4				PAL_LINE(GPIOA, 4)
 #define LINE_TEMP_5				PAL_LINE(GPIOA, 5)
-#define LINE_TEMP_6				PAL_LINE(GPIOA, 6) // TODO!
+#define LINE_TEMP_6				PAL_LINE(GPIOA, 6)
 
 #define LINE_TEMP_0_EN			PAL_LINE(GPIOC, 10)
 #define LINE_TEMP_1_EN			PAL_LINE(GPIOC, 11)
@@ -108,7 +118,7 @@
 #define LINE_TEMP_3_EN			PAL_LINE(GPIOB, 2)
 #define LINE_TEMP_4_EN			PAL_LINE(GPIOB, 3)
 #define LINE_TEMP_5_EN			PAL_LINE(GPIOB, 4)
-#define LINE_TEMP_6_EN			PAL_LINE(GPIOB, 5) // TODO!
+#define LINE_TEMP_6_EN			PAL_LINE(GPIOB, 5)
 
 #define NTC_RES(adc)			(10000.0 / ((4095.0 / (float)adc) - 1.0))
 #define NTC_TEMP(adc)			(1.0 / ((logf(NTC_RES(adc) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
@@ -117,7 +127,8 @@
 #define HW_TEMP_CELLS_MAX()		bms_if_get_temp(2)
 
 // ADC Channels
-#define ADC_CH_V_CHARGE			ADC_CHANNEL_IN3
+#define ADC_CH_V_CHARGE			ADC_CHANNEL_IN14
+#define ADC_CH_V_FUSE			ADC_CHANNEL_IN3
 #define ADC_CH_CURRENT			ADC_CHANNEL_IN4
 #define ADC_CH_TEMP0			ADC_CHANNEL_IN5
 #define ADC_CH_TEMP1			ADC_CHANNEL_IN6
@@ -125,10 +136,14 @@
 #define ADC_CH_TEMP3			ADC_CHANNEL_IN8
 #define ADC_CH_TEMP4			ADC_CHANNEL_IN9
 #define ADC_CH_TEMP5			ADC_CHANNEL_IN10
-#define ADC_CH_TEMP6			ADC_CHANNEL_IN11 // TODO!
+#define ADC_CH_TEMP6			ADC_CHANNEL_IN11
 
 // LEDs are inverted, so override macros here
 #define LED_ON(led)				palClearLine(led)
 #define LED_OFF(led)			palSetLine(led)
+
+// Functions
+void hw_board_init(void);
+void hw_board_chg_en(bool enable);
 
 #endif /* HWCONF_HW_RD_V1_H_ */

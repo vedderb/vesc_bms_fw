@@ -39,13 +39,15 @@
 
 #define TEMP_MEASURE_ON()		palSetLine(LINE_TEMP_0_EN); palSetLine(LINE_TEMP_1_EN); \
 								palSetLine(LINE_TEMP_2_EN); palSetLine(LINE_TEMP_3_EN); \
-								palSetLine(LINE_TEMP_4_EN); palSetLine(LINE_TEMP_5_EN);
+								palSetLine(LINE_TEMP_4_EN); palSetLine(LINE_TEMP_5_EN); \
+								palSetLine(LINE_TEMP_6_EN);
 #define TEMP_MEASURE_OFF()		palClearLine(LINE_TEMP_0_EN); palClearLine(LINE_TEMP_1_EN); \
 								palClearLine(LINE_TEMP_2_EN); palClearLine(LINE_TEMP_3_EN); \
 								palClearLine(LINE_TEMP_4_EN); palClearLine(LINE_TEMP_5_EN);
 
 void pwr_init(void);
 float pwr_get_vcharge(void);
+float pwr_get_vfuse(void);
 float pwr_get_iin(void);
 float pwr_get_temp(int sensor);
 

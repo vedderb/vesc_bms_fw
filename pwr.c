@@ -23,10 +23,11 @@
 #include <string.h>
 
 // Settings
-#define ADC_CHANNELS	9
+#define ADC_CHANNELS	11
 
 // Private variables
 static volatile float m_v_charge = 0.0;
+static volatile float m_v_fuse = 0.0;
 static volatile float m_i_in = 0.0;
 static volatile float m_temps[HW_ADC_TEMP_SENSORS] = {0.0};
 
@@ -58,7 +59,7 @@ const ADCConversionGroup adcgrpcfg1 = {
 				ADC_SQR2_SQ5_N(ADC_CH_TEMP1) | ADC_SQR2_SQ6_N(ADC_CH_TEMP2) |
 				ADC_SQR2_SQ7_N(ADC_CH_TEMP3) | ADC_SQR2_SQ8_N(ADC_CH_TEMP4) |
 				ADC_SQR2_SQ9_N(ADC_CH_TEMP5),
-				0U,
+				ADC_SQR3_SQ10_N(ADC_CH_TEMP6) | ADC_SQR3_SQ11_N(ADC_CH_V_FUSE),
 				0U
 		}
 };
@@ -80,6 +81,7 @@ static THD_FUNCTION(adc_thd, p) {
 		float v_ch = 0.0;
 		float ref = 0.0;
 		float i_in = 0.0;
+		float v_fuse = 0.0;
 		float temps[HW_ADC_TEMP_SENSORS];
 		memset(temps, 0, sizeof(temps));
 
@@ -91,11 +93,14 @@ static THD_FUNCTION(adc_thd, p) {
 			for (int j = 0;j < HW_ADC_TEMP_SENSORS;j++) {
 				temps[j] += samples[ADC_CHANNELS * i + 3 + j];
 			}
+
+			v_fuse += samples[ADC_CHANNELS * i + HW_ADC_TEMP_SENSORS + 3];
 		}
 
 		ref /= (float)num_samp;
 		v_ch /= (float)num_samp;
 		i_in /= (float)num_samp;
+		v_fuse /= (float)num_samp;
 
 		for (int j = 0;j < HW_ADC_TEMP_SENSORS;j++) {
 			temps[j] /= (float)num_samp;
@@ -106,6 +111,7 @@ static THD_FUNCTION(adc_thd, p) {
 
 		m_v_charge = (v_ch / (4095 / vdda)) * ((R_CHARGE_TOP + R_CHARGE_BOTTOM) / R_CHARGE_BOTTOM);
 		m_i_in = -((3.3 * ((i_in / 4095.0))) - 1.65) * (1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res);
+		m_v_fuse = (v_fuse / (4095 / vdda)) * ((R_CHARGE_TOP + R_CHARGE_BOTTOM) / R_CHARGE_BOTTOM);
 
 		for (int j = 0;j < HW_ADC_TEMP_SENSORS;j++) {
 			m_temps[j] = NTC_TEMP(temps[j]);
@@ -132,7 +138,16 @@ void pwr_init(void) {
 	BQ_PCHG_OFF();
 #endif
 
+#ifdef LINE_RELAY_PCH
+	palSetLineMode(LINE_RELAY_PCH, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetLineMode(LINE_RELAY_MAIN, PAL_MODE_OUTPUT_PUSHPULL);
+
+	HW_RELAY_MAIN_OFF();
+	HW_RELAY_PCH_OFF();
+#endif
+
 	palSetLineMode(LINE_V_CHARGE, PAL_MODE_INPUT_ANALOG);
+	palSetLineMode(LINE_V_FUSE, PAL_MODE_INPUT_ANALOG);
 	palSetLineMode(LINE_CURRENT, PAL_MODE_INPUT_ANALOG);
 	palSetLineMode(LINE_TEMP_0, PAL_MODE_INPUT_ANALOG);
 	palSetLineMode(LINE_TEMP_1, PAL_MODE_INPUT_ANALOG);
@@ -140,6 +155,7 @@ void pwr_init(void) {
 	palSetLineMode(LINE_TEMP_3, PAL_MODE_INPUT_ANALOG);
 	palSetLineMode(LINE_TEMP_4, PAL_MODE_INPUT_ANALOG);
 	palSetLineMode(LINE_TEMP_5, PAL_MODE_INPUT_ANALOG);
+	palSetLineMode(LINE_TEMP_6, PAL_MODE_INPUT_ANALOG);
 
 	palSetLineMode(LINE_TEMP_0_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_TEMP_1_EN, PAL_MODE_OUTPUT_PUSHPULL);
@@ -147,6 +163,7 @@ void pwr_init(void) {
 	palSetLineMode(LINE_TEMP_3_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_TEMP_4_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_TEMP_5_EN, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetLineMode(LINE_TEMP_6_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	TEMP_MEASURE_ON();
 
 	CURR_MEASURE_ON();
@@ -164,6 +181,10 @@ void pwr_init(void) {
 
 float pwr_get_vcharge(void) {
 	return m_v_charge;
+}
+
+float pwr_get_vfuse(void) {
+	return m_v_fuse;
 }
 
 float pwr_get_iin(void) {
