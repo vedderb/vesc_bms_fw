@@ -36,11 +36,11 @@
 #define VAR_INIT_CODE			92891934
 
 #if !defined(HW_SOURCE) && !defined(HW_HEADER)
-//#define HW_HEADER				"hw_12s7p_v1.h"
-//#define HW_SOURCE				"hw_12s7p_v1.c"
+#define HW_HEADER				"hw_12s7p_v1.h"
+#define HW_SOURCE				"hw_12s7p_v1.c"
 
-#define HW_HEADER				"hw_18s_light.h"
-#define HW_SOURCE				"hw_18s_light.c"
+//#define HW_HEADER				"hw_18s_light.h"
+//#define HW_SOURCE				"hw_18s_light.c"
 
 //#define HW_HEADER				"hw_stormcore_bms.h"
 //#define HW_SOURCE				"hw_stormcore_bms.c"

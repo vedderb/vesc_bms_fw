@@ -42,6 +42,7 @@ static can_status_msg_4 stat_msgs_4[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_5 stat_msgs_5[CAN_STATUS_MSGS_TO_STORE];
 static bms_soc_soh_temp_stat bms_stat_msgs[CAN_BMS_STATUS_MSGS_TO_STORE];
 static bms_soc_soh_temp_stat bms_stat_v_cell_min;
+static psw_status psw_stat[CAN_STATUS_MSGS_TO_STORE];
 
 static mutex_t can_mtx;
 static CANRxFrame rx_frames[RX_FRAMES_SIZE];
@@ -89,6 +90,8 @@ void comm_can_init(void) {
 		stat_msgs_3[i].id = -1;
 		stat_msgs_4[i].id = -1;
 		stat_msgs_5[i].id = -1;
+
+		psw_stat[i].id = -1;
 	}
 
 	bms_stat_v_cell_min.id = -1;
@@ -336,6 +339,35 @@ bms_soc_soh_temp_stat *comm_can_get_bms_soc_soh_temp_stat_id(int id) {
 
 bms_soc_soh_temp_stat *comm_can_get_bms_stat_v_cell_min(void) {
 	return &bms_stat_v_cell_min;
+}
+
+psw_status *comm_can_get_psw_status_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &psw_stat[index];
+	} else {
+		return 0;
+	}
+}
+
+psw_status *comm_can_get_psw_status_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (psw_stat[i].id == id) {
+			return &psw_stat[i];
+		}
+	}
+
+	return 0;
+}
+
+void comm_can_psw_switch(int id, bool is_on, bool plot) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = is_on ? 1 : 0;
+	buffer[send_index++] = plot ? 1 : 0;
+
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_PSW_SWITCH << 8),
+			buffer, send_index);
 }
 
 /**
@@ -797,6 +829,26 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 			if (msg_buf->id == id || msg_buf->id == -1) {
 				*msg_buf = msg;
+				break;
+			}
+		}
+	} break;
+
+	case CAN_PACKET_PSW_STAT: {
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			psw_status *msg = &psw_stat[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTime();
+
+				msg->v_in = buffer_get_float16(data8, 10.0, &ind);
+				msg->v_out = buffer_get_float16(data8, 10.0, &ind);
+				msg->temp = buffer_get_float16(data8, 10.0, &ind);
+				msg->is_out_on = (data8[ind] >> 0) & 1;
+				msg->is_pch_on = (data8[ind] >> 1) & 1;
+				msg->is_dsc_on = (data8[ind] >> 2) & 1;
+				ind++;
 				break;
 			}
 		}

@@ -217,6 +217,17 @@ typedef struct {
 	bool is_charge_allowed;
 } bms_soc_soh_temp_stat;
 
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float v_in;
+	float v_out;
+	float temp;
+	bool is_out_on;
+	bool is_pch_on;
+	bool is_dsc_on;
+} psw_status;
+
 typedef enum {
 	FAULT_CODE_NONE = 0,
 	FAULT_CODE_CHARGE_OVERCURRENT,
@@ -283,7 +294,9 @@ typedef enum {
 	CAN_PACKET_BMS_BAL,
 	CAN_PACKET_BMS_TEMPS,
 	CAN_PACKET_BMS_HUM,
-	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT
+	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT,
+	CAN_PACKET_PSW_STAT,
+	CAN_PACKET_PSW_SWITCH
 } CAN_PACKET_ID;
 
 // Communication commands
@@ -406,6 +419,10 @@ typedef enum {
 	COMM_ERASE_BOOTLOADER_ALL_CAN_HW,
 
 	COMM_SET_ODOMETER,
+
+	// Power switch commands
+	COMM_PSW_GET_STATUS,
+	COMM_PSW_SWITCH,
 } COMM_PACKET_ID;
 
 #endif /* DATATYPES_H_ */
