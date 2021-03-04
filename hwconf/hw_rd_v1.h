@@ -143,9 +143,12 @@
 #define LED_ON(led)				palClearLine(led)
 #define LED_OFF(led)			palSetLine(led)
 
+#define HW_GET_V_CHARGE()		hw_board_get_vcharge()
+
 // Functions
 void hw_board_init(void);
 void hw_board_chg_en(bool enable);
+float hw_board_get_vcharge(void);
 bool hw_psw_switch_on(void);
 void hw_psw_switch_off(void);
 

@@ -95,6 +95,14 @@ void hw_board_chg_en(bool enable) {
 	}
 }
 
+float hw_board_get_vcharge(void) {
+	if (m_conn_state == CONN_STATE_CHARGER) {
+		return pwr_get_vcharge();
+	} else {
+		return 0.0;
+	}
+}
+
 bool hw_psw_switch_on(void) {
 	chMtxLock(&m_sw_mutex);
 
@@ -211,7 +219,9 @@ static void terminal_info(int argc, const char **argv) {
 	(void)argc;
 	(void)argv;
 
-	commands_printf("V Fuse: %.2f V", pwr_get_vfuse());
+	commands_printf("V Fuse  : %.2f V", pwr_get_vfuse());
+	commands_printf("V Charge: %.2f V", pwr_get_vcharge());
+	commands_printf("V Cells : %.2f V", bms_if_get_v_tot());
 
 	switch (m_conn_state) {
 	case CONN_STATE_UNPLUGGED:

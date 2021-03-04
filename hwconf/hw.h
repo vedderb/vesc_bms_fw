@@ -83,6 +83,10 @@
 #define CURR_MEASURE_OFF()
 #endif
 
+#ifndef HW_GET_V_CHARGE
+#define HW_GET_V_CHARGE()		pwr_get_vcharge()
+#endif
+
 // Functions
 uint8_t hw_id_from_uuid(void);
 

@@ -66,7 +66,7 @@ void bms_if_init(void) {
 
 static bool charge_ok(void) {
 	float max = m_is_charging ? backup.config.vc_charge_end : backup.config.vc_charge_start;
-	return pwr_get_vcharge() > backup.config.v_charge_detect &&
+	return HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
 			m_voltage_cell_min > backup.config.vc_charge_min &&
 			m_voltage_cell_max < max &&
 			HW_TEMP_CELLS_MAX() < backup.config.t_charge_max;
@@ -124,16 +124,16 @@ static THD_FUNCTION(charge_thd, p) {
 		}
 
 		// Charger must be disconnected and reconnected on charge overcurrent events
-		if (m_was_charge_overcurrent && pwr_get_vcharge() < backup.config.v_charge_detect) {
+		if (m_was_charge_overcurrent && HW_GET_V_CHARGE() < backup.config.v_charge_detect) {
 			m_was_charge_overcurrent = false;
 		}
 
 		// Store data and counters to flash every time charger is disconnected
 		static bool charger_connected_last = false;
-		if (charger_connected_last && pwr_get_vcharge() < backup.config.v_charge_detect) {
+		if (charger_connected_last && HW_GET_V_CHARGE() < backup.config.v_charge_detect) {
 			flash_helper_store_backup_data();
 		}
-		charger_connected_last = pwr_get_vcharge() > backup.config.v_charge_detect;
+		charger_connected_last = HW_GET_V_CHARGE() > backup.config.v_charge_detect;
 	}
 }
 
@@ -370,7 +370,7 @@ float bms_if_get_v_tot(void) {
 }
 
 float bms_if_get_v_charge(void) {
-	return pwr_get_vcharge();
+	return HW_GET_V_CHARGE();
 }
 
 float bms_if_get_temp(int sensor) {
