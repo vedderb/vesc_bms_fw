@@ -275,6 +275,9 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		buffer_append_float16(send_buffer, bms_if_get_soc(), 1e3, &ind);
 		buffer_append_float16(send_buffer, bms_if_get_soh(), 1e3, &ind);
 
+		// CAN ID
+		send_buffer[ind++] = backup.config.controller_id;
+
 		reply_func(send_buffer, ind);
 	} break;
 

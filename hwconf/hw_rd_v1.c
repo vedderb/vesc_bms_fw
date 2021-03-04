@@ -23,6 +23,7 @@
 #include "terminal.h"
 #include "commands.h"
 #include "pwr.h"
+#include "bms_if.h"
 
 #include <stdio.h>
 
@@ -34,8 +35,7 @@ typedef enum {
 } CONN_STATE;
 
 // Functions
-static void terminal_rl_main_set(int argc, const char **argv);
-static void terminal_rl_pch_set(int argc, const char **argv);
+static void terminal_psw_set(int argc, const char **argv);
 static void terminal_info(int argc, const char **argv);
 
 // Threads
@@ -44,13 +44,22 @@ static THD_FUNCTION(hw_thd, p);
 
 // Variables
 static volatile CONN_STATE m_conn_state = CONN_STATE_UNPLUGGED;
+static mutex_t m_sw_mutex;
+static volatile bool terminal_override_psw = false;
 
 void hw_board_init(void) {
+	chMtxObjectInit(&m_sw_mutex);
+
+	HW_RELAY_MAIN_OFF();
+	HW_RELAY_PCH_OFF();
+
 	palSetLineMode(LINE_CURR_MEASURE_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_5V_HP_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_3V3P_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_12V_HP_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_AFTER_FUSE_EN, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetLineMode(LINE_RELAY_PCH, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetLineMode(LINE_RELAY_MAIN, PAL_MODE_OUTPUT_PUSHPULL);
 
 	palSetLine(LINE_5V_HP_EN);
 	palSetLine(LINE_3V3P_EN);
@@ -62,16 +71,10 @@ void hw_board_init(void) {
 	palSetLineMode(LINE_PWRKEY_2, PAL_MODE_INPUT);
 
 	terminal_register_command_callback(
-			"main_rl_set",
-			"Set main relay",
+			"rd_psw_set",
+			"Switch output on or off",
 			"[0 or 1]",
-			terminal_rl_main_set);
-
-	terminal_register_command_callback(
-			"pch_rl_set",
-			"Set precharge relay",
-			"[0 or 1]",
-			terminal_rl_pch_set);
+			terminal_psw_set);
 
 	terminal_register_command_callback(
 			"rd_info",
@@ -92,9 +95,54 @@ void hw_board_chg_en(bool enable) {
 	}
 }
 
+bool hw_psw_switch_on(void) {
+	chMtxLock(&m_sw_mutex);
+
+	if (HW_RALAY_MAIN_IS_ON()) {
+		chMtxUnlock(&m_sw_mutex);
+		return true;
+	}
+
+	HW_RELAY_PCH_ON();
+
+	float timeout = 0;
+	// Wait for output voltage to rise to 90 % of battery voltage
+	while (fabsf(pwr_get_vcharge() - bms_if_get_v_tot()) > (bms_if_get_v_tot() / 10)) {
+		chThdSleepMilliseconds(25);
+		timeout += 25.0 / 1000.0;
+		if (timeout >= 2.5) {
+			// Timed out
+			HW_RELAY_PCH_OFF();
+			chMtxUnlock(&m_sw_mutex);
+			return false;
+		}
+	}
+
+	HW_RELAY_MAIN_ON();
+	HW_RELAY_PCH_OFF();
+
+	chMtxUnlock(&m_sw_mutex);
+	return true;
+}
+
+void hw_psw_switch_off(void) {
+	chMtxLock(&m_sw_mutex);
+
+	if (!HW_RALAY_MAIN_IS_ON()) {
+		chMtxUnlock(&m_sw_mutex);
+		return;
+	}
+
+	HW_RELAY_MAIN_OFF();
+	chMtxUnlock(&m_sw_mutex);
+}
+
 static THD_FUNCTION(hw_thd, p) {
 	(void)p;
 	chRegSetThreadName("HW");
+
+	int jetpack_delay_cnt = 0;
+	bool psw_ok = true;
 
 	for(;;) {
 		bool pwr_key_1 = !palReadLine(LINE_PWRKEY_1);
@@ -102,42 +150,57 @@ static THD_FUNCTION(hw_thd, p) {
 
 		if (!pwr_key_1 && !pwr_key_2) {
 			m_conn_state = CONN_STATE_UNPLUGGED;
-			HW_RELAY_MAIN_OFF();
-			HW_RELAY_PCH_OFF();
+			if (!terminal_override_psw) {
+				HW_RELAY_MAIN_OFF();
+				HW_RELAY_PCH_OFF();
+			}
 		} else if (!pwr_key_1 && pwr_key_2) {
 			m_conn_state = CONN_STATE_JETPACK;
 		} else if (pwr_key_1 && pwr_key_2) {
 			m_conn_state = CONN_STATE_CHARGER;
 		}
 
+		/*
+		 * If the jetpack is detected, wait 100 iterations (about 1s) then start the precharge and
+		 * main contactor switching sequence. If switching on fails (which can happen if the
+		 * precharge times out due to e.g. a short) the jetpack must be unplugged and replugged
+		 * to make the next attempt.
+		 */
+		if (m_conn_state == CONN_STATE_JETPACK) {
+			if (jetpack_delay_cnt < 100) {
+				jetpack_delay_cnt++;
+			} else {
+				if (psw_ok) {
+					psw_ok = hw_psw_switch_on();
+				}
+			}
+		} else {
+			jetpack_delay_cnt = 0;
+			psw_ok = true;
+		}
+
 		chThdSleepMilliseconds(10);
 	}
 }
 
-static void terminal_rl_main_set(int argc, const char **argv) {
+static void terminal_psw_set(int argc, const char **argv) {
 	if (argc == 2) {
 		int d = -1;
 		sscanf(argv[1], "%d", &d);
 
 		if (d) {
-			HW_RELAY_MAIN_ON();
+			terminal_override_psw = true;
+			commands_printf("Switching on...");
+			bool res = hw_psw_switch_on();
+			if (res) {
+				commands_printf("Power is now on");
+			} else {
+				commands_printf("Precharge timed out");
+			}
 		} else {
-			HW_RELAY_MAIN_OFF();
-		}
-	} else {
-		commands_printf("This command requires one argument.\n");
-	}
-}
-
-static void terminal_rl_pch_set(int argc, const char **argv) {
-	if (argc == 2) {
-		int d = -1;
-		sscanf(argv[1], "%d", &d);
-
-		if (d) {
-			HW_RELAY_PCH_ON();
-		} else {
-			HW_RELAY_PCH_OFF();
+			hw_psw_switch_off();
+			commands_printf("Power is now off");
+			terminal_override_psw = false;
 		}
 	} else {
 		commands_printf("This command requires one argument.\n");

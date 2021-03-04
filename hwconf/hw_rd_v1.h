@@ -44,6 +44,7 @@
 #define HW_RELAY_MAIN_OFF()		palClearLine(LINE_RELAY_MAIN)
 #define HW_RELAY_PCH_ON()		palSetLine(LINE_RELAY_PCH)
 #define HW_RELAY_PCH_OFF()		palClearLine(LINE_RELAY_PCH)
+#define HW_RALAY_MAIN_IS_ON()	palReadLine(LINE_RELAY_MAIN)
 
 // Macros
 #define CHARGE_ENABLE()			hw_board_chg_en(true)
@@ -120,11 +121,11 @@
 #define LINE_TEMP_5_EN			PAL_LINE(GPIOB, 4)
 #define LINE_TEMP_6_EN			PAL_LINE(GPIOB, 5)
 
-#define NTC_RES(adc)			(10000.0 / ((4095.0 / (float)adc) - 1.0))
+#define NTC_RES(adc)			((4095.0 / (float)adc) * 10000.0 - 10000.0)
 #define NTC_TEMP(adc)			(1.0 / ((logf(NTC_RES(adc) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
 // TODO: Take highest of all temp sensors
-#define HW_TEMP_CELLS_MAX()		bms_if_get_temp(2)
+#define HW_TEMP_CELLS_MAX()		bms_if_get_humidity_sensor_temp()
 
 // ADC Channels
 #define ADC_CH_V_CHARGE			ADC_CHANNEL_IN14
@@ -145,5 +146,7 @@
 // Functions
 void hw_board_init(void);
 void hw_board_chg_en(bool enable);
+bool hw_psw_switch_on(void);
+void hw_psw_switch_off(void);
 
 #endif /* HWCONF_HW_RD_V1_H_ */
