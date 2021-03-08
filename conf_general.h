@@ -30,23 +30,30 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		1
+#define FW_TEST_VERSION_NUMBER		2
 
 // Init codes for the persistent storage. Change the config code when updating the config struct.
-#define VAR_INIT_CODE			92891934
+#define VAR_INIT_CODE				92891934
 
 #if !defined(HW_SOURCE) && !defined(HW_HEADER)
-#define HW_HEADER				"hw_12s7p_v1.h"
-#define HW_SOURCE				"hw_12s7p_v1.c"
+#define HW_HEADER					"hw_12s7p_v1.h"
+#define HW_SOURCE					"hw_12s7p_v1.c"
 
-//#define HW_HEADER				"hw_18s_light.h"
-//#define HW_SOURCE				"hw_18s_light.c"
+//#define HW_HEADER					"hw_18s_light.h"
+//#define HW_SOURCE					"hw_18s_light.c"
 
-//#define HW_HEADER				"hw_stormcore_bms.h"
-//#define HW_SOURCE				"hw_stormcore_bms.c"
+//#define HW_HEADER					"hw_stormcore_bms.h"
+//#define HW_SOURCE					"hw_stormcore_bms.c"
 
-//#define HW_HEADER				"hw_rd_v1.h"
-//#define HW_SOURCE				"hw_rd_v1.c"
+//#define HW_HEADER					"hw_rd_v1.h"
+//#define HW_SOURCE					"hw_rd_v1.c"
+#endif
+
+/*
+ * Enable blackmagic probe
+ */
+#ifndef HAS_BLACKMAGIC
+#define HAS_BLACKMAGIC				1
 #endif
 
 /*

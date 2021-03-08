@@ -24,12 +24,13 @@
 
 /**
  * TODO:
- * * Precharge control
- * * Charge enable and disable
- * * Powerkey
+ * * [OK] Precharge control
+ * * [OK] Charge enable and disable
+ * * [OK] Powerkey
  * * UART-comm
  * * [OK] Last temp sensor
- * * Black magic probe
+ * * [OK] Black magic probe
+ * * [OK] 125K CAN
  */
 
 // HW-specific
@@ -52,6 +53,7 @@
 
 // Settings
 #define HW_CELLS_SERIES			14
+#define CONF_MAX_BAL_CH			5
 #define HW_MAX_BAL_CH			8
 #define HW_SHUNT_RES			(0.1e-3)
 #define HW_SHUNT_AMP_GAIN		(50.0)
@@ -92,12 +94,19 @@
 #define HW_CAN_DEV				CAND1
 #define HW_CAN_AF				9
 #define LINE_CAN_EN				PAL_LINE(GPIOB, 7)
+#define CONF_CAN_BAUD_RATE		CAN_BAUD_125K
 
 // HDC1080 (temp/humidity)
 #define HDC1080_SDA_GPIO		GPIOA
 #define HDC1080_SDA_PIN			8
 #define HDC1080_SCL_GPIO		GPIOA
 #define HDC1080_SCL_PIN			7
+
+// NRF SWD
+#define NRF5x_SWDIO_GPIO		GPIOB
+#define NRF5x_SWDIO_PIN			15
+#define NRF5x_SWCLK_GPIO		GPIOB
+#define NRF5x_SWCLK_PIN			14
 
 // Analog
 #define HW_ADC_TEMP_SENSORS		7

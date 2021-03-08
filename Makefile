@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -Os -ggdb -fomit-frame-pointer -falign-functions=16 -D_GNU_SOURCE
   USE_OPT += -DBOARD_OTG_NOVBUSSENS $(build_args)
 endif
 
@@ -106,6 +106,8 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 #include $(CHIBIOS)/test/oslib/oslib_test.mk
 include st_hal/st_hal.mk
 include drivers/drivers.mk
+include blackmagic/blackmagic.mk
+include compression/compression.mk
 
 # Define linker script file here
 LDSCRIPT= STM32L476xG.ld

@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC BMS firmware.
 
@@ -31,6 +31,10 @@
 #include "timeout.h"
 #include "sleep.h"
 #include "utils.h"
+#if HAS_BLACKMAGIC
+#include "bm_if.h"
+#endif
+#include "minilzo.h"
 
 #include <math.h>
 #include <string.h>
@@ -449,6 +453,15 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_TERMINAL_CMD:
 	case COMM_PING_CAN:
 	case COMM_BMS_ZERO_CURRENT_OFFSET:
+	case COMM_BM_CONNECT:
+	case COMM_BM_ERASE_FLASH_ALL:
+	case COMM_BM_WRITE_FLASH_LZO:
+	case COMM_BM_WRITE_FLASH:
+	case COMM_BM_REBOOT:
+	case COMM_BM_DISCONNECT:
+	case COMM_BM_MAP_PINS_DEFAULT:
+	case COMM_BM_MAP_PINS_NRF5X:
+	case COMM_BM_MEM_READ:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len + 1;
@@ -538,6 +551,114 @@ static THD_FUNCTION(blocking_thread, arg) {
 				send_func_blocking(send_buffer, ind);
 			}
 		} break;
+
+#if HAS_BLACKMAGIC
+		case COMM_BM_CONNECT: {
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, bm_connect(), &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_ERASE_FLASH_ALL: {
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, bm_erase_flash_all(), &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_WRITE_FLASH_LZO:
+		case COMM_BM_WRITE_FLASH: {
+			if (packet_id == COMM_BM_WRITE_FLASH_LZO) {
+				memcpy(send_buffer, data + 6, len - 6);
+				int32_t ind = 4;
+				lzo_uint decompressed_len = buffer_get_uint16(data, &ind);
+				lzo1x_decompress_safe(send_buffer, len - 6, data + 4, &decompressed_len, NULL);
+				len = decompressed_len + 4;
+			}
+
+			int32_t ind = 0;
+			uint32_t addr = buffer_get_uint32(data, &ind);
+
+			int res = bm_write_flash(addr, data + ind, len - ind);
+
+			ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, res, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_REBOOT: {
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, bm_reboot(), &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_DISCONNECT: {
+			bm_disconnect();
+			bm_leave_nrf_debug_mode();
+
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_MAP_PINS_DEFAULT: {
+			bm_default_swd_pins();
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, 1, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_MAP_PINS_NRF5X: {
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+
+#ifdef NRF5x_SWDIO_GPIO
+			buffer_append_int16(send_buffer, 1, &ind);
+			bm_change_swd_pins(NRF5x_SWDIO_GPIO, NRF5x_SWDIO_PIN,
+					NRF5x_SWCLK_GPIO, NRF5x_SWCLK_PIN);
+#else
+			buffer_append_int16(send_buffer, 0, &ind);
+#endif
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_MEM_READ: {
+			int32_t ind = 0;
+			uint32_t addr = buffer_get_uint32(data, &ind);
+			uint16_t read_len = buffer_get_uint16(data, &ind);
+
+			if (read_len > sizeof(send_buffer) - 3) {
+				read_len = sizeof(send_buffer) - 3;
+			}
+
+			int res = bm_mem_read(addr, send_buffer + 3, read_len);
+
+			ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, res, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind + read_len);
+			}
+		} break;
+#endif
 
 		default:
 			break;

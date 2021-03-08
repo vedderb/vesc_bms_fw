@@ -24,6 +24,7 @@
 #include "commands.h"
 #include "pwr.h"
 #include "bms_if.h"
+#include "stdlib.h"
 
 #include <stdio.h>
 
@@ -194,7 +195,7 @@ static THD_FUNCTION(hw_thd, p) {
 static void terminal_psw_set(int argc, const char **argv) {
 	if (argc == 2) {
 		int d = -1;
-		sscanf(argv[1], "%d", &d);
+		d = atoi(argv[1]);
 
 		if (d) {
 			terminal_override_psw = true;
