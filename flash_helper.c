@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC BMS firmware.
 
@@ -24,12 +24,8 @@
 
 #define FLASH_PAGE_MAIN_APP			0
 #define FLASH_PAGE_BACKUP			60
-#define FLASH_PAGE_NEW_APP			256
-#define FLASH_PAGE_BOOTLOADER		316
 #define FLASH_BANK_MAIN_APP			FLASH_BANK_1
 #define FLASH_BANK_BACKUP			FLASH_BANK_1
-#define FLASH_BANK_NEW_APP			FLASH_BANK_2
-#define FLASH_BANK_BOOTLOADER		FLASH_BANK_2
 #define FLASH_ADDRESS_MAIN_APP		0x08000000
 #define FLASH_ADDRESS_BACKUP		0x0801E000
 #define FLASH_ADDRESS_NEW_APP		0x08020000
@@ -43,6 +39,13 @@
 #define MAX_SIZE_MAIN_APP			(FLASH_PAGES_MAIN_APP * FLASH_PAGE_SIZE)
 
 uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
+	uint32_t bank = FLASH_BANK_2;
+	uint32_t page = 256;
+	if (*STM32_FLASH_SIZE != 256) {
+		bank = FLASH_BANK_1;
+		page = 64;
+	}
+
 	(void)new_app_size; // TODO: Only erase enough pages to fit the new app
 
 	timeout_configure_IWDT_slowest();
@@ -52,8 +55,8 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	FLASH_EraseInitTypeDef eType;
 	eType.TypeErase = FLASH_TYPEERASE_PAGES;
-	eType.Banks = FLASH_BANK_NEW_APP;
-	eType.Page = FLASH_PAGE_NEW_APP;
+	eType.Banks = bank;
+	eType.Page = page;
 	eType.NbPages = FLASH_PAGES_MAIN_APP;
 
 	uint32_t res = 0;
@@ -67,6 +70,13 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 }
 
 uint16_t flash_helper_erase_bootloader(void) {
+	uint32_t bank = FLASH_BANK_2;
+	uint32_t page = 316;
+	if (*STM32_FLASH_SIZE != 256) {
+		bank = FLASH_BANK_1;
+		page = 124;
+	}
+
 	timeout_configure_IWDT_slowest();
 
 	HAL_FLASH_Unlock();
@@ -74,8 +84,8 @@ uint16_t flash_helper_erase_bootloader(void) {
 
 	FLASH_EraseInitTypeDef eType;
 	eType.TypeErase = FLASH_TYPEERASE_PAGES;
-	eType.Banks = FLASH_BANK_BOOTLOADER;
-	eType.Page = FLASH_PAGE_BOOTLOADER;
+	eType.Banks = bank;
+	eType.Page = page;
 	eType.NbPages = FLASH_PAGES_BOOTLOADER;
 
 	uint32_t res = 0;

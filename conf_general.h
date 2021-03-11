@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC BMS firmware.
 
@@ -30,7 +30,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		2
+#define FW_TEST_VERSION_NUMBER		3
 
 // Init codes for the persistent storage. Change the config code when updating the config struct.
 #define VAR_INIT_CODE				92891934
@@ -62,6 +62,7 @@
 #define SYSTEM_CORE_CLOCK			168000000
 #define STM32_UUID					((uint32_t*)0x1FFF7590)
 #define STM32_UUID_8				((uint8_t*)0x1FFF7590)
+#define STM32_FLASH_SIZE			((uint16_t*)0x1FFF75E0)
 
 #ifndef HW_SOURCE
 #error "No hardware source file set"
