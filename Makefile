@@ -138,7 +138,8 @@ CSRC = $(ALLCSRC) \
        flash_helper.c \
        conf_general.c \
        timeout.c \
-       sleep.c
+       sleep.c \
+       comm_uart.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

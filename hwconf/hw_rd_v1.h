@@ -96,6 +96,13 @@
 #define LINE_CAN_EN				PAL_LINE(GPIOB, 7)
 #define CONF_CAN_BAUD_RATE		CAN_BAUD_125K
 
+// UART
+#define LINE_UART_RX			PAL_LINE(GPIOA, 10)
+#define LINE_UART_TX			PAL_LINE(GPIOA, 9)
+#define HW_UART_DEV				SD1
+#define HW_UART_AF				7
+#define CONF_UART_BAUD_RATE		115200
+
 // HDC1080 (temp/humidity)
 #define HDC1080_SDA_GPIO		GPIOA
 #define HDC1080_SDA_PIN			8

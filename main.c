@@ -31,6 +31,7 @@
 #include "timeout.h"
 #include "sleep.h"
 #include "flash_helper.h"
+#include "comm_uart.h"
 
 #include <math.h>
 #include <string.h>
@@ -126,6 +127,10 @@ int main(void) {
 #ifdef HDC1080_SDA_GPIO
 	hdc1080_init(HDC1080_SDA_GPIO, HDC1080_SDA_PIN,
 			HDC1080_SCL_GPIO, HDC1080_SCL_PIN);
+#endif
+
+#ifdef HW_UART_DEV
+	comm_uart_init();
 #endif
 
 	// Buzzer
