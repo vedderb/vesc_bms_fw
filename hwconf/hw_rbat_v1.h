@@ -77,6 +77,12 @@
 #define R_CHARGE_TOP			(110e3)
 #define R_CHARGE_BOTTOM			(3e3)
 
+// Config default value overrides
+#define CONF_MAX_CHARGE_CURRENT 	45
+#define CONF_CAN_BAUD_RATE			CAN_BAUD_125K
+
+// Settings specific to this hardware
+
 // Switch off if no current has been drawn or charged for this long
 #define S_NO_USE_TIMEOUT			600.0 // S
 #define S_NO_USE_CURRENT_TRES		2.0 // A
@@ -137,7 +143,6 @@
 #define HW_CAN_DEV				CAND1
 #define HW_CAN_AF				9
 #define LINE_CAN_EN				PAL_LINE(GPIOB, 7)
-#define CONF_CAN_BAUD_RATE		CAN_BAUD_125K
 
 // UART
 #define LINE_UART_RX			PAL_LINE(GPIOA, 10)
