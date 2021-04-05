@@ -133,6 +133,15 @@ typedef struct __attribute__((packed)) {
 
 	// Filter constant for SoC filter
 	float soc_filter_const;
+
+	// Start limiting the number of balancing channels at this temperature
+	float t_bal_lim_start;
+
+	// Disable all balancing channels above this temperature
+	float t_bal_lim_end;
+
+	// Only allow charging when the cell temperature is above this value
+	float t_charge_min;
 } main_config_t;
 
 typedef struct __attribute__((packed)) {
@@ -156,6 +165,14 @@ typedef struct __attribute__((packed)) {
 	// Counter for how many times backup data has been written to flash
 	uint32_t conf_flash_write_cnt_init_flag;
 	uint32_t conf_flash_write_cnt;
+
+	// Counter to not wait for USB on every boot
+	uint32_t usb_cnt_init_flag;
+	uint32_t usb_cnt;
+
+	// HW-specific data
+	uint32_t hw_config_init_flag;
+	uint8_t hw_config[128];
 
 	// BMS configuration structure
 	uint32_t config_init_flag;
@@ -296,7 +313,12 @@ typedef enum {
 	CAN_PACKET_BMS_HUM,
 	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT,
 	CAN_PACKET_PSW_STAT,
-	CAN_PACKET_PSW_SWITCH
+	CAN_PACKET_PSW_SWITCH,
+	CAN_PACKET_BMS_HW_DATA_1,
+	CAN_PACKET_BMS_HW_DATA_2,
+	CAN_PACKET_BMS_HW_DATA_3,
+	CAN_PACKET_BMS_HW_DATA_4,
+	CAN_PACKET_BMS_HW_DATA_5,
 } CAN_PACKET_ID;
 
 // Communication commands
@@ -423,6 +445,9 @@ typedef enum {
 	// Power switch commands
 	COMM_PSW_GET_STATUS,
 	COMM_PSW_SWITCH,
+
+	COMM_BMS_FWD_CAN_RX,
+	COMM_BMS_HW_DATA,
 } COMM_PACKET_ID;
 
 #endif /* DATATYPES_H_ */

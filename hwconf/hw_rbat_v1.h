@@ -17,20 +17,36 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HWCONF_HW_RD_V1_H_
-#define HWCONF_HW_RD_V1_H_
+#ifndef HWCONF_HW_RBAT_V1_H_
+#define HWCONF_HW_RBAT_V1_H_
 
-#define HW_NAME					"rd_v1"
+#define HW_NAME					"rbat_v1"
 
 /**
  * TODO:
  * * [OK] Precharge control
  * * [OK] Charge enable and disable
  * * [OK] Powerkey
- * * UART-comm
+ * * [OK] UART-comm
  * * [OK] Last temp sensor
  * * [OK] Black magic probe
  * * [OK] 125K CAN
+ *
+ * * [OK] HW-specific message (CAN, UART) with connector info, fuse voltages etc.
+ * * [OK] Make sure that it is OK to leave charger connected, even unpowered, without draining battery.
+ * * [OK] Lower balance channel count when the temperature is too high.
+ * * [OK] Make sure that the battery does not discharge completely when left connected. Find
+ *   condition that switches off contactor and leave it off until battery has been unplugged.
+ * * [OK] Do not switch on contactor for jetpack if voltage is too low.
+ * * [OK] Configurable contactor cut current (450+ A)?
+ * * [OK] Overtemp contactor cut (75C or so).
+ * * [OK] Min charge temperature limit.
+ * * [OK] Implement moist detect pin on connector.
+ * * [OK] Decommission battery (switch off and never switch on contactor again) if RH > 95 and T > 15.
+ * * [OK] Activate precharge sequence when charger is detected (do not wait for voltage).
+ * * [OK] Rename rd to rbat
+ * * [OK] Switch off contactor below a voltage threshold (2.8V).
+ *
  */
 
 // HW-specific
@@ -45,7 +61,7 @@
 #define HW_RELAY_MAIN_OFF()		palClearLine(LINE_RELAY_MAIN)
 #define HW_RELAY_PCH_ON()		palSetLine(LINE_RELAY_PCH)
 #define HW_RELAY_PCH_OFF()		palClearLine(LINE_RELAY_PCH)
-#define HW_RALAY_MAIN_IS_ON()	palReadLine(LINE_RELAY_MAIN)
+#define HW_RELAY_MAIN_IS_ON()	palReadLine(LINE_RELAY_MAIN)
 
 // Macros
 #define CHARGE_ENABLE()			hw_board_chg_en(true)
@@ -60,6 +76,33 @@
 #define V_REG					3.3
 #define R_CHARGE_TOP			(110e3)
 #define R_CHARGE_BOTTOM			(3e3)
+
+// Switch off if no current has been drawn or charged for this long
+#define S_NO_USE_TIMEOUT			600.0 // S
+#define S_NO_USE_CURRENT_TRES		2.0 // A
+
+// Do not switch on if any cell voltage is below this
+#define S_MIN_CELL_VOLTAGE_ON		3.0 // V
+
+// Switch off contactor if input current is above this value. NOTE: Make sure
+// that there is enough margin from the VESC setting, as switching off the contactor
+// under load is likely to damage hardware. This should be the very last thing
+// to do if everything else fails.
+#define S_CONTACTOR_OFF_CURRENT		450.0 // A
+
+// Switch off contactor if any cell goes above this temperature. As with the current,
+// this should be the last effort if the power consumer ignores the temperature.
+#define S_CONTACTOR_OFF_OVERTEMP	75.0 // Deg C
+
+// Decommission battery if the humidity and temperatures go above this value at
+// the same time. If this happens when current is drawn, wait until it drops below
+// 10A before switching off contactor.
+#define S_DECOMMISSION_TEMP			15.0 // Deg C
+#define S_DECOMMISSION_HUM			95.0 // RH
+
+// If any cell goes below this voltage, the contactor is switched off. Before switching off, a
+// SOC of 0% will be reported to allow the VESC to stop drawing current.
+#define S_V_CONTACTOR_OFF			2.8 // V
 
 // Enable pins
 #define LINE_CURR_MEASURE_EN	PAL_LINE(GPIOB, 6)
@@ -137,11 +180,11 @@
 #define LINE_TEMP_5_EN			PAL_LINE(GPIOB, 4)
 #define LINE_TEMP_6_EN			PAL_LINE(GPIOB, 5)
 
+#define NTC_BETA				(3950.0)
 #define NTC_RES(adc)			((4095.0 / (float)adc) * 10000.0 - 10000.0)
-#define NTC_TEMP(adc)			(1.0 / ((logf(NTC_RES(adc) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP(adc)			(1.0 / ((logf(NTC_RES(adc) / 10000.0) / NTC_BETA) + (1.0 / 298.15)) - 273.15)
 
-// TODO: Take highest of all temp sensors
-#define HW_TEMP_CELLS_MAX()		bms_if_get_humidity_sensor_temp()
+#define HW_TEMP_CELLS_MAX()		hw_temp_cell_max()
 
 // ADC Channels
 #define ADC_CH_V_CHARGE			ADC_CHANNEL_IN14
@@ -160,12 +203,23 @@
 #define LED_OFF(led)			palSetLine(led)
 
 #define HW_GET_V_CHARGE()		hw_board_get_vcharge()
+#define HW_SOC_OVERRIDE()		hw_soc_override()
+#define HW_GET_V_MOIST_SENSE()	ltc_last_gpio_voltage(5)
+#define HW_CHARGER_DETECTED()	hw_charger_detected()
+
+#define HW_SEND_DATA(send_func)	hw_send_data(send_func)
+#define HW_SEND_CAN_DATA()		hw_send_can_data()
 
 // Functions
 void hw_board_init(void);
 void hw_board_chg_en(bool enable);
 float hw_board_get_vcharge(void);
 bool hw_psw_switch_on(void);
-void hw_psw_switch_off(void);
+void hw_psw_switch_off(bool safe);
+float hw_soc_override(void);
+float hw_temp_cell_max(void);
+void hw_send_data(void(*reply_func)(unsigned char *data, unsigned int len));
+void hw_send_can_data(void);
+bool hw_charger_detected(void);
 
-#endif /* HWCONF_HW_RD_V1_H_ */
+#endif /* HWCONF_HW_RBAT_V1_H_ */

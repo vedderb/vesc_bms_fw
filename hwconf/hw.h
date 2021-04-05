@@ -87,6 +87,26 @@
 #define HW_GET_V_CHARGE()		pwr_get_vcharge()
 #endif
 
+#ifndef HW_GET_BAL_TEMP
+#define HW_GET_BAL_TEMP()		bms_if_get_humidity_sensor_temp()
+#endif
+
+#ifndef HW_SOC_OVERRIDE
+#define HW_SOC_OVERRIDE()		-1.0
+#endif
+
+#ifndef HW_SEND_DATA
+#define HW_SEND_DATA(send_func)
+#endif
+
+#ifndef HW_SEND_CAN_DATA
+#define HW_SEND_CAN_DATA()
+#endif
+
+#ifndef HW_CHARGER_DETECTED
+#define HW_CHARGER_DETECTED()	false
+#endif
+
 // Functions
 uint8_t hw_id_from_uuid(void);
 

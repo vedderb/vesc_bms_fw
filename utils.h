@@ -30,6 +30,7 @@ uint32_t utils_crc32c(uint8_t *data, uint32_t len);
 const char* utils_fault_to_string(bms_fault_code fault);
 const char* utils_hw_type_to_string(HW_TYPE hw);
 float utils_map(float x, float in_min, float in_max, float out_min, float out_max);
+int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max);
 int utils_truncate_number(float *number, float min, float max);
 int utils_truncate_number_int(int *number, int min, int max);
 float utils_batt_liion_norm_v_to_capacity(float norm_v);

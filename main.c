@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC BMS firmware.
 
@@ -40,20 +40,6 @@
 #include <stdlib.h>
 
 __attribute__((section(".ram4"))) volatile backup_data backup;
-
-static PWMConfig pwmcfg = {
-		1000000,
-		500,
-		NULL,
-		{
-				{PWM_OUTPUT_DISABLED, NULL},
-				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
-				{PWM_OUTPUT_DISABLED, NULL},
-				{PWM_OUTPUT_DISABLED, NULL}
-		},
-		0,
-		0
-};
 
 int main(void) {
 	halInit();
@@ -98,6 +84,16 @@ int main(void) {
 		backup.conf_flash_write_cnt_init_flag = VAR_INIT_CODE;
 	}
 
+	if (backup.usb_cnt_init_flag != VAR_INIT_CODE) {
+		backup.usb_cnt = 0;
+		backup.usb_cnt_init_flag = VAR_INIT_CODE;
+	}
+
+	if (backup.hw_config_init_flag != VAR_INIT_CODE) {
+		memset((void*)backup.hw_config, 0, sizeof(backup.hw_config));
+		backup.hw_config_init_flag = VAR_INIT_CODE;
+	}
+
 	if (backup.config_init_flag != MAIN_CONFIG_T_SIGNATURE) {
 		confparser_set_defaults_main_config_t((main_config_t*)(&backup.config));
 		backup.config_init_flag = MAIN_CONFIG_T_SIGNATURE;
@@ -113,10 +109,17 @@ int main(void) {
 	LED_OFF(LINE_LED_GREEN);
 
 	// USB needs some time to detect if a cable is connected, so start it before powering the regulators
-	// to not waste to much power.
+	// to not waste too much power.
 	commands_init();
 	comm_usb_init();
-	chThdSleepMilliseconds(500);
+
+	// Only wait for USB every 3 boots
+	if (backup.usb_cnt >= 3) {
+		chThdSleepMilliseconds(500);
+		backup.usb_cnt = 0;
+	} else {
+		backup.usb_cnt++;
+	}
 
 	pwr_init();
 	ltc_init();
@@ -132,11 +135,6 @@ int main(void) {
 #ifdef HW_UART_DEV
 	comm_uart_init();
 #endif
-
-	// Buzzer
-	pwmStart(&PWMD4, &pwmcfg);
-//	palSetPadMode(GPIOB, 7, PAL_MODE_ALTERNATE(2));
-//	pwmEnableChannel(&PWMD4, 1, PWM_PERCENTAGE_TO_WIDTH(&PWMD4, 5000));
 
 	sleep_init();
 	timeout_init();

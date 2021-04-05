@@ -36,6 +36,9 @@ int32_t confparser_serialize_main_config_t(uint8_t *buffer, const main_config_t 
 	buffer_append_float32_auto(buffer, conf->max_charge_current, &ind);
 	buffer_append_int32(buffer, conf->sleep_timeout_reset_ms, &ind);
 	buffer_append_float32_auto(buffer, conf->soc_filter_const, &ind);
+	buffer_append_float16(buffer, conf->t_bal_lim_start, 10, &ind);
+	buffer_append_float16(buffer, conf->t_bal_lim_end, 10, &ind);
+	buffer_append_float16(buffer, conf->t_charge_min, 10, &ind);
 
 	return ind;
 }
@@ -75,6 +78,9 @@ bool confparser_deserialize_main_config_t(const uint8_t *buffer, main_config_t *
 	conf->max_charge_current = buffer_get_float32_auto(buffer, &ind);
 	conf->sleep_timeout_reset_ms = buffer_get_int32(buffer, &ind);
 	conf->soc_filter_const = buffer_get_float32_auto(buffer, &ind);
+	conf->t_bal_lim_start = buffer_get_float16(buffer, 10, &ind);
+	conf->t_bal_lim_end = buffer_get_float16(buffer, 10, &ind);
+	conf->t_charge_min = buffer_get_float16(buffer, 10, &ind);
 
 	return true;
 }
@@ -107,5 +113,8 @@ void confparser_set_defaults_main_config_t(main_config_t *conf) {
 	conf->max_charge_current = CONF_MAX_CHARGE_CURRENT;
 	conf->sleep_timeout_reset_ms = CONF_SLEEP_TIMEOUT_MS;
 	conf->soc_filter_const = CONF_SOC_FILTER_CONST;
+	conf->t_bal_lim_start = CONF_T_BAL_LIM_START;
+	conf->t_bal_lim_end = CONF_T_BAL_LIM_END;
+	conf->t_charge_min = CONF_T_CHARGE_MIN;
 }
 

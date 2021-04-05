@@ -447,6 +447,10 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		comm_can_psw_switch(id, is_on, plot);
 	} break;
 
+	case COMM_BMS_HW_DATA: {
+		HW_SEND_DATA(reply_func);
+	} break;
+
 		// Blocking commands. Only one of them runs at any given time, in their
 		// own thread. If other blocking commands come before the previous one has
 		// finished, they are discarded.

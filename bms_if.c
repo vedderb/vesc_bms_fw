@@ -69,7 +69,8 @@ static bool charge_ok(void) {
 	return HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
 			m_voltage_cell_min > backup.config.vc_charge_min &&
 			m_voltage_cell_max < max &&
-			HW_TEMP_CELLS_MAX() < backup.config.t_charge_max;
+			HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
+			HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;
 }
 
 static THD_FUNCTION(charge_thd, p) {
@@ -99,7 +100,7 @@ static THD_FUNCTION(charge_thd, p) {
 
 		chThdSleepMilliseconds(10);
 
-		if (m_i_in_filter > -0.5 && m_is_charging) {
+		if (m_i_in_filter > -0.5 && m_is_charging && !HW_CHARGER_DETECTED()) {
 			no_charge_cnt++;
 
 			if (no_charge_cnt > 100) {
@@ -141,9 +142,22 @@ static THD_FUNCTION(balance_thd, p) {
 	(void)p;
 	chRegSetThreadName("Balance");
 
+	systime_t last_charge_time = 0.0;
+
 	while (!chThdShouldTerminateX()) {
 		float v_min = 10.0;
 		float v_max = 0.0;
+
+		// Allow some time to start balancing after unplugging the charger. This is useful if it is unplugged
+		// while the current was so high that balancing was prevented.
+		float time_since_charge = 1000.0;
+		if (UTILS_AGE_S(0) > 1.0) {
+			if (m_is_charging) {
+				last_charge_time = chVTGetSystemTimeX();
+			}
+
+			time_since_charge = UTILS_AGE_S(last_charge_time);
+		}
 
 		switch (backup.config.balance_mode) {
 		case BALANCE_MODE_DISABLED:
@@ -159,7 +173,7 @@ static THD_FUNCTION(balance_thd, p) {
 			break;
 
 		case BALANCE_MODE_DURING_AND_AFTER_CHARGING:
-			if (m_is_charging) {
+			if (time_since_charge < 2.0) {
 				m_bal_ok = true;
 			}
 			break;
@@ -230,9 +244,20 @@ static THD_FUNCTION(balance_thd, p) {
 			}
 		}
 
+		float t_bal = HW_GET_BAL_TEMP();
+		float t_bal_start = backup.config.t_bal_lim_start;
+		float t_bal_end = backup.config.t_bal_lim_end;
+		int bal_ch_max = backup.config.max_bal_ch;
+
+		if (t_bal > (t_bal_end - 0.5)) {
+			bal_ch_max = 0;
+		} else if (t_bal > t_bal_start) {
+			bal_ch_max = utils_map_int(t_bal, t_bal_start, t_bal_end, bal_ch_max, 0);
+		}
+
 		// Limit number of simultaneous balancing channels by disabling
 		// balancing on the cells with the highest voltage.
-		while (bal_ch > backup.config.max_bal_ch) {
+		while (bal_ch > bal_ch_max) {
 			float v_min = 100.0;
 			int v_min_cell = 0;
 			for (int i = backup.config.cell_first_index;i <
@@ -458,7 +483,11 @@ float bms_if_get_humidity_sensor_temp(void) {
 
 float bms_if_get_soc(void) {
 	// TODO: Estimate and compensate for ESR
-	return m_soc_filtered;
+	if (HW_SOC_OVERRIDE() >= 0.0) {
+		return HW_SOC_OVERRIDE();
+	} else {
+		return m_soc_filtered;
+	}
 }
 
 float bms_if_get_soh(void) {

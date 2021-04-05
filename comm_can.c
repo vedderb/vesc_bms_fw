@@ -567,6 +567,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 				((bms_if_is_charge_allowed() ? 1 : 0) << 2);
 		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_SOC_SOH_TEMP_STAT << 8), buffer, send_index);
 
+		HW_SEND_CAN_DATA();
+
 		systime_t sleep_time = CH_CFG_ST_FREQUENCY / backup.config.send_can_status_rate_hz;
 		if (sleep_time == 0) {
 			sleep_time = 1;

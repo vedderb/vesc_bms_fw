@@ -138,6 +138,21 @@
 #define CONF_SOC_FILTER_CONST 1e-05
 #endif
 
+// Temp Bal Lim Start
+#ifndef CONF_T_BAL_LIM_START
+#define CONF_T_BAL_LIM_START 60
+#endif
+
+// Temp Bal Lim End
+#ifndef CONF_T_BAL_LIM_END
+#define CONF_T_BAL_LIM_END 75
+#endif
+
+// Charge Min Temp
+#ifndef CONF_T_CHARGE_MIN
+#define CONF_T_CHARGE_MIN 0
+#endif
+
 // CONF_DEFAULT_H_
 #endif
 
