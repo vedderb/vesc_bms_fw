@@ -309,6 +309,8 @@ static THD_FUNCTION(hw_thd, p) {
 		 * to make the next attempt.
 		 */
 		if (m_conn_state == CONN_STATE_JETPACK && sw_on_ok) {
+			sleep_reset();
+
 			if (jetpack_delay_cnt < 100) {
 				jetpack_delay_cnt++;
 			} else {
