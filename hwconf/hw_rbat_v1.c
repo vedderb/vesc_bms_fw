@@ -122,7 +122,7 @@ void hw_board_chg_en(bool enable) {
 			!m_config->did_timeout_charger &&
 			!m_config->is_decommissioned) {
 		if (enable) {
-			hw_psw_switch_on();
+			hw_psw_switch_on(false);
 		} else {
 			hw_psw_switch_off(true);
 		}
@@ -143,7 +143,21 @@ float hw_board_get_vcharge(void) {
 	}
 }
 
-bool hw_psw_switch_on(void) {
+/**
+ * Switch on precharge and then the output.
+ *
+ * check_rise_rate
+ * If true the precharge sequence will fail if the voltage rises too fast. That
+ * indicates that there is no capacitive load on the output, indicating that
+ * there is a connection problem.
+ *
+ * return
+ * 0: Success
+ * -1: Precharge rise rate too fast (no capacitance detected)
+ * -2: Precharge timeout (too much load or short)
+ * -3: Precharge relay timeout
+ */
+int hw_psw_switch_on(bool check_rise_rate) {
 	chMtxLock(&m_sw_mutex);
 
 	if (HW_RELAY_MAIN_IS_ON()) {
@@ -157,6 +171,33 @@ bool hw_psw_switch_on(void) {
 
 	HW_RELAY_PCH_ON();
 
+	if (check_rise_rate) {
+		// Wait for relay to start switching on
+		float v_start = pwr_get_vcharge();
+		float timeout_relay = 0;
+		while (pwr_get_vcharge() < (v_start + 5.0)) {
+			chThdSleepMilliseconds(2);
+			timeout_relay += 2.0 / 1000.0;
+			if (timeout_relay >= 1.0) {
+				// Voltage never starts rising
+				HW_RELAY_PCH_OFF();
+				chMtxUnlock(&m_sw_mutex);
+				return -3;
+			}
+		}
+
+		// The voltage actually rises much faster than this when there is no capacitor, but there is a HW low-pass filter
+		// on v_charge that delays the measured signal.
+		chThdSleepMilliseconds(30);
+
+		if (fabsf(pwr_get_vcharge() - bms_if_get_v_tot()) < (bms_if_get_v_tot() / 10)) {
+			// Rise rate too fast
+			HW_RELAY_PCH_OFF();
+			chMtxUnlock(&m_sw_mutex);
+			return -1;
+		}
+	}
+
 	float timeout = 0;
 	// Wait for output voltage to rise to 90 % of battery voltage
 	while (fabsf(pwr_get_vcharge() - bms_if_get_v_tot()) > (bms_if_get_v_tot() / 10)) {
@@ -166,7 +207,7 @@ bool hw_psw_switch_on(void) {
 			// Timed out
 			HW_RELAY_PCH_OFF();
 			chMtxUnlock(&m_sw_mutex);
-			return false;
+			return -2;
 		}
 	}
 
@@ -178,7 +219,7 @@ bool hw_psw_switch_on(void) {
 	m_soc_override = -1.0;
 
 	chMtxUnlock(&m_sw_mutex);
-	return true;
+	return 0;
 }
 
 void hw_psw_switch_off(bool safe) {
@@ -315,7 +356,7 @@ static THD_FUNCTION(hw_thd, p) {
 				jetpack_delay_cnt++;
 			} else {
 				if (psw_ok) {
-					psw_ok = hw_psw_switch_on();
+					psw_ok = hw_psw_switch_on(true) == 0;
 				}
 			}
 		} else {
@@ -390,11 +431,15 @@ static void terminal_psw_set(int argc, const char **argv) {
 		if (d) {
 			m_terminal_override_psw = true;
 			commands_printf("Switching on...");
-			bool res = hw_psw_switch_on();
-			if (res) {
+			int res = hw_psw_switch_on(true);
+			if (res == 0) {
 				commands_printf("Power is now on");
-			} else {
+			} else if (res == -1) {
+				commands_printf("Rise rate too fast");
+			} else if (res == -2) {
 				commands_printf("Precharge timed out");
+			} else if (res == -3) {
+				commands_printf("Precharge relay timed out");
 			}
 		} else {
 			hw_psw_switch_off(true);

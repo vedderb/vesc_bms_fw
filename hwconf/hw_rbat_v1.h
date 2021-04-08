@@ -46,6 +46,8 @@
  * * [OK] Activate precharge sequence when charger is detected (do not wait for voltage).
  * * [OK] Rename rd to rbat
  * * [OK] Switch off contactor below a voltage threshold (2.8V).
+ * * [OK] Total charge counter
+ * * [OK] Precharge rate fault
  *
  */
 
@@ -82,6 +84,8 @@
 #define CONF_CAN_BAUD_RATE			CAN_BAUD_125K
 
 // Settings specific to this hardware
+
+#define VAR_INIT_CODE_HW_CONF		9289199
 
 // Switch off if no current has been drawn or charged for this long
 #define S_NO_USE_TIMEOUT			600.0 // S
@@ -219,7 +223,7 @@
 void hw_board_init(void);
 void hw_board_chg_en(bool enable);
 float hw_board_get_vcharge(void);
-bool hw_psw_switch_on(void);
+int hw_psw_switch_on(bool check_rise_rate);
 void hw_psw_switch_off(bool safe);
 float hw_soc_override(void);
 float hw_temp_cell_max(void);

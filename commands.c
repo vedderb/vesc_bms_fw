@@ -282,6 +282,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		// CAN ID
 		send_buffer[ind++] = backup.config.controller_id;
 
+		// Total charge and discharge counters
+		buffer_append_float32_auto(send_buffer, bms_if_get_ah_cnt_chg_total(), &ind);
+		buffer_append_float32_auto(send_buffer, bms_if_get_wh_cnt_chg_total(), &ind);
+		buffer_append_float32_auto(send_buffer, bms_if_get_ah_cnt_dis_total(), &ind);
+		buffer_append_float32_auto(send_buffer, bms_if_get_wh_cnt_dis_total(), &ind);
+
 		reply_func(send_buffer, ind);
 	} break;
 
