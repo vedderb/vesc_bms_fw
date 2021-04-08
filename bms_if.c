@@ -318,8 +318,19 @@ static THD_FUNCTION(if_thd, p) {
 		tick_last = chVTGetSystemTimeX();
 
 		if (fabsf(m_i_in_filter_ic) > backup.config.min_current_ah_wh_cnt) {
-			backup.ah_cnt += (double)bms_if_get_i_in_ic() * time;
-			backup.wh_cnt += (double)bms_if_get_i_in_ic() * (double)bms_if_get_v_tot() * time;
+			double d_ah = (double)bms_if_get_i_in_ic() * time;
+			double d_wh = (double)bms_if_get_i_in_ic() * (double)bms_if_get_v_tot() * time;
+
+			backup.ah_cnt += d_ah;
+			backup.wh_cnt += d_wh;
+
+			if (m_i_in_filter_ic > 0.0) {
+				backup.ah_cnt_dis_total += d_ah;
+				backup.wh_cnt_dis_total += d_wh;
+			} else {
+				backup.ah_cnt_chg_total -= d_ah;
+				backup.wh_cnt_chg_total -= d_wh;
+			}
 		}
 
 		if (fabsf(bms_if_get_i_in_ic()) > backup.config.min_current_sleep) {
@@ -416,6 +427,22 @@ double bms_if_get_ah_cnt(void) {
 
 double bms_if_get_wh_cnt(void) {
 	return backup.wh_cnt;
+}
+
+double bms_if_get_ah_cnt_chg_total(void) {
+	return backup.ah_cnt_chg_total;
+}
+
+double bms_if_get_wh_cnt_chg_total(void) {
+	return backup.wh_cnt_chg_total;
+}
+
+double bms_if_get_ah_cnt_dis_total(void) {
+	return backup.ah_cnt_dis_total;
+}
+
+double bms_if_get_wh_cnt_dis_total(void) {
+	return backup.wh_cnt_dis_total;
 }
 
 bool bms_if_is_charge_allowed(void) {

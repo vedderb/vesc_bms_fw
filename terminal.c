@@ -29,6 +29,7 @@
 #include "bms_if.h"
 #include "main.h"
 #include "sleep.h"
+#include "flash_helper.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -191,6 +192,16 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "uptime") == 0) {
 		commands_printf("Uptime: %.2f s", (double)chVTGetSystemTimeX() / (double)CH_CFG_ST_FREQUENCY);
 		commands_printf("Sleep in: %.2f s", (double)((float)sleep_time_left() / 1000.0));
+	} else if (strcmp(argv[0], "reset_cnt_chg_total") == 0) {
+		backup.ah_cnt_chg_total = 0.0;
+		backup.wh_cnt_chg_total = 0.0;
+		flash_helper_store_backup_data();
+		commands_printf("Done!\n");
+	} else if (strcmp(argv[0], "reset_cnt_dis_total") == 0) {
+		backup.ah_cnt_dis_total = 0.0;
+		backup.wh_cnt_dis_total = 0.0;
+		flash_helper_store_backup_data();
+		commands_printf("Done!\n");
 	}
 
 	// The help command
@@ -228,6 +239,12 @@ void terminal_process_string(char *str) {
 
 		commands_printf("uptime");
 		commands_printf("  Prints how many seconds have passed since boot.");
+
+		commands_printf("reset_cnt_chg_total");
+		commands_printf("  Reset charge counters.");
+
+		commands_printf("reset_cnt_dis_total");
+		commands_printf("  Reset discharge counters.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

@@ -567,6 +567,16 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 				((bms_if_is_charge_allowed() ? 1 : 0) << 2);
 		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_SOC_SOH_TEMP_STAT << 8), buffer, send_index);
 
+		send_index = 0;
+		buffer_append_float32_auto(buffer, bms_if_get_ah_cnt_chg_total(), &send_index);
+		buffer_append_float32_auto(buffer, bms_if_get_wh_cnt_chg_total(), &send_index);
+		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_AH_WH_CHG_TOTAL << 8), buffer, send_index);
+
+		send_index = 0;
+		buffer_append_float32_auto(buffer, bms_if_get_ah_cnt_dis_total(), &send_index);
+		buffer_append_float32_auto(buffer, bms_if_get_wh_cnt_dis_total(), &send_index);
+		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_AH_WH_DIS_TOTAL << 8), buffer, send_index);
+
 		HW_SEND_CAN_DATA();
 
 		systime_t sleep_time = CH_CFG_ST_FREQUENCY / backup.config.send_can_status_rate_hz;

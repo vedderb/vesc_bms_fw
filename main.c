@@ -32,6 +32,7 @@
 #include "sleep.h"
 #include "flash_helper.h"
 #include "comm_uart.h"
+#include "hw.h"
 
 #include <math.h>
 #include <string.h>
@@ -40,6 +41,10 @@
 #include <stdlib.h>
 
 __attribute__((section(".ram4"))) volatile backup_data backup;
+
+#ifndef VAR_INIT_CODE_HW_CONF
+#define VAR_INIT_CODE_HW_CONF		VAR_INIT_CODE
+#endif
 
 int main(void) {
 	halInit();
@@ -89,9 +94,29 @@ int main(void) {
 		backup.usb_cnt_init_flag = VAR_INIT_CODE;
 	}
 
-	if (backup.hw_config_init_flag != VAR_INIT_CODE) {
+	if (backup.hw_config_init_flag != VAR_INIT_CODE_HW_CONF) {
 		memset((void*)backup.hw_config, 0, sizeof(backup.hw_config));
-		backup.hw_config_init_flag = VAR_INIT_CODE;
+		backup.hw_config_init_flag = VAR_INIT_CODE_HW_CONF;
+	}
+
+	if (backup.ah_cnt_chg_total_init_flag != VAR_INIT_CODE) {
+		backup.ah_cnt_chg_total = 0.0;
+		backup.ah_cnt_chg_total_init_flag = VAR_INIT_CODE;
+	}
+
+	if (backup.wh_cnt_chg_total_init_flag != VAR_INIT_CODE) {
+		backup.wh_cnt_chg_total = 0.0;
+		backup.wh_cnt_chg_total_init_flag = VAR_INIT_CODE;
+	}
+
+	if (backup.ah_cnt_dis_total_init_flag != VAR_INIT_CODE) {
+		backup.ah_cnt_dis_total = 0.0;
+		backup.ah_cnt_dis_total_init_flag = VAR_INIT_CODE;
+	}
+
+	if (backup.wh_cnt_dis_total_init_flag != VAR_INIT_CODE) {
+		backup.wh_cnt_dis_total = 0.0;
+		backup.wh_cnt_dis_total_init_flag = VAR_INIT_CODE;
 	}
 
 	if (backup.config_init_flag != MAIN_CONFIG_T_SIGNATURE) {

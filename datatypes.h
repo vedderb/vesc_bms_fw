@@ -174,6 +174,22 @@ typedef struct __attribute__((packed)) {
 	uint32_t hw_config_init_flag;
 	uint8_t hw_config[128];
 
+	// Ah counter charge total
+	uint32_t ah_cnt_chg_total_init_flag;
+	double ah_cnt_chg_total;
+
+	// Wh counter charge total
+	uint32_t wh_cnt_chg_total_init_flag;
+	double wh_cnt_chg_total;
+
+	// Ah counter discharge total
+	uint32_t ah_cnt_dis_total_init_flag;
+	double ah_cnt_dis_total;
+
+	// Wh counter discharge total
+	uint32_t wh_cnt_dis_total_init_flag;
+	double wh_cnt_dis_total;
+
 	// BMS configuration structure
 	uint32_t config_init_flag;
 	main_config_t config;
@@ -319,6 +335,8 @@ typedef enum {
 	CAN_PACKET_BMS_HW_DATA_3,
 	CAN_PACKET_BMS_HW_DATA_4,
 	CAN_PACKET_BMS_HW_DATA_5,
+	CAN_PACKET_BMS_AH_WH_CHG_TOTAL,
+	CAN_PACKET_BMS_AH_WH_DIS_TOTAL,
 } CAN_PACKET_ID;
 
 // Communication commands
