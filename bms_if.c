@@ -218,7 +218,7 @@ static THD_FUNCTION(balance_thd, p) {
 		if (backup.config.dist_bal) {
 			bms_soc_soh_temp_stat *msg = comm_can_get_bms_stat_v_cell_min();
 
-			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 2.0 && msg->v_cell_min < v_min) {
+			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 10.0 && msg->v_cell_min < v_min) {
 				v_min = msg->v_cell_min;
 			}
 		}

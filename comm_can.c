@@ -822,9 +822,9 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			sleep_reset();
 		}
 
-		// Find BMS with highest cell voltage
+		// Find BMS with lowest cell voltage
 		if (bms_stat_v_cell_min.id < 0 ||
-				UTILS_AGE_S(bms_stat_v_cell_min.rx_time) > 2.0 ||
+				UTILS_AGE_S(bms_stat_v_cell_min.rx_time) > 10.0 ||
 				bms_stat_v_cell_min.v_cell_min > msg.v_cell_min) {
 			bms_stat_v_cell_min = msg;
 		} else if (bms_stat_v_cell_min.id == msg.id) {
