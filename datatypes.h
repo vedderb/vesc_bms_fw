@@ -144,6 +144,8 @@ typedef struct __attribute__((packed)) {
 	float t_charge_min;
 } main_config_t;
 
+// Backup data that is retained between boots and firmware updates. When adding new
+// entries, put them at the end.
 typedef struct __attribute__((packed)) {
 	// Ah counter
 	uint32_t ah_cnt_init_flag;

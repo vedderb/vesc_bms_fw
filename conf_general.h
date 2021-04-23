@@ -32,8 +32,9 @@
 // Set to 0 for building a release and iterate during beta test builds
 #define FW_TEST_VERSION_NUMBER		6
 
-// Init codes for the persistent storage. Change the config code when updating the config struct.
-#define VAR_INIT_CODE				92891934
+// Init codes for the persistent storage. Change the config code when updating the config struct
+// in a way that is not backwards compatible.
+#define VAR_INIT_CODE				92891935
 
 #if !defined(HW_SOURCE) && !defined(HW_HEADER)
 #define HW_HEADER					"hw_12s7p_v1.h"
