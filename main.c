@@ -59,7 +59,16 @@ int main(void) {
 	if (backup.ah_cnt_init_flag != VAR_INIT_CODE ||
 			backup.wh_cnt_init_flag != VAR_INIT_CODE ||
 			backup.ic_i_sens_v_ofs_init_flag != VAR_INIT_CODE ||
-			backup.controller_id_init_flag != VAR_INIT_CODE) {
+			backup.controller_id_init_flag != VAR_INIT_CODE ||
+			backup.send_can_status_rate_hz_init_flag != VAR_INIT_CODE ||
+			backup.can_baud_rate_init_flag != VAR_INIT_CODE ||
+			backup.conf_flash_write_cnt_init_flag != VAR_INIT_CODE ||
+			backup.usb_cnt_init_flag != VAR_INIT_CODE ||
+			backup.hw_config_init_flag != VAR_INIT_CODE_HW_CONF ||
+			backup.ah_cnt_chg_total_init_flag != VAR_INIT_CODE ||
+			backup.wh_cnt_chg_total_init_flag != VAR_INIT_CODE ||
+			backup.ah_cnt_dis_total_init_flag != VAR_INIT_CODE ||
+			backup.wh_cnt_dis_total_init_flag != VAR_INIT_CODE) {
 		flash_helper_load_backup_data();
 	}
 
@@ -82,6 +91,16 @@ int main(void) {
 	if (backup.controller_id_init_flag != VAR_INIT_CODE) {
 		backup.controller_id = HW_DEFAULT_ID;
 		backup.controller_id_init_flag = VAR_INIT_CODE;
+	}
+
+	if (backup.send_can_status_rate_hz_init_flag != VAR_INIT_CODE) {
+		backup.send_can_status_rate_hz = CONF_SEND_CAN_STATUS_RATE_HZ;
+		backup.send_can_status_rate_hz_init_flag = VAR_INIT_CODE;
+	}
+
+	if (backup.can_baud_rate_init_flag != VAR_INIT_CODE) {
+		backup.can_baud_rate = CONF_CAN_BAUD_RATE;
+		backup.can_baud_rate_init_flag = VAR_INIT_CODE;
 	}
 
 	if (backup.conf_flash_write_cnt_init_flag != VAR_INIT_CODE) {
@@ -123,6 +142,9 @@ int main(void) {
 		confparser_set_defaults_main_config_t((main_config_t*)(&backup.config));
 		backup.config_init_flag = MAIN_CONFIG_T_SIGNATURE;
 		backup.config.controller_id = backup.controller_id;
+		backup.config.send_can_status_rate_hz = backup.send_can_status_rate_hz;
+		backup.config.can_baud_rate = backup.can_baud_rate;
+
 	}
 
 	conf_general_apply_hw_limits((main_config_t*)&backup.config);
@@ -166,6 +188,8 @@ int main(void) {
 
 	for(;;) {
 		backup.controller_id = backup.config.controller_id;
+		backup.send_can_status_rate_hz = backup.config.send_can_status_rate_hz;
+		backup.can_baud_rate = backup.config.can_baud_rate;
 		chThdSleepMilliseconds(1);
 	}
 

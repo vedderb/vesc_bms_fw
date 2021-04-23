@@ -157,10 +157,15 @@ typedef struct __attribute__((packed)) {
 	uint32_t ic_i_sens_v_ofs_init_flag;
 	float ic_i_sens_v_ofs;
 
-	// ID. Use separate ID from config to retain it even when the
-	// config version changes.
+	// Store CAN-related settings separate from config as well. This is done in order
+	// to retain the CAN-settings after doing distributed firmware updates that change
+	// the main config signature.
 	uint32_t controller_id_init_flag;
 	uint16_t controller_id;
+	uint32_t send_can_status_rate_hz_init_flag;
+	uint32_t send_can_status_rate_hz;
+	uint32_t can_baud_rate_init_flag;
+	CAN_BAUD can_baud_rate;
 
 	// Counter for how many times backup data has been written to flash
 	uint32_t conf_flash_write_cnt_init_flag;
