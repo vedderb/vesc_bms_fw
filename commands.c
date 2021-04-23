@@ -66,10 +66,18 @@ void commands_init(void) {
 	chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
 }
 
+static void reply_func_dummy(unsigned char *data, unsigned int len) {
+	(void)data; (void)len;
+}
+
 void commands_process_packet(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len)) {
-	if (len < 1 || reply_func == 0) {
+	if (len < 1) {
 		return;
+	}
+
+	if (reply_func == 0) {
+		reply_func = reply_func_dummy;
 	}
 
 	send_func = reply_func;
