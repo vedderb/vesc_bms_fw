@@ -130,6 +130,8 @@ uint16_t flash_helper_write_data(uint32_t base, uint32_t offset, uint8_t *data, 
 }
 
 void flash_helper_jump_to_bootloader(void) {
+	backup.usb_cnt = 3; // Check USB directly after fw-upload to reconenct faster.
+
 	flash_helper_store_backup_data();
 
 	// Set magic number to jump to bootloader early in the next reset before
