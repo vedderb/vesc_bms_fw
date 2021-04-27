@@ -80,7 +80,7 @@
 
 // Minimum Counter Current
 #ifndef CONF_MIN_CURRENT_AH_WH_CNT
-#define CONF_MIN_CURRENT_AH_WH_CNT 0.5
+#define CONF_MIN_CURRENT_AH_WH_CNT 0.8
 #endif
 
 // Minimum Sleep Current
