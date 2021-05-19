@@ -42,8 +42,12 @@
 #endif
 
 // Macros
+#ifndef LED_OFF
 #define LED_OFF(led)			palClearLine(led)
+#endif
+#ifndef LED_ON
 #define LED_ON(led)				palSetLine(led)
+#endif
 #define LED_TOGGLE(led)			palToggleLine(led)
 
 #ifndef HW_DEFAULT_ID
@@ -52,6 +56,17 @@
 
 #ifndef HW_ADC_TEMP_SENSORS
 #define HW_ADC_TEMP_SENSORS		6
+#endif
+
+#ifndef ADC_CH_TEMP6
+#define ADC_CH_TEMP6			ADC_CH_TEMP5
+#define LINE_TEMP_6				LINE_TEMP_5
+#define LINE_TEMP_6_EN			LINE_TEMP_5_EN
+#endif
+
+#ifndef ADC_CH_V_FUSE
+#define ADC_CH_V_FUSE			ADC_CH_V_CHARGE
+#define LINE_V_FUSE				LINE_V_CHARGE
 #endif
 
 #ifndef HW_INIT_HOOK
@@ -66,6 +81,30 @@
 #ifndef LINE_CURR_MEASURE_EN
 #define CURR_MEASURE_ON()
 #define CURR_MEASURE_OFF()
+#endif
+
+#ifndef HW_GET_V_CHARGE
+#define HW_GET_V_CHARGE()		pwr_get_vcharge()
+#endif
+
+#ifndef HW_GET_BAL_TEMP
+#define HW_GET_BAL_TEMP()		bms_if_get_humidity_sensor_temp()
+#endif
+
+#ifndef HW_SOC_OVERRIDE
+#define HW_SOC_OVERRIDE()		-1.0
+#endif
+
+#ifndef HW_SEND_DATA
+#define HW_SEND_DATA(send_func)
+#endif
+
+#ifndef HW_SEND_CAN_DATA
+#define HW_SEND_CAN_DATA()
+#endif
+
+#ifndef HW_CHARGER_DETECTED
+#define HW_CHARGER_DETECTED()	false
 #endif
 
 // Functions

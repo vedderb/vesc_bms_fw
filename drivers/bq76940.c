@@ -22,17 +22,15 @@
 #include "string.h"
 
 // Private variables
-static i2c_bb_state m_i2c;
-//static float m_last_temp = 0.0;
-//static float m_last_hum = 0.0;
+static i2c_bb_state  m_i2c;
+static uint16_t 	 cell_voltage[14];
 
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
 
 // Private functions
-static void write_reg(uint8_t reg, uint16_t val);
-
+static void write_reg_bq76940(uint8_t reg, uint16_t val);
 
 void bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
@@ -46,9 +44,47 @@ void bq76940_init(
 
 	i2c_bb_init(&m_i2c);
 
+	//Read SYS_STAT
 	uint16_t conf = 0;
-	conf |= (1 << 12); // Read temperature and humidity
-	write_reg(0x02, conf);
+	write_reg(SYS_STAT, conf); // Reset XREADY's register
+	conf |= (1 << 5);
+	write_reg(SYS_STAT, conf); // Reset XREADY's register
+	//Wait the bit to 0
+
+	//Enable Cell 1, Cell 2 and Cell 3
+	conf = 0x1F;//if dont balance
+	write_reg(CELLBAL1, conf);
+	write_reg(CELLBAL2, conf);
+	write_reg(CELLBAL3, conf);
+	//Read and configure SYS_CTRL1
+	conf = 0x00;//
+	write_reg(SYS_CTRL1, conf);
+	//Read and configure SYS_CTRL2
+	conf = 0x00;//
+	write_reg(SYS_CTRL2, conf);
+	chThdSleep(1);
+	conf = 0x02;//
+	write_reg(SYS_CTRL2, conf);
+	//Read and configure PROTECT1
+	conf = 0x00;//
+	write_reg(PROTECT1, conf);
+	//Read and configure PROTECT2
+	conf = 0x0F;//
+	write_reg(PROTECT2, conf);
+	//Read and configure PROTECT3
+	conf = 0x00;//
+	write_reg(PROTECT3, conf);
+	//Read OV_TRIP
+	conf = 0xAC;//
+	write_reg(OV_TRIP, conf);
+	//Read UV_TRIP
+	conf = 0x97;//
+	write_reg(UV_TRIP, conf);
+	//Configure CC_CFG
+	conf = 0x19;//
+    write_reg(CC_CFG, conf);
+
+
 
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
 }
@@ -59,31 +95,39 @@ static THD_FUNCTION(sample_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("BQ76940");
 
+	static uint16_t register_bq76940[NUM_REG];
+
 	for(;;) {
 		m_i2c.has_error = 0;
-		uint8_t rxbuf[4];
-		i2c_bb_tx_rx(&m_i2c, 0x40, 0, 0, rxbuf, 4);
-		//uint16_t temp = (uint16_t)rxbuf[0] << 8 | (uint16_t)rxbuf[1];
-		//uint16_t hum = (uint16_t)rxbuf[2] << 8 | (uint16_t)rxbuf[3];
-
-		//m_last_temp = (float)temp / 65536.0 * 165.0 - 40.0;
-		//m_last_hum = (float)hum / 65536.0 * 100.0;
-
-		// Start next measurement
-		m_i2c.has_error = 0;
-		uint8_t txbuf[1];
-		txbuf[0] = 0x0;
-		i2c_bb_tx_rx(&m_i2c, 0x40, txbuf, 1, 0, 0);
+		for(uint8_t i = 0 ; i < NUM_REG; i++){
+			register_bq76940[i]=i2c_bb_tx_rx(&m_i2c, 0x40, 0, 0, register_bq76940, NUM_REG);
+		}
+		uint8_t j = 0;
+		//Provisory
+		//Convert two register in one, and calculate the value of cell voltage
+		j=0;
+		for(uint8_t i = VC1_HI ; i < VC15_LO; i+2){
+			register_bq76940[i]=register_bq76940[i]<<10;
+			register_bq76940[i]=register_bq76940[i]>>2;
+			cell_voltage[j]=cell_voltage[j] | register_bq76940[i];
+			cell_voltage[j]=cell_voltage[j] | register_bq76940[i+1];
+			j++;
+		}
+		//Measure current
 
 		chThdSleepMilliseconds(1000);
 	}
 }
 
-static void write_reg(uint8_t reg, uint16_t val) {
+static void write_reg_bq76940(uint8_t reg, uint16_t val) {
 	m_i2c.has_error = 0;
-	uint8_t txbuf[3];
-	txbuf[0] = reg;
-	txbuf[1] = val >> 8;
-	txbuf[2] = val & 0xFF;
-	i2c_bb_tx_rx(&m_i2c, 0x40, txbuf, 3, 0, 0);
+	uint8_t txbuf[2];
+	txbuf[0] = 0x00;
+	txbuf[1] = reg;
+	txbuf[2] = val >> 8;
+	txbuf[3] = 0x00; //Here CRC
+
+	i2c_bb_tx_rx(&m_i2c, 0x40, txbuf, 4, 0, 0);
 }
+
+
