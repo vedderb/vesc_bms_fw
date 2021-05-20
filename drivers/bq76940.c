@@ -46,11 +46,14 @@ void bq76940_init(
 
 	//Read SYS_STAT
 	uint16_t conf = 0;
-	write_reg(SYS_STAT, conf); // Reset XREADY's register
-	conf |= (1 << 5);
-	write_reg(SYS_STAT, conf); // Reset XREADY's register
+	//write_reg(SYS_STAT, conf); // Reset XREADY's register
+	uint8_t txbuf=1;
+	i2c_bb_tx_rx(&m_i2c, 0x00, txbuf, 1, 0, 0);
+	//conf |= (1 << 5);
+	//write_reg(SYS_STAT, conf); // Reset XREADY's register
 	//Wait the bit to 0
 
+	/*
 	//Enable Cell 1, Cell 2 and Cell 3
 	conf = 0x1F;//if dont balance
 	write_reg(CELLBAL1, conf);
@@ -83,7 +86,7 @@ void bq76940_init(
 	//Configure CC_CFG
 	conf = 0x19;//
     write_reg(CC_CFG, conf);
-
+    */
 
 
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
@@ -97,8 +100,15 @@ static THD_FUNCTION(sample_thread, arg) {
 
 	static uint16_t register_bq76940[NUM_REG];
 
+
 	for(;;) {
 		m_i2c.has_error = 0;
+		//Read SYS_STAT
+		uint16_t conf = 0;
+		//write_reg(SYS_STAT, conf); // Reset XREADY's register
+		//conf |= (1 << 5);
+		//write_reg(SYS_STAT, conf); // Reset XREADY's register
+		/*
 		for(uint8_t i = 0 ; i < NUM_REG; i++){
 			register_bq76940[i]=i2c_bb_tx_rx(&m_i2c, 0x40, 0, 0, register_bq76940, NUM_REG);
 		}
@@ -114,7 +124,7 @@ static THD_FUNCTION(sample_thread, arg) {
 			j++;
 		}
 		//Measure current
-
+		*/
 		chThdSleepMilliseconds(1000);
 	}
 }

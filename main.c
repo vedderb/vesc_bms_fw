@@ -26,6 +26,7 @@
 #include "comm_usb.h"
 #include "bms_if.h"
 #include "hdc1080.h"
+#include "bq76940.h"
 #include "confparser.h"
 #include "commands.h"
 #include "timeout.h"
@@ -177,6 +178,11 @@ int main(void) {
 #ifdef HDC1080_SDA_GPIO
 	hdc1080_init(HDC1080_SDA_GPIO, HDC1080_SDA_PIN,
 			HDC1080_SCL_GPIO, HDC1080_SCL_PIN);
+#endif
+
+#ifdef BQ76940_SDA_GPIO
+	bq76940_init(BQ76940_SDA_GPIO, BQ76940_SDA_PIN,
+			BQ76940_SCL_GPIO , BQ76940_SCL_PIN );
 #endif
 
 #ifdef HW_UART_DEV
