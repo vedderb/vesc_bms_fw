@@ -75,7 +75,7 @@ void i2c_bb_restore_bus(i2c_bb_state *s) {
 bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes, uint8_t *rxbuf, size_t rxbytes) {
 	chMtxLock(&s->mutex);
 
-	i2c_write_byte(s, true, false, addr << 1);
+	i2c_write_byte(s, true, false, addr<<1);
 
 	for (unsigned int i = 0;i < txbytes;i++) {
 		i2c_write_byte(s, false, false, txbuf[i]);
@@ -90,6 +90,29 @@ bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes
 	}
 
 	i2c_stop_cond(s);
+
+	chMtxUnlock(&s->mutex);
+
+	return !s->has_error;
+}
+bool read_byte(i2c_bb_state *s, uint8_t *rxbuf,bool send_stop) {
+	chMtxLock(&s->mutex);
+
+	rxbuf = i2c_read_byte(s, 0, send_stop);
+
+	i2c_stop_cond(s);
+
+	chMtxUnlock(&s->mutex);
+
+	return !s->has_error;
+}
+
+bool write_byte(i2c_bb_state *s, uint8_t *txbuf) {
+	chMtxLock(&s->mutex);
+
+	i2c_write_byte(s, true, false, txbuf);
+
+	//i2c_stop_cond(s);
 
 	chMtxUnlock(&s->mutex);
 
@@ -218,7 +241,7 @@ static bool i2c_write_byte(i2c_bb_state *s, bool send_start, bool send_stop, uns
 	}
 
 	for (bit = 0;bit < 8;bit++) {
-		i2c_write_bit(s, (byte & 0x80) != 0);
+		i2c_write_bit(s, (byte & 0x80) != 0 );
 		byte <<= 1;
 	}
 

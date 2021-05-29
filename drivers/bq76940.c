@@ -20,6 +20,7 @@
 #include "i2c_bb.h"
 #include "bq76940.h"
 #include "string.h"
+#include "stdbool.h"
 
 // Private variables
 static i2c_bb_state  m_i2c;
@@ -30,7 +31,9 @@ static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
 
 // Private functions
-static void write_reg_bq76940(uint8_t reg, uint16_t val);
+static void write_reg(uint8_t reg, uint16_t val);
+static void read_reg(i2c_bb_state *s,uint8_t reg, uint16_t val);
+uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 
 void bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
@@ -44,50 +47,10 @@ void bq76940_init(
 
 	i2c_bb_init(&m_i2c);
 
-	//Read SYS_STAT
-	uint16_t conf = 0;
-	//write_reg(SYS_STAT, conf); // Reset XREADY's register
-	uint8_t txbuf=1;
-	i2c_bb_tx_rx(&m_i2c, 0x00, txbuf, 1, 0, 0);
-	//conf |= (1 << 5);
-	//write_reg(SYS_STAT, conf); // Reset XREADY's register
-	//Wait the bit to 0
-
-	/*
-	//Enable Cell 1, Cell 2 and Cell 3
-	conf = 0x1F;//if dont balance
-	write_reg(CELLBAL1, conf);
-	write_reg(CELLBAL2, conf);
-	write_reg(CELLBAL3, conf);
-	//Read and configure SYS_CTRL1
-	conf = 0x00;//
-	write_reg(SYS_CTRL1, conf);
-	//Read and configure SYS_CTRL2
-	conf = 0x00;//
-	write_reg(SYS_CTRL2, conf);
-	chThdSleep(1);
-	conf = 0x02;//
-	write_reg(SYS_CTRL2, conf);
-	//Read and configure PROTECT1
-	conf = 0x00;//
-	write_reg(PROTECT1, conf);
-	//Read and configure PROTECT2
-	conf = 0x0F;//
-	write_reg(PROTECT2, conf);
-	//Read and configure PROTECT3
-	conf = 0x00;//
-	write_reg(PROTECT3, conf);
-	//Read OV_TRIP
-	conf = 0xAC;//
-	write_reg(OV_TRIP, conf);
-	//Read UV_TRIP
-	conf = 0x97;//
-	write_reg(UV_TRIP, conf);
-	//Configure CC_CFG
-	conf = 0x19;//
-    write_reg(CC_CFG, conf);
-    */
-
+	write_reg(SYS_STAT, 0x11);
+	uint8_t val;
+	read_reg(&m_i2c,SYS_STAT,val);
+	//read_reg(&m_i2c,VC1_LO,val);
 
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
 }
@@ -98,46 +61,59 @@ static THD_FUNCTION(sample_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("BQ76940");
 
-	static uint16_t register_bq76940[NUM_REG];
-
-
 	for(;;) {
 		m_i2c.has_error = 0;
-		//Read SYS_STAT
-		uint16_t conf = 0;
-		//write_reg(SYS_STAT, conf); // Reset XREADY's register
-		//conf |= (1 << 5);
-		//write_reg(SYS_STAT, conf); // Reset XREADY's register
-		/*
-		for(uint8_t i = 0 ; i < NUM_REG; i++){
-			register_bq76940[i]=i2c_bb_tx_rx(&m_i2c, 0x40, 0, 0, register_bq76940, NUM_REG);
-		}
-		uint8_t j = 0;
-		//Provisory
-		//Convert two register in one, and calculate the value of cell voltage
-		j=0;
-		for(uint8_t i = VC1_HI ; i < VC15_LO; i+2){
-			register_bq76940[i]=register_bq76940[i]<<10;
-			register_bq76940[i]=register_bq76940[i]>>2;
-			cell_voltage[j]=cell_voltage[j] | register_bq76940[i];
-			cell_voltage[j]=cell_voltage[j] | register_bq76940[i+1];
-			j++;
-		}
-		//Measure current
-		*/
+
 		chThdSleepMilliseconds(1000);
 	}
 }
 
-static void write_reg_bq76940(uint8_t reg, uint16_t val) {
+static void write_reg(uint8_t reg, uint16_t val) {
 	m_i2c.has_error = 0;
-	uint8_t txbuf[2];
-	txbuf[0] = 0x00;
-	txbuf[1] = reg;
-	txbuf[2] = val >> 8;
-	txbuf[3] = 0x00; //Here CRC
+	uint8_t txbuf[3];
+	uint8_t buff[4];
 
-	i2c_bb_tx_rx(&m_i2c, 0x40, txbuf, 4, 0, 0);
+	buff[0]=0x08<<1;
+	buff[1]=reg;
+	buff[2]=val;
+
+	txbuf[0] = reg;
+	txbuf[1] = val;
+	uint8_t key=0x7;
+	txbuf[2]=CRC8(buff, 3, key);
+	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 3, 0, 0);
+}
+
+static void read_reg(i2c_bb_state *s, uint8_t reg, uint16_t val){
+	m_i2c.has_error = 0;
+	uint8_t rxbuf;
+
+	i2c_bb_tx_rx(&m_i2c, 0x08, reg, 1, 0, 0);
+	write_byte(&m_i2c,0x11);
+	read_byte(&m_i2c, rxbuf,false);
+	read_byte(&m_i2c, rxbuf,false);
+	read_byte(&m_i2c, rxbuf,true);
+
+}
+
+uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
+	uint8_t  i;
+	uint8_t  crc=0;
+
+    while(len--!=0){
+        for(i=0x80; i!=0; i/=2){
+            if((crc & 0x80) != 0){
+                crc *= 2;
+                crc ^= key;
+            }
+            else
+                crc *= 2;
+            if((*ptr & i)!=0) //
+                crc ^= key;
+        }
+        ptr++;
+    }
+return(crc);
 }
 
 
