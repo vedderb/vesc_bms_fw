@@ -82,37 +82,17 @@ bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes
 	}
 
 	if (rxbytes > 0) {
-		i2c_write_byte(s, true, false, addr << 1 | 1);
+		i2c_write_byte(s, true, true, addr << 1 | 1);//i2c_write_byte(s, true, false, addr << 1 | 1);
+
+		for (unsigned int j = 0;j < 10;j++) i2c_delay();
 
 		for (unsigned int i = 0;i < rxbytes;i++) {
-			rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), false);
+			rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), true);//rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), false);
 		}
 	}
 
-	i2c_stop_cond(s);
-
-	chMtxUnlock(&s->mutex);
-
-	return !s->has_error;
-}
-bool read_byte(i2c_bb_state *s, uint8_t *rxbuf,bool send_stop) {
-	chMtxLock(&s->mutex);
-
-	rxbuf = i2c_read_byte(s, 0, send_stop);
 
 	i2c_stop_cond(s);
-
-	chMtxUnlock(&s->mutex);
-
-	return !s->has_error;
-}
-
-bool write_byte(i2c_bb_state *s, uint8_t *txbuf) {
-	chMtxLock(&s->mutex);
-
-	i2c_write_byte(s, true, false, txbuf);
-
-	//i2c_stop_cond(s);
 
 	chMtxUnlock(&s->mutex);
 

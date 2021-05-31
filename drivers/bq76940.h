@@ -77,7 +77,7 @@
 #define CC_LO		0x33
 #define ADCGAIN1	0x50
 #define ADCOFFSET	0x51
-#define ADCGAIN2	0x059
+#define ADCGAIN2	0x59
 
 // Functions
 void bq76940_init(

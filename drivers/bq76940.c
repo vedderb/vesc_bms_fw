@@ -47,10 +47,27 @@ void bq76940_init(
 
 	i2c_bb_init(&m_i2c);
 
-	write_reg(SYS_STAT, 0x11);
+	//chThdSleepMilliseconds(2000);
+
+	chThdSleepMilliseconds(30);
+	write_reg(SYS_STAT, 0xFF);
+
+	chThdSleepMilliseconds(30);
+	write_reg(CELLBAL1, 0x00);
+
+	chThdSleepMilliseconds(30);
+	write_reg(CELLBAL2, 0x00);
+
+	chThdSleepMilliseconds(30);//20
+	write_reg(CELLBAL3, 0x00);
+
+	chThdSleepMilliseconds(30);//20
+	write_reg(CC_CFG, 0x19);
+
 	uint8_t val;
-	read_reg(&m_i2c,SYS_STAT,val);
-	//read_reg(&m_i2c,VC1_LO,val);
+	chThdSleepMilliseconds(30);//20
+	read_reg(&m_i2c,VC1_HI,val);
+
 
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
 }
@@ -85,14 +102,12 @@ static void write_reg(uint8_t reg, uint16_t val) {
 }
 
 static void read_reg(i2c_bb_state *s, uint8_t reg, uint16_t val){
-	m_i2c.has_error = 0;
-	uint8_t rxbuf;
+	//m_i2c.has_error = 0;
 
-	i2c_bb_tx_rx(&m_i2c, 0x08, reg, 1, 0, 0);
-	write_byte(&m_i2c,0x11);
-	read_byte(&m_i2c, rxbuf,false);
-	read_byte(&m_i2c, rxbuf,false);
-	read_byte(&m_i2c, rxbuf,true);
+	uint8_t rxbuf[55],txbuf;
+
+	txbuf=reg;
+	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 1, rxbuf, 55);
 
 }
 
