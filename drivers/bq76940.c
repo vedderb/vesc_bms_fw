@@ -32,8 +32,10 @@ static THD_FUNCTION(sample_thread, arg);
 
 // Private functions
 static void write_reg(uint8_t reg, uint16_t val);
-static void read_reg(i2c_bb_state *s,uint8_t reg, uint16_t val);
+static void value_cells();
+uint8_t read_reg(i2c_bb_state *s,uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
+uint16_t gainRead(void);
 
 void bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
@@ -47,27 +49,27 @@ void bq76940_init(
 
 	i2c_bb_init(&m_i2c);
 
-	//chThdSleepMilliseconds(2000);
+	uint8_t error = 0;
+	uint8_t data = 0;
 
+	// enable ADC
+	//error |=
 	chThdSleepMilliseconds(30);
-	write_reg(SYS_STAT, 0xFF);
-
+	write_reg(SYS_CTRL1,ADC_EN);//
 	chThdSleepMilliseconds(30);
-	write_reg(CELLBAL1, 0x00);
+	// check if ADC is active
+	//if(!(read_reg(SYS_CTRL1) & ADC_EN)) { return ERROR_ADC; }
 
-	chThdSleepMilliseconds(30);
-	write_reg(CELLBAL2, 0x00);
-
-	chThdSleepMilliseconds(30);//20
-	write_reg(CELLBAL3, 0x00);
-
-	chThdSleepMilliseconds(30);//20
+	// write 0x19 to CC_CFG according to datasheet page 39
+	//error |=
 	write_reg(CC_CFG, 0x19);
 
-	uint8_t val;
-	chThdSleepMilliseconds(30);//20
-	read_reg(&m_i2c,VC1_HI,val);
+	chThdSleepMilliseconds(2000);
+	chThdSleepMilliseconds(30);
+	data=read_reg(&m_i2c,0x51); //read the offset register
 
+
+	//gainRead();
 
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
 }
@@ -80,6 +82,9 @@ static THD_FUNCTION(sample_thread, arg) {
 
 	for(;;) {
 		m_i2c.has_error = 0;
+
+
+		value_cells();
 
 		chThdSleepMilliseconds(1000);
 	}
@@ -101,13 +106,16 @@ static void write_reg(uint8_t reg, uint16_t val) {
 	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 3, 0, 0);
 }
 
-static void read_reg(i2c_bb_state *s, uint8_t reg, uint16_t val){
-	//m_i2c.has_error = 0;
+uint8_t read_reg(i2c_bb_state *s, uint8_t reg){
 
-	uint8_t rxbuf[55],txbuf;
+	uint8_t rxbuf[2],txbuf[1];
+	uint8_t data;
 
-	txbuf=reg;
-	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 1, rxbuf, 55);
+	txbuf[0]=reg;
+ 	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 1, rxbuf, 2);
+ 	data=rxbuf[0];
+
+ 	return data;
 
 }
 
@@ -131,4 +139,85 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
 return(crc);
 }
 
+uint16_t gainRead(void){
+	//uint8_t reg1;
+	//chThdSleepMilliseconds(30);
+	//read_reg(&m_i2c,ADCGAIN1);
+	//uint8_t reg2;
+	//chThdSleepMilliseconds(30);
+	//read_reg(&m_i2c,ADCGAIN2);
+
+
+	//reg1 &= 0b00001100;
+
+	//return (365 + ((reg1 << 1)|(reg2 >> 5)));
+}
+
+static void value_cells(){
+
+	//float reg[14];
+
+	chThdSleepMilliseconds(2);
+	read_reg(&m_i2c,VC1_HI);
+	chThdSleepMilliseconds(2);
+	read_reg(&m_i2c,VC1_LO);
+
+
+	chThdSleepMilliseconds(2);
+	read_reg(&m_i2c,VC2_HI);
+	chThdSleepMilliseconds(2);
+	read_reg(&m_i2c,VC2_LO);
+	chThdSleepMilliseconds(2);
+	read_reg(&m_i2c,VC3_HI);
+	chThdSleepMilliseconds(2);
+	read_reg(&m_i2c,VC3_LO);
+	chThdSleepMilliseconds(2);
+	read_reg(&m_i2c,VC4_HI);
+	chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC4_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC5_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC5_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC6_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC6_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC7_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC7_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC8_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC8_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC9_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC9_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC10_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC10_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC11_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC11_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC12_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC12_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC13_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC13_LO);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC14_HI);
+    chThdSleepMilliseconds(2);
+    read_reg(&m_i2c,VC14_LO);
+    read_reg(&m_i2c,VC15_HI);
+ 	chThdSleepMilliseconds(2);
+ 	read_reg(&m_i2c,VC15_LO);
+
+}
 

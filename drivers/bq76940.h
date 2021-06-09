@@ -79,6 +79,9 @@
 #define ADCOFFSET	0x51
 #define ADCGAIN2	0x59
 
+//SYS_CTRL1 bit masks
+#define ADC_EN 		1<<4
+
 // Functions
 void bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
