@@ -264,5 +264,5 @@ static bool clock_stretch_timeout(i2c_bb_state *s) {
 }
 
 static void i2c_delay(void) {
-	chThdSleep(1);
+	chThdSleep(2); //it was 1
 }

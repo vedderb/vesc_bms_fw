@@ -65,22 +65,24 @@ void ltc_init(void) {
 	(void)ltc_wakeup();
 }
 
-float ltc_last_pack_voltage(void) {
+/*
+float ltc_last_pack_voltage(void) { //disable for my
 	return m_v_pack;
 }
+*/
 
 float ltc_last_temp(void) {
 	return m_last_temp;
 }
 
-float ltc_last_cell_voltage(int cell) {
+/*float ltc_last_cell_voltage(int cell) { //disable for my
 	if (cell < 0 || cell > 17) {
 		return -1.0;
 	}
 
 	return m_v_cell[cell];
 }
-
+*/
 float ltc_last_pu_diff_voltage(int cell) {
 	if (cell < 0 || cell > 17) {
 		return -1.0;

@@ -24,9 +24,9 @@
 
 // Functions
 void ltc_init(void);
-float ltc_last_pack_voltage(void);
+//float ltc_last_pack_voltage(void);
 float ltc_last_temp(void);
-float ltc_last_cell_voltage(int cell);
+//float ltc_last_cell_voltage(int cell);
 float ltc_last_pu_diff_voltage(int cell);
 float ltc_last_gpio_voltage(int gpio);
 void ltc_set_dsc(int cell, bool set);

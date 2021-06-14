@@ -185,12 +185,12 @@ static THD_FUNCTION(balance_thd, p) {
 
 		for (int i = backup.config.cell_first_index;i <
 		(backup.config.cell_num + backup.config.cell_first_index);i++) {
-			if (ltc_last_cell_voltage(i) > v_max) {
-				v_max = ltc_last_cell_voltage(i);
-			}
-			if (ltc_last_cell_voltage(i) < v_min) {
-				v_min = ltc_last_cell_voltage(i);
-			}
+				if (ltc_last_cell_voltage(i) > v_max) {
+					v_max = ltc_last_cell_voltage(i);
+				}
+				if (ltc_last_cell_voltage(i) < v_min) {
+					v_min = ltc_last_cell_voltage(i);
+				}
 		}
 
 		m_voltage_cell_min = v_min;

@@ -170,8 +170,13 @@ int main(void) {
 	}
 
 	pwr_init();
+
+#ifndef BQ76940_SDA_GPIO
 	ltc_init();
+#endif
+
 	bms_if_init();
+
 	comm_can_init();
 	comm_can_set_baud(backup.config.can_baud_rate);
 
@@ -185,9 +190,11 @@ int main(void) {
 			BQ76940_SCL_GPIO , BQ76940_SCL_PIN );
 #endif
 
+
 #ifdef HW_UART_DEV
 	comm_uart_init();
 #endif
+
 
 	sleep_init();
 	timeout_init();
