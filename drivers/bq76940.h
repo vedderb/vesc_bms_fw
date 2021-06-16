@@ -20,6 +20,7 @@
 #ifndef BQ76940_H_
 #define BQ76940_H_
 
+
 //Macros
 #define NUM_REG		55
 
@@ -90,6 +91,6 @@ void bq76940_init(
 //float hdc1080_get_temp(void);
 
 float ltc_last_pack_voltage(void);
-float ltc_last_pack_voltage(void);
+float ltc_last_cell_voltage(int cell);
 
 #endif /* BQ76940_H_ */

@@ -17,7 +17,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#ifndef BQ76940_SDA_GPIO
 #include "ltc6813.h"
+#endif
+#include "bq76940.h"
 #include "main.h"
 #include "bms_if.h"
 #include "pwr.h"
@@ -402,7 +405,7 @@ float bms_if_get_v_tot(void) {
 	(backup.config.cell_num + backup.config.cell_first_index);i++) {
 		ret += bms_if_get_v_cell(i);
 	}
-	return ret;
+	return ret; //get the battery voltage
 }
 
 float bms_if_get_v_charge(void) {

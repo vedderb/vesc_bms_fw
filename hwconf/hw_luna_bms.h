@@ -39,6 +39,7 @@
 #define V_REG					3.3
 #define R_CHARGE_TOP			(520e3 + 2.5e3 + 100.0)
 #define R_CHARGE_BOTTOM			(10e3)
+#define AFE						bq76940
 
 // LEDs
 #define LINE_LED_RED			PAL_LINE(GPIOA, 0)
@@ -69,6 +70,7 @@
 #define BQ76940_SDA_PIN			11
 #define BQ76940_SCL_GPIO		GPIOB
 #define BQ76940_SCL_PIN			10
+
 
 // Analog
 #define LINE_V_CHARGE			PAL_LINE(GPIOC, 2)

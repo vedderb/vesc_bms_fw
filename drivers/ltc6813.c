@@ -16,11 +16,15 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
+#ifndef LTC_C_
+#define LTC_C_
+
 
 #include "ltc6813.h"
 
 #include "utils.h"
 #include "main.h"
+
 
 // Macros
 #define APPEND_16b(cmd, data, ind)	data[ind++] = ((cmd) >> 8) & 0xFF;data[ind++] = (cmd) & 0xFF
@@ -30,21 +34,27 @@
 #define SET_BIT(byte, bit, set)		byte |= set ? 1 << bit : 0
 
 // Private variables
+#ifndef AFE
+static volatile float m_v_cell[18] = {0.0};
+#endif
+
 static THD_WORKING_AREA(ltc_thd_wa, 2048);
 static volatile float m_v_pack = 0.0;
-static volatile float m_v_cell[18] = {0.0};
 static volatile float m_v_cell_pu_diff[18] = {0.0};
-static volatile float m_v_gpio[9] = {0.0};
 static volatile float m_last_temp = 0.0;
+static volatile float m_v_gpio[9] = {0.0};
 static volatile bool m_discharge_state[18] = {false};
 
+
 // Private functions
+#ifndef AFE
+static void read_cell_voltages(float *cells);
+#endif
 static THD_FUNCTION(ltc_thd, arg);
 static void write_cmd(uint16_t cmd);
 static bool read_reg_group(uint16_t cmd, uint8_t *buffer);
 static bool write_reg_group(uint16_t cmd, const uint8_t *buffer);
 static void ltc_wakeup(void);
-static void read_cell_voltages(float *cells);
 static void poll_adc(void);
 static uint16_t calc_pec(uint8_t len, const uint8_t *data);
 static uint8_t spi_exchange(uint8_t x);
@@ -52,6 +62,8 @@ static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+
+
 
 void ltc_init(void) {
 	palSetLineMode(LINE_LTC_MISO, PAL_MODE_INPUT_PULLUP);
@@ -65,24 +77,28 @@ void ltc_init(void) {
 	(void)ltc_wakeup();
 }
 
-/*
-float ltc_last_pack_voltage(void) { //disable for my
-	return m_v_pack;
-}
-*/
+
+
 
 float ltc_last_temp(void) {
 	return m_last_temp;
 }
 
-/*float ltc_last_cell_voltage(int cell) { //disable for my
+#ifndef AFE
+float ltc_last_cell_voltage(int cell) { //disable for my
 	if (cell < 0 || cell > 17) {
 		return -1.0;
 	}
 
 	return m_v_cell[cell];
 }
-*/
+
+
+float ltc_last_pack_voltage(void) { //disable for my
+	return m_v_pack;
+}
+#endif
+
 float ltc_last_pu_diff_voltage(int cell) {
 	if (cell < 0 || cell > 17) {
 		return -1.0;
@@ -91,36 +107,7 @@ float ltc_last_pu_diff_voltage(int cell) {
 	return m_v_cell_pu_diff[cell];
 }
 
-float ltc_last_gpio_voltage(int gpio) {
-	if (gpio <= 0 || gpio > 9) {
-			return -1.0;
-		}
 
-		return m_v_gpio[gpio - 1];
-}
-
-void ltc_set_dsc(int cell, bool set) {
-	if (cell < 0 || cell > 17) {
-		return;
-	}
-
-	m_discharge_state[cell] = set;
-}
-
-bool ltc_get_dsc(int cell) {
-	if (cell < 0 || cell > 17) {
-		return false;
-	}
-
-	return m_discharge_state[cell];
-}
-
-void ltc_sleep(void) {
-	uint8_t buffer[6];
-	CLEAR_BUFFER_6(buffer);
-	buffer[0] |= LTC_GPIO1 | LTC_GPIO2 | LTC_GPIO3 | LTC_GPIO4 | LTC_GPIO5;
-	write_reg_group(LTC_WRCFGA, buffer);
-}
 
 static THD_FUNCTION(ltc_thd, p) {
 	(void)p;
@@ -162,7 +149,7 @@ static THD_FUNCTION(ltc_thd, p) {
 
 		write_cmd(LTC_ADCV | LTC_MD10);
 		poll_adc();
-		read_cell_voltages((float*)m_v_cell);
+		//read_cell_voltages((float*)m_v_cell);  delete for my
 
 		// Open wire check
 		float cells_pu[18], cells_pd[18];
@@ -312,6 +299,7 @@ static uint16_t calc_pec(uint8_t len, const uint8_t *data) {
 	return (crc & 0x7fff) << 1;
 };
 
+#ifndef AFE
 static void read_cell_voltages(float *cells) {
 	uint8_t buffer[8];
 
@@ -351,6 +339,8 @@ static void read_cell_voltages(float *cells) {
 		cells[17] = (float)((uint16_t)buffer[4] | (uint16_t)buffer[5] << 8) / 1e4;
 	}
 }
+
+#endif
 
 // Software SPI
 static uint8_t spi_exchange(uint8_t x) {
@@ -410,3 +400,41 @@ static void spi_delay(void) {
 		__NOP();
 	}
 }
+
+void ltc_sleep(void) {
+	uint8_t buffer[6];
+	CLEAR_BUFFER_6(buffer);
+	buffer[0] |= LTC_GPIO1 | LTC_GPIO2 | LTC_GPIO3 | LTC_GPIO4 | LTC_GPIO5;
+	write_reg_group(LTC_WRCFGA, buffer);
+}
+
+
+float ltc_last_gpio_voltage(int gpio) {
+	if (gpio <= 0 || gpio > 9) {
+			return -1.0;
+		}
+
+		return m_v_gpio[gpio - 1];
+}
+
+void ltc_set_dsc(int cell, bool set) {
+	if (cell < 0 || cell > 17) {
+		return;
+	}
+
+	m_discharge_state[cell] = set;
+}
+
+bool ltc_get_dsc(int cell) {
+	if (cell < 0 || cell > 17) {
+		return false;
+	}
+
+	return m_discharge_state[cell];
+}
+
+
+
+#endif /* LTC_C_ */
+
+
