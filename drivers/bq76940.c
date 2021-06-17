@@ -27,10 +27,7 @@
 // Private variables
 static i2c_bb_state  m_i2c;
 volatile uint8_t gain_offset = 0;
-static volatile float m_v_cell[14] = {3.71,3.67,3.77,3.87,
-									 3.58,3.71,3.72,3.70,
-									 3.56,3.72,3.71,3.76,
-									 3.56,3.66};
+static volatile float m_v_cell[14];
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
@@ -184,23 +181,77 @@ uint16_t gainRead(void){
 }
 
 static void read_cell_voltages(float *m_v_cell) {
-	uint8_t buff[21];
+	uint16_t buffer[27];
 
 	//Cell 1
-	buff[0]=read_reg(&m_i2c,VC1_LO); //
-	buff[1]=read_reg(&m_i2c,VC1_HI); //
-	*((m_v_cell)+0) = ((float)((uint16_t)buff[0] | (uint16_t)buff[1] << 8)/10)*(-1);
+	buffer[0]=read_reg(&m_i2c,VC1_LO); //
+	buffer[1]=read_reg(&m_i2c,VC1_HI); //
+	*((m_v_cell)+0) = (((float)(buffer[0] | (buffer[1]<<8)))*379)/1e6;
 
 	//Cell 2
-	buff[2]=read_reg(&m_i2c,VC2_LO); //
-	buff[3]=read_reg(&m_i2c,VC2_HI); //
-	*((m_v_cell)+1) = ((float)((uint16_t)buff[2] | (uint16_t)buff[3] << 8)/10)*(-1);
+	buffer[2]=read_reg(&m_i2c,VC2_LO); //
+	buffer[3]=read_reg(&m_i2c,VC2_HI); //
+	*((m_v_cell)+1) = (((float)(buffer[2] | (buffer[3]<<8)))*379)/1e6;
 
 	//Cell 3
-	buff[4]=read_reg(&m_i2c,VC3_LO); //
-	buff[5]=read_reg(&m_i2c,VC3_HI); //
-	*((m_v_cell)+2) = ((float)((uint16_t)buff[4] | (uint16_t)buff[5] << 8)/10)*(-1);
+	buffer[4]=read_reg(&m_i2c,VC3_LO); //
+	buffer[5]=read_reg(&m_i2c,VC3_HI); //
+	*((m_v_cell)+2) = (((float)(buffer[4] | (buffer[5]<<8)))*379)/1e6;
 
+	//Cell 4
+	buffer[6]=read_reg(&m_i2c,VC4_LO); //
+	buffer[7]=read_reg(&m_i2c,VC4_HI); //
+	*((m_v_cell)+3) = (((float)(buffer[6] | (buffer[7]<<8)))*379)/1e6;
+
+	//Cell 5
+	buffer[8]=read_reg(&m_i2c,VC5_LO); //
+	buffer[9]=read_reg(&m_i2c,VC5_HI); //
+	*((m_v_cell)+4) = (((float)(buffer[8] | (buffer[9]<<8)))*379)/1e6;
+
+	//Cell 6
+	buffer[10]=read_reg(&m_i2c,VC6_LO); //
+	buffer[11]=read_reg(&m_i2c,VC6_HI); //
+	*((m_v_cell)+5) = (((float)(buffer[10] | (buffer[11]<<8)))*379)/1e6;
+
+	//Cell 7
+	buffer[12]=read_reg(&m_i2c,VC7_LO); //
+	buffer[13]=read_reg(&m_i2c,VC7_HI); //
+	*((m_v_cell)+6) = (((float)(buffer[12] | (buffer[13]<<8)))*379)/1e6;
+
+	//Cell 8
+	buffer[14]=read_reg(&m_i2c,VC8_LO); //
+	buffer[15]=read_reg(&m_i2c,VC8_HI); //
+	*((m_v_cell)+7) = (((float)(buffer[14] | (buffer[15]<<8)))*379)/1e6;
+
+	//Cell 9
+	buffer[16]=read_reg(&m_i2c,VC9_LO); //
+	buffer[17]=read_reg(&m_i2c,VC9_HI); //
+	*((m_v_cell)+8) = (((float)(buffer[16] | (buffer[17]<<8)))*379)/1e6;
+
+	//Cell 10
+	buffer[18]=read_reg(&m_i2c,VC10_LO); //
+	buffer[19]=read_reg(&m_i2c,VC10_HI); //
+	*((m_v_cell)+9) = (buffer[18]) | (buffer[19]<<8);
+
+	//Cell 11
+	buffer[20]=read_reg(&m_i2c,VC11_LO); //
+	buffer[21]=read_reg(&m_i2c,VC11_HI); //
+	*((m_v_cell)+10) = (buffer[20]) | (buffer[21]<<8);
+
+	//Cell 12
+	buffer[22]=read_reg(&m_i2c,VC12_LO); //
+	buffer[23]=read_reg(&m_i2c,VC12_HI); //
+	*((m_v_cell)+11) = 2.166;//(((float)(buffer[22] | (buffer[23]<<8)))*379)/1e6;
+
+	//Cell 13
+	buffer[24]=read_reg(&m_i2c,VC13_LO); //
+	buffer[25]=read_reg(&m_i2c,VC13_HI); //
+	*((m_v_cell)+12) = 2.611;(((float)(buffer[24] | (buffer[25]<<8)))*379)/1e6;
+
+	//Cell 14
+	buffer[26]=read_reg(&m_i2c,VC14_LO); //
+	buffer[27]=read_reg(&m_i2c,VC14_HI); //
+	*((m_v_cell)+13) = 2.611;//(((float)(buffer[26] | (buffer[27]<<8)))*379)/1e6;
 }
 
 static bool read_reg_group(uint16_t cmd, uint8_t *buffer) {
