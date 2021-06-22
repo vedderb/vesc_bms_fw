@@ -39,6 +39,7 @@ int32_t confparser_serialize_main_config_t(uint8_t *buffer, const main_config_t 
 	buffer_append_float16(buffer, conf->t_bal_lim_start, 10, &ind);
 	buffer_append_float16(buffer, conf->t_bal_lim_end, 10, &ind);
 	buffer_append_float16(buffer, conf->t_charge_min, 10, &ind);
+	buffer[ind++] = conf->t_charge_mon_en;
 
 	return ind;
 }
@@ -81,6 +82,7 @@ bool confparser_deserialize_main_config_t(const uint8_t *buffer, main_config_t *
 	conf->t_bal_lim_start = buffer_get_float16(buffer, 10, &ind);
 	conf->t_bal_lim_end = buffer_get_float16(buffer, 10, &ind);
 	conf->t_charge_min = buffer_get_float16(buffer, 10, &ind);
+	conf->t_charge_mon_en = buffer[ind++];
 
 	return true;
 }
@@ -116,5 +118,6 @@ void confparser_set_defaults_main_config_t(main_config_t *conf) {
 	conf->t_bal_lim_start = CONF_T_BAL_LIM_START;
 	conf->t_bal_lim_end = CONF_T_BAL_LIM_END;
 	conf->t_charge_min = CONF_T_CHARGE_MIN;
+	conf->t_charge_mon_en = CONF_T_CHARGE_MON_EN;
 }
 

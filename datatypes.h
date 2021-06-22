@@ -142,6 +142,9 @@ typedef struct __attribute__((packed)) {
 
 	// Only allow charging when the cell temperature is above this value
 	float t_charge_min;
+
+	// Enable temperature monitoring during charging
+	bool t_charge_mon_en;
 } main_config_t;
 
 // Backup data that is retained between boots and firmware updates. When adding new

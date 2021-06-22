@@ -153,6 +153,11 @@
 #define CONF_T_CHARGE_MIN 0
 #endif
 
+// Charge Temp Mon
+#ifndef CONF_T_CHARGE_MON_EN
+#define CONF_T_CHARGE_MON_EN 1
+#endif
+
 // CONF_DEFAULT_H_
 #endif
 

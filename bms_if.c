@@ -69,8 +69,8 @@ static bool charge_ok(void) {
 	return HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
 			m_voltage_cell_min > backup.config.vc_charge_min &&
 			m_voltage_cell_max < max &&
-			HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
-			HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;
+			(!backup.config.t_charge_mon_en || (HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
+			HW_TEMP_CELLS_MAX() > backup.config.t_charge_min));
 }
 
 static THD_FUNCTION(charge_thd, p) {
@@ -80,7 +80,8 @@ static THD_FUNCTION(charge_thd, p) {
 	int no_charge_cnt = 0;
 
 	for (;;) {
-		if (m_is_charging && HW_TEMP_CELLS_MAX() >= backup.config.t_charge_max) {
+		if (m_is_charging && HW_TEMP_CELLS_MAX() >= backup.config.t_charge_max &&
+				backup.config.t_charge_mon_en) {
 			bms_if_fault_report(FAULT_CODE_CHARGE_OVERTEMP);
 		}
 
