@@ -105,6 +105,7 @@
 
 // TODO: Take highest of all temp sensors
 #define HW_TEMP_CELLS_MAX()		bms_if_get_temp(1)
+#define HW_GET_BAL_TEMP()		bms_if_get_temp_ic()
 
 // ADC Channels
 #define ADC_CH_V_CHARGE			ADC_CHANNEL_IN3
