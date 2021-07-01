@@ -24,21 +24,25 @@
 #include "utils.h"
 #include "main.h"
 
+
 // Private variables
 static i2c_bb_state  m_i2c;
 volatile uint8_t gain_offset = 0;
 static volatile float m_v_cell[14];
+static volatile float measurement_temp[5];
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
 
 // Private functions
+void read_temp(float *measurement_temp);
 static void write_reg(uint8_t reg, uint16_t val);
 static bool read_reg_group(uint16_t cmd, uint8_t *buffer);
 static void read_cell_voltages(float *m_v_cell);
 uint8_t read_reg(i2c_bb_state *s,uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 uint16_t gainRead(void);
+
 
 
 
@@ -59,11 +63,20 @@ void bq76940_init(
 
 
 	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL1,ADC_EN);
+	write_reg(SYS_CTRL1,0x18); //
 
 
 	chThdSleepMilliseconds(30);
 	write_reg(CC_CFG, 0x19);
+
+	chThdSleepMilliseconds(30);
+	write_reg(CELLBAL1, 0x00);
+
+	chThdSleepMilliseconds(30);
+	write_reg(CELLBAL2, 0x00);
+
+	chThdSleepMilliseconds(30);
+	write_reg(CELLBAL3, 0x00);
 
 	chThdSleepMilliseconds(30);
 	write_reg(SYS_CTRL2, 0x60);
@@ -112,6 +125,7 @@ static THD_FUNCTION(sample_thread, arg) {
 		chThdSleepMilliseconds(250); // time to read the cells
 
 		read_cell_voltages(m_v_cell); //read cell voltages
+		read_temp(measurement_temp);  //read temperature
 
 		chThdSleepMilliseconds(1000);
 	}
@@ -181,7 +195,7 @@ uint16_t gainRead(void){
 }
 
 static void read_cell_voltages(float *m_v_cell) {
-	uint16_t buffer[27];
+	uint16_t buffer[28];
 
 	//Cell 1
 	buffer[0]=read_reg(&m_i2c,VC1_LO); //
@@ -231,27 +245,27 @@ static void read_cell_voltages(float *m_v_cell) {
 	//Cell 10
 	buffer[18]=read_reg(&m_i2c,VC10_LO); //
 	buffer[19]=read_reg(&m_i2c,VC10_HI); //
-	*((m_v_cell)+9) = (buffer[18]) | (buffer[19]<<8);
+	*((m_v_cell)+9) = (((float)((buffer[18]) | (buffer[19]<<8)))*379)/1e6;
 
 	//Cell 11
 	buffer[20]=read_reg(&m_i2c,VC11_LO); //
 	buffer[21]=read_reg(&m_i2c,VC11_HI); //
-	*((m_v_cell)+10) = (buffer[20]) | (buffer[21]<<8);
+	*((m_v_cell)+10) = (((float)((buffer[20]) | (buffer[21]<<8)))*379)/1e6;
 
 	//Cell 12
 	buffer[22]=read_reg(&m_i2c,VC12_LO); //
 	buffer[23]=read_reg(&m_i2c,VC12_HI); //
-	*((m_v_cell)+11) = 2.166;//(((float)(buffer[22] | (buffer[23]<<8)))*379)/1e6;
+	*((m_v_cell)+11) = (((float)((buffer[22]) | (buffer[23]<<8)))*379)/1e6;
 
 	//Cell 13
-	buffer[24]=read_reg(&m_i2c,VC13_LO); //
-	buffer[25]=read_reg(&m_i2c,VC13_HI); //
-	*((m_v_cell)+12) = 2.611;(((float)(buffer[24] | (buffer[25]<<8)))*379)/1e6;
+	buffer[24]=read_reg(&m_i2c,VC13_LO); // warning!!!
+	buffer[25]=read_reg(&m_i2c,VC13_HI); // warning!!!
+	*((m_v_cell)+12) = (((float)((buffer[24]) | (buffer[25]<<8)))*379)/1e6;
 
 	//Cell 14
-	buffer[26]=read_reg(&m_i2c,VC14_LO); //
-	buffer[27]=read_reg(&m_i2c,VC14_HI); //
-	*((m_v_cell)+13) = 2.611;//(((float)(buffer[26] | (buffer[27]<<8)))*379)/1e6;
+	buffer[26]=read_reg(&m_i2c,VC15_LO); //
+	buffer[27]=read_reg(&m_i2c,VC15_HI); //
+	*((m_v_cell)+13) = (((float)((buffer[26]) | (buffer[27]<<8)))*379)/1e6;
 }
 
 static bool read_reg_group(uint16_t cmd, uint8_t *buffer) {
@@ -289,4 +303,30 @@ float ltc_last_pack_voltage(void) {
 	return 27,6;//m_v_pack;
 }
 
+void read_temp(float *measurement_temp) {
+	uint16_t buffer[6];
 
+	buffer[0]=read_reg(&m_i2c,TS1_HI); //
+	buffer[1]=read_reg(&m_i2c,TS1_LO); //
+	*((measurement_temp)+0) = (float)((buffer[0]) | (buffer[1]<<8))/100;
+
+	buffer[2]=read_reg(&m_i2c,TS2_HI); //
+	buffer[3]=read_reg(&m_i2c,TS2_LO); //
+	*((measurement_temp)+1) = (float)((buffer[2]) | (buffer[3]<<8))/100;
+
+	buffer[4]=read_reg(&m_i2c,TS3_HI); //
+	buffer[5]=read_reg(&m_i2c,TS3_LO); //
+	*((measurement_temp)+2) = (float)((buffer[4]) | (buffer[5]<<8))/100;
+
+	*((measurement_temp)+3) = 0;
+
+	*((measurement_temp)+4) = 0;
+}
+
+float get_temp(uint8_t sensor){
+	if (sensor < 0 || sensor >= 6){//HW_ADC_TEMP_SENSORS) {
+			return -1.0;
+		}
+
+	return measurement_temp[sensor];
+}

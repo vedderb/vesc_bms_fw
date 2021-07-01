@@ -413,7 +413,11 @@ float bms_if_get_v_charge(void) {
 }
 
 float bms_if_get_temp(int sensor) {
+#ifndef AFE
 	return pwr_get_temp(sensor); //get the temperature
+#endif
+
+	return get_temp(sensor); //get the temperature
 }
 
 float bms_if_get_temp_ic(void) {

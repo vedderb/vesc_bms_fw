@@ -190,3 +190,4 @@ float pwr_get_temp(int sensor) {
 
 	return m_temps[sensor];
 }
+

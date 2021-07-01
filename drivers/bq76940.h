@@ -80,8 +80,7 @@
 #define ADCOFFSET	0x51
 #define ADCGAIN2	0x59
 
-//SYS_CTRL1 bit masks
-#define ADC_EN 		1<<4
+
 
 // Functions
 void bq76940_init(
@@ -92,5 +91,5 @@ void bq76940_init(
 
 float ltc_last_pack_voltage(void);
 float ltc_last_cell_voltage(int cell);
-
+float get_temp(uint8_t sensor);
 #endif /* BQ76940_H_ */
