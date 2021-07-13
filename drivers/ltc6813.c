@@ -149,8 +149,9 @@ static THD_FUNCTION(ltc_thd, p) {
 
 		write_cmd(LTC_ADCV | LTC_MD10);
 		poll_adc();
-		//read_cell_voltages((float*)m_v_cell);  delete for my
-
+#ifndef AFE
+		read_cell_voltages((float*)m_v_cell);
+#endif
 		// Open wire check
 		float cells_pu[18], cells_pd[18];
 		write_cmd(LTC_ADOW | LTC_MD10);

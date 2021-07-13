@@ -172,7 +172,7 @@ void pwr_init(void) {
 }
 
 float pwr_get_vcharge(void) {
-	return m_v_charge;
+	return 0.0;//m_v_charge;
 }
 
 float pwr_get_vfuse(void) {
@@ -180,7 +180,7 @@ float pwr_get_vfuse(void) {
 }
 
 float pwr_get_iin(void) {
-	return m_i_in;
+	return 2;//m_i_in;
 }
 
 float pwr_get_temp(int sensor) {

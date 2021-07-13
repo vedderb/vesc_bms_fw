@@ -29,7 +29,7 @@
 #define CURR_MEASURE_OFF()		palSetLine(LINE_CURR_MEASURE_EN)
 
 // Macros
-#define CHARGE_ENABLE()			BQ_CHG_ON(); BQ_DSG_ON()
+#define CHARGE_ENABLE()			charge=1;//BQ_CHG_ON(); BQ_DSG_ON()
 #define CHARGE_DISABLE()		BQ_CHG_OFF(); BQ_DSG_OFF()
 
 // Settings

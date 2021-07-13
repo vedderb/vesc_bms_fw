@@ -116,7 +116,7 @@ static THD_FUNCTION(sleep_thread, arg) {
 			}
 		} else {
 			LED_OFF(LINE_LED_GREEN);
-			go_to_sleep();
+			//go_to_sleep();
 		}
 
 		if (!usb_conf_reset && usb_cdc_configured_cnt() > 0) {

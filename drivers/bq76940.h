@@ -22,6 +22,7 @@
 
 
 //Macros
+#define CHARGE 		charge_on()
 #define NUM_REG		55
 
 #define SYS_STAT	0x00
@@ -81,7 +82,6 @@
 #define ADCGAIN2	0x59
 
 
-
 // Functions
 void bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
@@ -92,4 +92,5 @@ void bq76940_init(
 float ltc_last_pack_voltage(void);
 float ltc_last_cell_voltage(int cell);
 float get_temp(uint8_t sensor);
+float get_current(void);
 #endif /* BQ76940_H_ */

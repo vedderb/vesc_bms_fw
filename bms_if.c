@@ -299,8 +299,8 @@ static THD_FUNCTION(if_thd, p) {
 	chThdSleepMilliseconds(2000);
 
 	for(;;) {
-		float i_bms_ic = -(ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) - 1.65 + backup.ic_i_sens_v_ofs) *
-					(1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res) * IC_ISENSE_I_GAIN_CORR;
+		float i_bms_ic = 1;//-(ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) - 1.65 + backup.ic_i_sens_v_ofs) *
+					//(1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res) * IC_ISENSE_I_GAIN_CORR;
 		float i_adc = pwr_get_iin();
 
 		if (backup.config.i_measure_mode == I_MEASURE_MODE_VESC) {
@@ -384,7 +384,7 @@ float bms_if_get_i_in(void) {
 }
 
 float bms_if_get_i_in_ic(void) {
-	return m_i_in_filter_ic;
+	return get_current();//m_i_in_filter_ic;
 }
 
 float bms_if_get_v_cell(int cell) {
