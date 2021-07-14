@@ -384,7 +384,10 @@ float bms_if_get_i_in(void) {
 }
 
 float bms_if_get_i_in_ic(void) {
-	return get_current();//m_i_in_filter_ic;
+#ifdef	AFE
+	return m_i_in_filter_ic;
+#endif
+	return get_current();
 }
 
 float bms_if_get_v_cell(int cell) {
@@ -413,10 +416,9 @@ float bms_if_get_v_charge(void) {
 }
 
 float bms_if_get_temp(int sensor) {
-#ifndef AFE
+#ifdef AFE
 	return pwr_get_temp(sensor); //get the temperature
 #endif
-
 	return get_temp(sensor); //get the temperature
 }
 

@@ -133,7 +133,7 @@ static THD_FUNCTION(sample_thread, arg) {
 		write_reg(SYS_CTRL2, 0x42);
 		write_reg(CELLBAL1, 0x00);
 
-		iin_measure(&value_iin);			//measure current
+		iin_measure(&value_iin);		//measure current
 
 		chThdSleepMilliseconds(1000);
 	}
