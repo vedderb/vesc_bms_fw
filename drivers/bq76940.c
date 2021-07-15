@@ -111,6 +111,7 @@ void bq76940_init(
 	chThdSleepMilliseconds(30);
 	read_reg(&m_i2c,ADCGAIN1); //read the offset register
 
+	DISCHARGE_ON();
 
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
 }
@@ -130,7 +131,6 @@ static THD_FUNCTION(sample_thread, arg) {
 		read_temp(measurement_temp);  	//read temperature
 
 		chThdSleepMilliseconds(30);
-		write_reg(SYS_CTRL2, 0x42);
 		write_reg(CELLBAL1, 0x00);
 
 		iin_measure(&value_iin);		//measure current
@@ -186,20 +186,6 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
         ptr++;
     }
 return(crc);
-}
-
-uint16_t gainRead(void){
-	//uint8_t reg1;
-	//chThdSleepMilliseconds(30);
-	//read_reg(&m_i2c,ADCGAIN1);
-	//uint8_t reg2;
-	//chThdSleepMilliseconds(30);
-	//read_reg(&m_i2c,ADCGAIN2);
-
-
-	//reg1 &= 0b00001100;
-
-	//return (365 + ((reg1 << 1)|(reg2 >> 5)));
 }
 
 static void read_cell_voltages(float *m_v_cell) {
@@ -276,7 +262,7 @@ static void read_cell_voltages(float *m_v_cell) {
 	*((m_v_cell)+13) = (((float)((buffer[26]) | (buffer[27]<<8)))*379)/1e6;
 }
 
-float ltc_last_cell_voltage(int cell) {
+float bq_last_cell_voltage(int cell) {
 	if (cell < 0 || cell > 17) {
 		return -1.0;
 	}
@@ -284,7 +270,7 @@ float ltc_last_cell_voltage(int cell) {
 	return m_v_cell[cell];
 }
 
-float ltc_last_pack_voltage(void) {
+float bq_last_pack_voltage(void) {
 	return 27,6;//m_v_pack;
 }
 
@@ -312,7 +298,7 @@ void read_temp(float *measurement_temp) {
 float get_temp(uint8_t sensor){
 	if (sensor < 0 || sensor >= 6){//HW_ADC_TEMP_SENSORS) {
 			return -1.0;
-		}
+	}
 
 	return measurement_temp[sensor];
 }
@@ -341,3 +327,20 @@ void iin_measure(float *value_iin){
 float get_current(void){
 	return value_iin;
 }
+
+void DISCHARGE_ON(void){
+
+	chThdSleepMilliseconds(30);
+	write_reg(SYS_CTRL2, 0x42);
+
+	return;
+}
+
+void DISCHARGE_OFF(void){
+
+	chThdSleepMilliseconds(30);
+	write_reg(SYS_CTRL2, 0x40);
+
+	return;
+}
+

@@ -26,6 +26,9 @@
 #define BQ_CHG_ON()				palSetLine(LINE_BQ_CHG_EN)
 #define BQ_CHG_OFF()			palClearLine(LINE_BQ_CHG_EN)
 
+#define BQ_CHG_ON()				palSetLine(LINE_BQ_CHG_EN)
+#define BQ_CHG_OFF()			palClearLine(LINE_BQ_CHG_EN)
+
 #define BQ_CP_ON()				palSetLine(LINE_BQ_CP_EN)
 #define BQ_CP_OFF()				palClearLine(LINE_BQ_CP_EN)
 

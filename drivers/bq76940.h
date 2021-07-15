@@ -89,8 +89,10 @@ void bq76940_init(
 //float hdc1080_get_hum(void);
 //float hdc1080_get_temp(void);
 
-float ltc_last_pack_voltage(void);
-float ltc_last_cell_voltage(int cell);
+float bq_last_pack_voltage(void);
+float bq_last_cell_voltage(int cell);
 float get_temp(uint8_t sensor);
 float get_current(void);
+void DISCHARGE_ON(void);
+void DISCHARGE_OFF(void);
 #endif /* BQ76940_H_ */

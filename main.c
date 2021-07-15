@@ -171,7 +171,7 @@ int main(void) {
 
 	pwr_init();
 
-#ifndef BQ76940_SDA_GPIO
+#ifndef AFE
 	ltc_init();
 #endif
 

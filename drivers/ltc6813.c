@@ -340,7 +340,6 @@ static void read_cell_voltages(float *cells) {
 		cells[17] = (float)((uint16_t)buffer[4] | (uint16_t)buffer[5] << 8) / 1e4;
 	}
 }
-
 #endif
 
 // Software SPI

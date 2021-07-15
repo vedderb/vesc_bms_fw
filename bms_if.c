@@ -17,9 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef BQ76940_SDA_GPIO
 #include "ltc6813.h"
-#endif
 #include "bq76940.h"
 #include "main.h"
 #include "bms_if.h"
@@ -69,11 +67,14 @@ void bms_if_init(void) {
 
 static bool charge_ok(void) {
 	float max = m_is_charging ? backup.config.vc_charge_end : backup.config.vc_charge_start;
-	return HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
-			m_voltage_cell_min > backup.config.vc_charge_min &&
-			m_voltage_cell_max < max &&
-			HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
-			HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;
+#ifdef AFE
+	return 1;
+#endif
+	return W_GET_V_CHARGE() > backup.config.v_charge_detect &&	//Later I'll implement ADC measure voltage Charger
+		   m_voltage_cell_min > backup.config.vc_charge_min &&
+		   m_voltage_cell_max < max &&
+		   HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
+		   HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;
 }
 
 static THD_FUNCTION(charge_thd, p) {
@@ -93,23 +94,23 @@ static THD_FUNCTION(charge_thd, p) {
 				chThdSleepMilliseconds(2000);
 				if (charge_ok()) {
 					m_is_charging = true;
-					CHARGE_ENABLE();
+				    DISCHARGE_ON();//CHARGE_ENABLE();
 				}
 			}
 		} else {
 			m_is_charging = false;
-			CHARGE_DISABLE();
+			DISCHARGE_OFF();//CHARGE_DISABLE();
 		}
 
 		chThdSleepMilliseconds(10);
-
+/*
 		if (m_i_in_filter > -0.5 && m_is_charging && !HW_CHARGER_DETECTED()) {
 			no_charge_cnt++;
 
 			if (no_charge_cnt > 100) {
 				no_charge_cnt = 0;
 				m_is_charging = false;
-				CHARGE_DISABLE();
+				DISCHARGE_OFF();//CHARGE_DISABLE();
 				chThdSleepMilliseconds(5000);
 			}
 		} else {
@@ -120,13 +121,13 @@ static THD_FUNCTION(charge_thd, p) {
 			if (fabsf(m_i_in_filter) > backup.config.max_charge_current) {
 				m_was_charge_overcurrent = true;
 				m_is_charging = false;
-				CHARGE_DISABLE();
+				DISCHARGE_OFF();//CHARGE_DISABLE();
 				bms_if_fault_report(FAULT_CODE_CHARGE_OVERCURRENT);
 			}
 
 			sleep_reset();
 		}
-
+*/
 		// Charger must be disconnected and reconnected on charge overcurrent events
 		if (m_was_charge_overcurrent && HW_GET_V_CHARGE() < backup.config.v_charge_detect) {
 			m_was_charge_overcurrent = false;
@@ -186,6 +187,7 @@ static THD_FUNCTION(balance_thd, p) {
 			break;
 		}
 
+#ifndef AFE
 		for (int i = backup.config.cell_first_index;i <
 		(backup.config.cell_num + backup.config.cell_first_index);i++) {
 				if (ltc_last_cell_voltage(i) > v_max) {
@@ -195,6 +197,18 @@ static THD_FUNCTION(balance_thd, p) {
 					v_min = ltc_last_cell_voltage(i);
 				}
 		}
+#endif
+
+		for (int i = backup.config.cell_first_index;i <
+		(backup.config.cell_num + backup.config.cell_first_index);i++) {
+				if (bq_last_cell_voltage(i) > v_max) {
+					v_max = bq_last_cell_voltage(i);
+				}
+				if (bq_last_cell_voltage(i) < v_min) {
+					v_min = bq_last_cell_voltage(i);
+				}
+		}
+
 
 		m_voltage_cell_min = v_min;
 		m_voltage_cell_max = v_max;
@@ -237,7 +251,8 @@ static THD_FUNCTION(balance_thd, p) {
 				float limit = ltc_get_dsc(i) ? backup.config.vc_balance_end : backup.config.vc_balance_start;
 				limit += v_min;
 
-				if (ltc_last_cell_voltage(i) >= limit) {
+				//if (ltc_last_cell_voltage(i) >= limit) {
+				if (bq_last_cell_voltage(i) >= limit) {
 					ltc_set_dsc(i, true);
 					bal_ch++;
 					m_is_balancing = true;
@@ -263,6 +278,7 @@ static THD_FUNCTION(balance_thd, p) {
 		while (bal_ch > bal_ch_max) {
 			float v_min = 100.0;
 			int v_min_cell = 0;
+/*
 			for (int i = backup.config.cell_first_index;i <
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
 				if (ltc_last_cell_voltage(i) < v_min && ltc_get_dsc(i)) {
@@ -270,7 +286,14 @@ static THD_FUNCTION(balance_thd, p) {
 					v_min_cell = i;
 				}
 			}
-
+*/
+			for (int i = backup.config.cell_first_index;i <
+			(backup.config.cell_num + backup.config.cell_first_index);i++) {
+				if (bq_last_cell_voltage(i) < v_min && ltc_get_dsc(i)) {
+					v_min = bq_last_cell_voltage(i);
+					v_min_cell = i;
+				}
+			}
 			ltc_set_dsc(v_min_cell, false);
 			bal_ch--;
 		}
@@ -391,7 +414,7 @@ float bms_if_get_i_in_ic(void) {
 }
 
 float bms_if_get_v_cell(int cell) {
-	return ltc_last_cell_voltage(cell);
+	return bq_last_cell_voltage(cell);
 }
 
 float bms_if_get_v_cell_min(void) {
