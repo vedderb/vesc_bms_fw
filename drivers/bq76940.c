@@ -30,7 +30,7 @@ static i2c_bb_state  m_i2c;
 volatile uint8_t gain_offset = 0;
 static volatile float m_v_cell[14];
 static volatile float measurement_temp[5];
-static volatile float value_iin = 0;
+static volatile float i_in = 0.0;
 
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
@@ -40,7 +40,7 @@ static THD_FUNCTION(sample_thread, arg);
 void read_temp(float *measurement_temp);
 void iin_measure(float *value_iin);
 static void write_reg(uint8_t reg, uint16_t val);
-static bool read_reg_group(uint16_t cmd, uint8_t *buffer);
+//static bool read_reg_group(uint16_t cmd, uint8_t *buffer);
 static void read_cell_voltages(float *m_v_cell);
 uint8_t read_reg(i2c_bb_state *s,uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
@@ -107,7 +107,6 @@ void bq76940_init(
 	data=read_reg(&m_i2c,ADCOFFSET); //read the offset register
 	gain_offset=data;
 
-	//chThdSleepMilliseconds(2000);
 	chThdSleepMilliseconds(30);
 	read_reg(&m_i2c,ADCGAIN1); //read the offset register
 
@@ -133,7 +132,7 @@ static THD_FUNCTION(sample_thread, arg) {
 		chThdSleepMilliseconds(30);
 		write_reg(CELLBAL1, 0x00);
 
-		iin_measure(&value_iin);		//measure current
+		iin_measure(&i_in);		//measure current
 
 		chThdSleepMilliseconds(1000);
 	}
@@ -310,7 +309,7 @@ void charge_on(void){
 	return;
 }
 
-void iin_measure(float *value_iin){
+void iin_measure(float *i_in ){
 	uint8_t buffer[2];
 
 
@@ -319,13 +318,13 @@ void iin_measure(float *value_iin){
 	chThdSleepMilliseconds(30);
 	buffer[1]=read_reg(&m_i2c,CC_LO);
 
-	*(value_iin)=(float)((buffer[4]) | (buffer[5]<<8));
+	*(i_in)=(float)((buffer[4]) | (buffer[5]<<8));
 
 	return;
 }
 
 float get_current(void){
-	return value_iin;
+	return i_in ;
 }
 
 void DISCHARGE_ON(void){
