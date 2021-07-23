@@ -67,14 +67,16 @@ void bms_if_init(void) {
 
 static bool charge_ok(void) {
 	float max = m_is_charging ? backup.config.vc_charge_end : backup.config.vc_charge_start;
-#ifdef AFE
+//#ifdef AFE
 	return 1;
-#endif
-	return W_GET_V_CHARGE() > backup.config.v_charge_detect &&	//Later I'll implement ADC measure voltage Charger
+//#endif
+
+/*	return W_GET_V_CHARGE() > backup.config.v_charge_detect &&	//Later I'll implement ADC measure voltage Charger
 		   m_voltage_cell_min > backup.config.vc_charge_min &&
 		   m_voltage_cell_max < max &&
 		   HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
 		   HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;
+*/
 }
 
 static THD_FUNCTION(charge_thd, p) {
@@ -198,7 +200,7 @@ static THD_FUNCTION(balance_thd, p) {
 				}
 		}
 #endif
-
+#ifdef AFE
 		for (int i = backup.config.cell_first_index;i <
 		(backup.config.cell_num + backup.config.cell_first_index);i++) {
 				if (bq_last_cell_voltage(i) > v_max) {
@@ -208,7 +210,7 @@ static THD_FUNCTION(balance_thd, p) {
 					v_min = bq_last_cell_voltage(i);
 				}
 		}
-
+#endif
 
 		m_voltage_cell_min = v_min;
 		m_voltage_cell_max = v_max;
@@ -222,10 +224,17 @@ static THD_FUNCTION(balance_thd, p) {
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
 				if (m_balance_override[i] == 1) {
 					is_balance_override = true;
+#ifndef AFE
 					ltc_set_dsc(i, false);
+#endif
+#ifdef	AFE
+					;//bq_set_dsc(i, false);
+#endif
 				} else if (m_balance_override[i] == 2) {
 					is_balance_override = true;
+#ifndef AFE
 					ltc_set_dsc(i, true);
+#endif
 					bal_ch++;
 					m_is_balancing = true;
 				}
@@ -250,14 +259,21 @@ static THD_FUNCTION(balance_thd, p) {
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
 				float limit = ltc_get_dsc(i) ? backup.config.vc_balance_end : backup.config.vc_balance_start;
 				limit += v_min;
-
-				//if (ltc_last_cell_voltage(i) >= limit) {
-				if (bq_last_cell_voltage(i) >= limit) {
+#ifndef AFE
+				if (ltc_last_cell_voltage(i) >= limit) {
 					ltc_set_dsc(i, true);
 					bal_ch++;
 					m_is_balancing = true;
 				} else {
 					ltc_set_dsc(i, false);
+				}
+#endif
+				if (bq_last_cell_voltage(i) >= limit) {
+					//bq_set_dsc(i, true);
+					bal_ch++;
+					m_is_balancing = true;
+				} else {
+					//bq_set_dsc(i, false);
 				}
 			}
 		}
@@ -278,7 +294,7 @@ static THD_FUNCTION(balance_thd, p) {
 		while (bal_ch > bal_ch_max) {
 			float v_min = 100.0;
 			int v_min_cell = 0;
-/*
+#ifndef AFE
 			for (int i = backup.config.cell_first_index;i <
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
 				if (ltc_last_cell_voltage(i) < v_min && ltc_get_dsc(i)) {
@@ -286,7 +302,7 @@ static THD_FUNCTION(balance_thd, p) {
 					v_min_cell = i;
 				}
 			}
-*/
+#endif
 			for (int i = backup.config.cell_first_index;i <
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
 				if (bq_last_cell_voltage(i) < v_min && ltc_get_dsc(i)) {
@@ -294,7 +310,12 @@ static THD_FUNCTION(balance_thd, p) {
 					v_min_cell = i;
 				}
 			}
+#ifndef AFE
 			ltc_set_dsc(v_min_cell, false);
+#endif
+#ifdef	AFE
+			//bq_set_dsc(v_min_cell, false);
+#endif
 			bal_ch--;
 		}
 
@@ -304,7 +325,12 @@ static THD_FUNCTION(balance_thd, p) {
 			m_bal_ok = false;
 
 			for (int i = 0;i < HW_CELLS_SERIES;i++) {
+#ifndef AFE
 				ltc_set_dsc(i, false);
+#endif
+#ifdef AFE
+				//bq_set_dsc(i, false);
+#endif
 			}
 		}
 
@@ -439,7 +465,7 @@ float bms_if_get_v_charge(void) {
 }
 
 float bms_if_get_temp(int sensor) {
-#ifdef AFE
+#ifndef AFE
 	return pwr_get_temp(sensor); //get the temperature
 #endif
 	return get_temp(sensor); //get the temperature

@@ -125,8 +125,8 @@ static THD_FUNCTION(sample_thread, arg) {
 		m_i2c.has_error = 0;
 
 		chThdSleepMilliseconds(250); 	// time to read the cells
-
 		read_cell_voltages(m_v_cell); 	//read cell voltages
+		chThdSleepMilliseconds(250); 	// time to read the thermistors
 		read_temp(measurement_temp);  	//read temperature
 
 		chThdSleepMilliseconds(30);
@@ -274,24 +274,32 @@ float bq_last_pack_voltage(void) {
 }
 
 void read_temp(float *measurement_temp) {
-	uint16_t buffer[6];
+	uint16_t 	buffer[6];
+	float		vtsx=0, R_ts=0;
 
 	buffer[0]=read_reg(&m_i2c,TS1_HI); //
 	buffer[1]=read_reg(&m_i2c,TS1_LO); //
-	*((measurement_temp)+0) = (float)((buffer[0]) | (buffer[1]<<8))/100;
-	//R_ts=(10000*VTSX)%(3.3-VTSX)
+	vtsx = (float)((buffer[0]) | (buffer[1]<<8));
+	//R_ts = (vtsx*1e4)/(vtsx-3.3);
+	*((measurement_temp)+0) = R_ts/100;//(1.0 / (((logf(R_ts) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
 	buffer[2]=read_reg(&m_i2c,TS2_HI); //
 	buffer[3]=read_reg(&m_i2c,TS2_LO); //
-	*((measurement_temp)+1) = (float)((buffer[2]) | (buffer[3]<<8))/100;
+	//vtsx = ((buffer[2]) | (buffer[3]<<8));
+	//R_ts = (vtsx*1e4)/(vtsx-3.3);
+	*((measurement_temp)+1) = 10;//(1.0 / (((logf(R_ts) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
 	buffer[4]=read_reg(&m_i2c,TS3_HI); //
 	buffer[5]=read_reg(&m_i2c,TS3_LO); //
-	*((measurement_temp)+2) = (float)((buffer[4]) | (buffer[5]<<8))/100;
+	//vtsx = ((buffer[4]) | (buffer[5]<<8));
+	//R_ts = (vtsx*1e4)/(vtsx-3.3);
+	*((measurement_temp)+2) = 10;//(1.0 / (((logf(20000) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
-	*((measurement_temp)+3) = 0;
+	*((measurement_temp)+3) = 10;
 
-	*((measurement_temp)+4) = 0;
+	*((measurement_temp)+4) = 10;
+
+//#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15)
 }
 
 float get_temp(uint8_t sensor){
@@ -343,3 +351,18 @@ void DISCHARGE_OFF(void){
 	return;
 }
 
+void CHARGE_ON(void){
+
+	chThdSleepMilliseconds(30);
+	write_reg(SYS_CTRL2, 0x41);
+
+	return;
+}
+
+void CHARGE_OFF(void){
+
+	chThdSleepMilliseconds(30);
+	write_reg(SYS_CTRL2, 0x40);
+
+	return;
+}

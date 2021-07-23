@@ -83,9 +83,8 @@
 
 
 // Functions
-void bq76940_init(
-		stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin);
+void bq76940_init(stm32_gpio_t *sda_gpio, int sda_pin,
+				  stm32_gpio_t *scl_gpio, int scl_pin);
 //float hdc1080_get_hum(void);
 //float hdc1080_get_temp(void);
 
@@ -95,4 +94,6 @@ float get_temp(uint8_t sensor);
 float get_current(void);
 void DISCHARGE_ON(void);
 void DISCHARGE_OFF(void);
+void CHARGE_ON(void);
+void CHARGE_OFF(void);
 #endif /* BQ76940_H_ */
