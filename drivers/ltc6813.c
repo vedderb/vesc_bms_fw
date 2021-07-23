@@ -30,7 +30,7 @@
 #define APPEND_16b(cmd, data, ind)	data[ind++] = ((cmd) >> 8) & 0xFF;data[ind++] = (cmd) & 0xFF
 #define SET4_LO_HI(byte, lo, hi)	byte = (((hi) & 0x0F) << 4) | ((lo) & 0x0F)
 #define CLEAR_BUFFER_6(buffer)		buffer[0] = 0; buffer[1] = 0; buffer[2] = 0; buffer[3] = 0; buffer[4] = 0; buffer[5] = 0
-#undef SET_BIT
+#undef  SET_BIT
 #define SET_BIT(byte, bit, set)		byte |= set ? 1 << bit : 0
 
 // Private variables
@@ -44,7 +44,6 @@ static volatile float m_v_cell_pu_diff[18] = {0.0};
 static volatile float m_last_temp = 0.0;
 static volatile float m_v_gpio[9] = {0.0};
 static volatile bool m_discharge_state[18] = {false};
-
 
 // Private functions
 #ifndef AFE
@@ -115,9 +114,9 @@ static THD_FUNCTION(ltc_thd, p) {
 
 	while (!chThdShouldTerminateX()) {
 		uint8_t buffer[100];
-
-//		ltc_wakeup();
-
+#ifndef AFE
+		ltc_wakeup();
+#endif
 		CLEAR_BUFFER_6(buffer);
 		buffer[0] |= LTC_REFON; // Keep reference on, otherwise some measurements flicker
 		buffer[0] |= LTC_GPIO1 | LTC_GPIO2 | LTC_GPIO3 | LTC_GPIO4 | LTC_GPIO5;

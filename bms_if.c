@@ -228,7 +228,7 @@ static THD_FUNCTION(balance_thd, p) {
 					ltc_set_dsc(i, false);
 #endif
 #ifdef	AFE
-					;//bq_set_dsc(i, false);
+					bq_set_dsc(i, false);
 #endif
 				} else if (m_balance_override[i] == 2) {
 					is_balance_override = true;
@@ -268,13 +268,15 @@ static THD_FUNCTION(balance_thd, p) {
 					ltc_set_dsc(i, false);
 				}
 #endif
+#ifdef AFE
 				if (bq_last_cell_voltage(i) >= limit) {
-					//bq_set_dsc(i, true);
+					bq_set_dsc(i, true);
 					bal_ch++;
 					m_is_balancing = true;
 				} else {
-					//bq_set_dsc(i, false);
+					bq_set_dsc(i, false);
 				}
+#endif
 			}
 		}
 
@@ -314,7 +316,7 @@ static THD_FUNCTION(balance_thd, p) {
 			ltc_set_dsc(v_min_cell, false);
 #endif
 #ifdef	AFE
-			//bq_set_dsc(v_min_cell, false);
+			bq_set_dsc(v_min_cell, false);
 #endif
 			bal_ch--;
 		}
@@ -329,7 +331,7 @@ static THD_FUNCTION(balance_thd, p) {
 				ltc_set_dsc(i, false);
 #endif
 #ifdef AFE
-				//bq_set_dsc(i, false);
+				bq_set_dsc(i, false);
 #endif
 			}
 		}

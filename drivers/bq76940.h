@@ -87,7 +87,7 @@ void bq76940_init(stm32_gpio_t *sda_gpio, int sda_pin,
 				  stm32_gpio_t *scl_gpio, int scl_pin);
 //float hdc1080_get_hum(void);
 //float hdc1080_get_temp(void);
-
+void bq_set_dsc(int cell, bool set);
 float bq_last_pack_voltage(void);
 float bq_last_cell_voltage(int cell);
 float get_temp(uint8_t sensor);

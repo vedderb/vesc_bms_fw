@@ -31,7 +31,7 @@ volatile uint8_t gain_offset = 0;
 static volatile float m_v_cell[14];
 static volatile float measurement_temp[5];
 static volatile float i_in = 0.0;
-
+static volatile bool m_discharge_state[18] = {false};
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
@@ -46,7 +46,7 @@ uint8_t read_reg(i2c_bb_state *s,uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 uint16_t gainRead(void);
 void charge_status(void);
-
+void balance(bool *m_discharge_state);
 
 
 void bq76940_init(
@@ -121,18 +121,18 @@ static THD_FUNCTION(sample_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("BQ76940");
 
-	for(;;) {
+	while (!chThdShouldTerminateX()) {   //for(;;) {
 		m_i2c.has_error = 0;
 
 		chThdSleepMilliseconds(250); 	// time to read the cells
 		read_cell_voltages(m_v_cell); 	//read cell voltages
 		chThdSleepMilliseconds(250); 	// time to read the thermistors
 		read_temp(measurement_temp);  	//read temperature
-
 		chThdSleepMilliseconds(30);
-		write_reg(CELLBAL1, 0x00);
-
-		iin_measure(&i_in);		//measure current
+		//write_reg(CELLBAL3, 0x10);		//Balance
+		balance(&m_discharge_state);
+		//m_discharge_state[18] = {false};
+		//iin_measure(&i_in);		//measure current
 
 		chThdSleepMilliseconds(1000);
 	}
@@ -280,14 +280,14 @@ void read_temp(float *measurement_temp) {
 	buffer[0]=read_reg(&m_i2c,TS1_HI); //
 	buffer[1]=read_reg(&m_i2c,TS1_LO); //
 	vtsx = (float)((buffer[0]) | (buffer[1]<<8));
-	//R_ts = (vtsx*1e4)/(vtsx-3.3);
-	*((measurement_temp)+0) = R_ts/100;//(1.0 / (((logf(R_ts) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
+	R_ts = (vtsx*1e4)/(vtsx-3.3);
+	*((measurement_temp)+0) = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
 	buffer[2]=read_reg(&m_i2c,TS2_HI); //
 	buffer[3]=read_reg(&m_i2c,TS2_LO); //
 	//vtsx = ((buffer[2]) | (buffer[3]<<8));
 	//R_ts = (vtsx*1e4)/(vtsx-3.3);
-	*((measurement_temp)+1) = 10;//(1.0 / (((logf(R_ts) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
+	*((measurement_temp)+1) = 10;//(1.0 / (((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
 	buffer[4]=read_reg(&m_i2c,TS3_HI); //
 	buffer[5]=read_reg(&m_i2c,TS3_LO); //
@@ -363,6 +363,41 @@ void CHARGE_OFF(void){
 
 	chThdSleepMilliseconds(30);
 	write_reg(SYS_CTRL2, 0x40);
+
+	return;
+}
+
+void bq_set_dsc(int cell, bool set) {
+	if (cell < 0 || cell > 17) {
+		return;
+	}
+
+	m_discharge_state[cell] = set;
+}
+
+void balance(bool *m_discharge_state){
+	if(*(m_discharge_state+0)) write_reg(CELLBAL1, 0x01);
+	if(*(m_discharge_state+1)) write_reg(CELLBAL1, 0x02);
+	if(*(m_discharge_state+2)) write_reg(CELLBAL1, 0x04);
+	if(*(m_discharge_state+3)) write_reg(CELLBAL1, 0x08);
+	if(*(m_discharge_state+4)) write_reg(CELLBAL1, 0x10);
+
+	if(*(m_discharge_state+5)) write_reg(CELLBAL2, 0x01);
+	if(*(m_discharge_state+6)) write_reg(CELLBAL2, 0x02);
+	if(*(m_discharge_state+7)) write_reg(CELLBAL2, 0x04);
+	if(*(m_discharge_state+8)) write_reg(CELLBAL2, 0x08);
+	if(*(m_discharge_state+9)) write_reg(CELLBAL2, 0x10);
+
+	if(*(m_discharge_state+10)) write_reg(CELLBAL3, 0x01);
+	if(*(m_discharge_state+11)) write_reg(CELLBAL3, 0x02);
+	if(*(m_discharge_state+12)) write_reg(CELLBAL3, 0x04);
+	if(*(m_discharge_state+13)) write_reg(CELLBAL3, 0x08);
+
+	else{
+		write_reg(CELLBAL1, 0x00);
+		write_reg(CELLBAL2, 0x00);
+		write_reg(CELLBAL3, 0x00);
+	}
 
 	return;
 }
