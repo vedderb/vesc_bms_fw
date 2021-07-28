@@ -127,7 +127,7 @@ static THD_FUNCTION(ltc_thd, p) {
 		SET_BIT(buffer[4], 4, m_discharge_state[4]);
 		SET_BIT(buffer[4], 5, m_discharge_state[5]);
 		SET_BIT(buffer[4], 6, m_discharge_state[6]);
-		SET_BIT(buffer[4], 7, m_discharge_state[7]);
+		SET_BIT(buffer[4], 7, m_discharge_state [7]);
 		SET_BIT(buffer[5], 3, m_discharge_state[11]);
 		SET_BIT(buffer[5], 2, m_discharge_state[10]);
 		SET_BIT(buffer[5], 1, m_discharge_state[9]);

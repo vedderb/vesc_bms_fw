@@ -81,16 +81,16 @@
 #define ADCOFFSET	0x51
 #define ADCGAIN2	0x59
 
-
 // Functions
 void bq76940_init(stm32_gpio_t *sda_gpio, int sda_pin,
 				  stm32_gpio_t *scl_gpio, int scl_pin);
 //float hdc1080_get_hum(void);
 //float hdc1080_get_temp(void);
 void bq_set_dsc(int cell, bool set);
+bool bq_get_dsc(int cell);
 float bq_last_pack_voltage(void);
 float bq_last_cell_voltage(int cell);
-float get_temp(uint8_t sensor);
+float get_temp(int sensor);
 float get_current(void);
 void DISCHARGE_ON(void);
 void DISCHARGE_OFF(void);

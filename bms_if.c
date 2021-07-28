@@ -255,11 +255,12 @@ static THD_FUNCTION(balance_thd, p) {
 				fabsf(bms_if_get_i_in_ic()) < backup.config.balance_max_current) {
 
 			bal_ch = 0;
+
+#ifndef AFE
 			for (int i = backup.config.cell_first_index;i <
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
 				float limit = ltc_get_dsc(i) ? backup.config.vc_balance_end : backup.config.vc_balance_start;
 				limit += v_min;
-#ifndef AFE
 				if (ltc_last_cell_voltage(i) >= limit) {
 					ltc_set_dsc(i, true);
 					bal_ch++;
@@ -269,6 +270,10 @@ static THD_FUNCTION(balance_thd, p) {
 				}
 #endif
 #ifdef AFE
+				for (int i = backup.config.cell_first_index;i <
+				(backup.config.cell_num + backup.config.cell_first_index);i++) {
+					float limit = bq_get_dsc(i) ? backup.config.vc_balance_end : backup.config.vc_balance_start;
+					limit += v_min;
 				if (bq_last_cell_voltage(i) >= limit) {
 					bq_set_dsc(i, true);
 					bal_ch++;
@@ -305,13 +310,15 @@ static THD_FUNCTION(balance_thd, p) {
 				}
 			}
 #endif
+#ifdef AFE
 			for (int i = backup.config.cell_first_index;i <
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
-				if (bq_last_cell_voltage(i) < v_min && ltc_get_dsc(i)) {
+				if (bq_last_cell_voltage(i) < v_min && bq_get_dsc(i)) {
 					v_min = bq_last_cell_voltage(i);
 					v_min_cell = i;
 				}
 			}
+#endif
 #ifndef AFE
 			ltc_set_dsc(v_min_cell, false);
 #endif
