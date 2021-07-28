@@ -96,23 +96,39 @@ static THD_FUNCTION(charge_thd, p) {
 				chThdSleepMilliseconds(2000);
 				if (charge_ok()) {
 					m_is_charging = true;
-				    DISCHARGE_ON();//CHARGE_ENABLE();
+#ifndef AFE
+					CHARGE_ENABLE();
+#endif
+#ifdef AFE
+				    //CHARGE_ON();
+				    DISCHARGE_ON();
+#endif
 				}
 			}
 		} else {
 			m_is_charging = false;
-			DISCHARGE_OFF();//CHARGE_DISABLE();
+#ifndef AFE
+			CHARGE_DISABLE();
+#endif
+#ifdef AFE
+			DISCHARGE_OFF();
+#endif
 		}
 
 		chThdSleepMilliseconds(10);
-/*
+
 		if (m_i_in_filter > -0.5 && m_is_charging && !HW_CHARGER_DETECTED()) {
 			no_charge_cnt++;
 
 			if (no_charge_cnt > 100) {
 				no_charge_cnt = 0;
 				m_is_charging = false;
-				DISCHARGE_OFF();//CHARGE_DISABLE();
+#ifndef AFE
+				CHARGE_DISABLE();
+#endif
+#ifdef AFE
+				DISCHARGE_OFF();
+#endif
 				chThdSleepMilliseconds(5000);
 			}
 		} else {
@@ -123,13 +139,18 @@ static THD_FUNCTION(charge_thd, p) {
 			if (fabsf(m_i_in_filter) > backup.config.max_charge_current) {
 				m_was_charge_overcurrent = true;
 				m_is_charging = false;
-				DISCHARGE_OFF();//CHARGE_DISABLE();
+#ifndef	AFE
+				CHARGE_DISABLE();
+#endif
+#ifdef AFE
+				DISCHARGE_OFF();
+#endif
 				bms_if_fault_report(FAULT_CODE_CHARGE_OVERCURRENT);
 			}
 
 			sleep_reset();
 		}
-*/
+
 		// Charger must be disconnected and reconnected on charge overcurrent events
 		if (m_was_charge_overcurrent && HW_GET_V_CHARGE() < backup.config.v_charge_detect) {
 			m_was_charge_overcurrent = false;

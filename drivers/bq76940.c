@@ -41,9 +41,8 @@ static THD_FUNCTION(sample_thread, arg);
 void read_temp(volatile float *measurement_temp);
 void iin_measure(float *value_iin);
 static void write_reg(uint8_t reg, uint16_t val);
-//static bool read_reg_group(uint16_t cmd, uint8_t *buffer);
 static void read_cell_voltages(volatile float *m_v_cell);
-uint8_t read_reg(uint8_t reg);//i2c_bb_state *s
+uint8_t read_reg(uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 void balance(volatile bool *m_discharge_state);
 
@@ -102,11 +101,11 @@ void bq76940_init(
 	write_reg(UV_TRIP, 0x00);
 
 	chThdSleepMilliseconds(30);
-	data=read_reg(ADCOFFSET); //read the offset register//&m_i2c,
+	data=read_reg(ADCOFFSET); //read the offset register
 	gain_offset=data;
 
 	chThdSleepMilliseconds(30);
-	read_reg(ADCGAIN1); //read the offset register//(&m_i2c,
+	read_reg(ADCGAIN1); //read the offset register
 
 	DISCHARGE_ON();
 
@@ -119,7 +118,7 @@ static THD_FUNCTION(sample_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("BQ76940");
 
-	while (!chThdShouldTerminateX()) {   //for(;;) {
+	while (!chThdShouldTerminateX()) {
 		m_i2c.has_error = 0;
 
 		chThdSleepMilliseconds(250); 	// time to read the cells
@@ -127,11 +126,8 @@ static THD_FUNCTION(sample_thread, arg) {
 		chThdSleepMilliseconds(250); 	// time to read the thermistors
 		read_temp(measurement_temp);  	//read temperature
 		chThdSleepMilliseconds(30);
-		//write_reg(CELLBAL1, 0x01);		//Balance
-		//m_discharge_state[0] = true;
 		balance(m_discharge_state);
-		//m_discharge_state[18] = {false};
-		//iin_measure(&i_in);		//measure current
+		//iin_measure(&i_in);				//measure current
 
 		chThdSleepMilliseconds(1000);
 	}
@@ -298,7 +294,6 @@ void read_temp(volatile float *measurement_temp) {
 
 	*((measurement_temp)+4) = 10;
 
-//#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15)
 }
 
 float get_temp(int sensor){
@@ -307,13 +302,6 @@ float get_temp(int sensor){
 	}
 
 	return measurement_temp[sensor];
-}
-
-void charge_on(void){
-
-	write_reg(SYS_CTRL2, 0x01);
-
-	return;
 }
 
 void iin_measure(float *i_in ){
@@ -338,7 +326,7 @@ void DISCHARGE_ON(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2); //read the offset register
-	data |= data << 1;
+	data = data & 0xFF;
 	chThdSleepMilliseconds(30);
 	write_reg(SYS_CTRL2, data);//0x42
 
@@ -349,7 +337,7 @@ void DISCHARGE_OFF(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2); //read the offset register
-	data |= data << 0;
+	data |= data & 0xFD;
 	chThdSleepMilliseconds(30);
 	write_reg(SYS_CTRL2, data); // 0x40
 
@@ -357,17 +345,23 @@ void DISCHARGE_OFF(void){
 }
 
 void CHARGE_ON(void){
+	uint8_t	data = 0;
 
+	data = read_reg(SYS_CTRL2); //read the offset register
+	data = data & 0xFF;
 	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2, 0x41);
+	write_reg(SYS_CTRL2, data);
 
 	return;
 }
 
 void CHARGE_OFF(void){
+	uint8_t	data = 0;
 
+	data = read_reg(SYS_CTRL2); //read the offset register
+	data = data & 0xFE;
 	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2, 0x40);
+	write_reg(SYS_CTRL2, data);
 
 	return;
 }
