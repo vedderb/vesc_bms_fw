@@ -90,7 +90,9 @@ void bq_set_dsc(int cell, bool set);
 bool bq_get_dsc(int cell);
 float bq_last_pack_voltage(void);
 float bq_last_cell_voltage(int cell);
+#ifdef AFE
 float get_temp(int sensor);
+#endif
 float get_current(void);
 void DISCHARGE_ON(void);
 void DISCHARGE_OFF(void);

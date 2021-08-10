@@ -66,17 +66,20 @@ void bms_if_init(void) {
 }
 
 static bool charge_ok(void) {
-	float max = m_is_charging ? backup.config.vc_charge_end : backup.config.vc_charge_start;
-//#ifdef AFE
-	return 1;
-//#endif
 
-/*	return W_GET_V_CHARGE() > backup.config.v_charge_detect &&	//Later I'll implement ADC measure voltage Charger
+	float max = m_is_charging ? backup.config.vc_charge_end : backup.config.vc_charge_start;
+#ifdef AFE
+	return 1;//m_voltage_cell_min > backup.config.vc_charge_min &&
+		   //m_voltage_cell_max < max ;
+#endif
+
+#ifndef AFE
+	return W_GET_V_CHARGE() > backup.config.v_charge_detect &&	//Later I'll implement ADC measure voltage Charger
 		   m_voltage_cell_min > backup.config.vc_charge_min &&
 		   m_voltage_cell_max < max &&
 		   HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
 		   HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;
-*/
+#endif
 }
 
 static THD_FUNCTION(charge_thd, p) {
@@ -100,8 +103,8 @@ static THD_FUNCTION(charge_thd, p) {
 					CHARGE_ENABLE();
 #endif
 #ifdef AFE
-				    //CHARGE_ON();
-				    DISCHARGE_ON();
+					//DISCHARGE_OFF();
+				    CHARGE_ON();
 #endif
 				}
 			}
@@ -111,7 +114,8 @@ static THD_FUNCTION(charge_thd, p) {
 			CHARGE_DISABLE();
 #endif
 #ifdef AFE
-			DISCHARGE_OFF();
+			CHARGE_OFF();
+			//DISCHARGE_ON();
 #endif
 		}
 
@@ -127,7 +131,7 @@ static THD_FUNCTION(charge_thd, p) {
 				CHARGE_DISABLE();
 #endif
 #ifdef AFE
-				DISCHARGE_OFF();
+				//CHARGE_OFF();
 #endif
 				chThdSleepMilliseconds(5000);
 			}
@@ -143,7 +147,7 @@ static THD_FUNCTION(charge_thd, p) {
 				CHARGE_DISABLE();
 #endif
 #ifdef AFE
-				DISCHARGE_OFF();
+				//CHARGE_OFF;
 #endif
 				bms_if_fault_report(FAULT_CODE_CHARGE_OVERCURRENT);
 			}
@@ -255,6 +259,9 @@ static THD_FUNCTION(balance_thd, p) {
 					is_balance_override = true;
 #ifndef AFE
 					ltc_set_dsc(i, true);
+#endif
+#ifdef	AFE
+					bq_set_dsc(i, true);
 #endif
 					bal_ch++;
 					m_is_balancing = true;
@@ -498,7 +505,9 @@ float bms_if_get_temp(int sensor) {
 #ifndef AFE
 	return pwr_get_temp(sensor); //get the temperature
 #endif
+#ifdef	AFE
 	return get_temp(sensor); //get the temperature
+#endif
 }
 
 float bms_if_get_temp_ic(void) {
