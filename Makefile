@@ -39,9 +39,9 @@ ifeq ($(USE_THUMB),)
   USE_THUMB = yes
 endif
 
-# Enable this if you want to see the full log while compiling.
+# Verbose compile output deactivated if not explicitly set.
 ifeq ($(USE_VERBOSE_COMPILE),)
-  USE_VERBOSE_COMPILE = yes
+  USE_VERBOSE_COMPILE = no
 endif
 
 # If enabled, this option makes the build process faster by not compiling
@@ -84,7 +84,7 @@ endif
 #
 
 # Define project name here
-PROJECT = vesc_bms
+PROJECT = vbms
 
 # Imported source files and paths
 CHIBIOS = ChibiOS_19.1.2
