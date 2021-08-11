@@ -45,9 +45,9 @@
 #define CONF_MAX_BAL_CH			5
 #define HW_MAX_BAL_CH			8
 #define HW_SHUNT_RES			(0.1e-3)
-#define HW_SHUNT_AMP_GAIN		(50.0)
+#define HW_SHUNT_AMP_GAIN		(20.0)
 #define V_REG					3.3
-#define R_CHARGE_TOP			(110e3)
+#define R_CHARGE_TOP			(100e3)
 #define R_CHARGE_BOTTOM			(3e3)
 
 // Config default value overrides
