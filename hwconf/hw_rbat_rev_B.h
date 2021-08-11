@@ -1,3 +1,4 @@
+
 /*
 	Copyright 2019 - 2020 Benjamin Vedder	benjamin@vedder.se
 
@@ -17,39 +18,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HWCONF_HW_RBAT_V1_H_
-#define HWCONF_HW_RBAT_V1_H_
+#ifndef HWCONF_HW_RBAT_REV_B_H_
+#define HWCONF_HW_RBAT_REV_B_H_
 
-#define HW_NAME					"rbat_v1"
-
-/**
- * TODO:
- * * [OK] Precharge control
- * * [OK] Charge enable and disable
- * * [OK] Powerkey
- * * [OK] UART-comm
- * * [OK] Last temp sensor
- * * [OK] Black magic probe
- * * [OK] 125K CAN
- *
- * * [OK] HW-specific message (CAN, UART) with connector info, fuse voltages etc.
- * * [OK] Make sure that it is OK to leave charger connected, even unpowered, without draining battery.
- * * [OK] Lower balance channel count when the temperature is too high.
- * * [OK] Make sure that the battery does not discharge completely when left connected. Find
- *   condition that switches off contactor and leave it off until battery has been unplugged.
- * * [OK] Do not switch on contactor for jetpack if voltage is too low.
- * * [OK] Configurable contactor cut current (450+ A)?
- * * [OK] Overtemp contactor cut (75C or so).
- * * [OK] Min charge temperature limit.
- * * [OK] Implement moist detect pin on connector.
- * * [OK] Decommission battery (switch off and never switch on contactor again) if RH > 95 and T > 15.
- * * [OK] Activate precharge sequence when charger is detected (do not wait for voltage).
- * * [OK] Rename rd to rbat
- * * [OK] Switch off contactor below a voltage threshold (2.8V).
- * * [OK] Total charge counter
- * * [OK] Precharge rate fault
- *
- */
+#define HW_NAME					"rbat_rev_B"
 
 // HW-specific
 #define HW_INIT_HOOK()			hw_board_init()
@@ -74,9 +46,9 @@
 #define CONF_MAX_BAL_CH			5
 #define HW_MAX_BAL_CH			8
 #define HW_SHUNT_RES			(0.1e-3)
-#define HW_SHUNT_AMP_GAIN		(50.0)
+#define HW_SHUNT_AMP_GAIN		(20.0)
 #define V_REG					3.3
-#define R_CHARGE_TOP			(110e3)
+#define R_CHARGE_TOP			(100e3)
 #define R_CHARGE_BOTTOM			(3e3)
 
 // Config default value overrides
@@ -112,18 +84,16 @@
 
 // If any cell goes below this voltage, the contactor is switched off. Before switching off, a
 // SOC of 0% will be reported to allow the VESC to stop drawing current.
-#define S_V_CONTACTOR_OFF			2.8 // V
+#define S_V_CONTACTOR_OFF			2.8 // VC
 
 // Enable pins
-#define LINE_CURR_MEASURE_EN	PAL_LINE(GPIOB, 6)
-#define LINE_5V_HP_EN			PAL_LINE(GPIOA, 15)
-#define LINE_3V3P_EN			PAL_LINE(GPIOB, 0)
+#define LINE_CURR_MEASURE_EN	PAL_LINE(GPIOC, 6)
 #define LINE_12V_HP_EN			PAL_LINE(GPIOB, 1)
 #define LINE_AFTER_FUSE_EN		PAL_LINE(GPIOD, 2)
 
 // Relays
 #define LINE_RELAY_PCH			PAL_LINE(GPIOC, 13)
-#define LINE_RELAY_MAIN			PAL_LINE(GPIOC, 1)
+#define LINE_RELAY_MAIN			PAL_LINE(GPIOA, 8)
 
 // External connectors
 #define LINE_PWRKEY_1			PAL_LINE(GPIOH, 0)
@@ -135,10 +105,10 @@
 #define LINE_LED_BLUE			PAL_LINE(GPIOB, 12) // TODO!
 
 // LTC6813
-#define LINE_LTC_CS				PAL_LINE(GPIOC, 6)
-#define LINE_LTC_SCLK			PAL_LINE(GPIOC, 7)
-#define LINE_LTC_MISO			PAL_LINE(GPIOC, 8)
-#define LINE_LTC_MOSI			PAL_LINE(GPIOC, 9)
+#define LINE_LTC_CS				PAL_LINE(GPIOA, 15)
+#define LINE_LTC_SCLK			PAL_LINE(GPIOC, 10)
+#define LINE_LTC_MISO			PAL_LINE(GPIOC, 11)
+#define LINE_LTC_MOSI			PAL_LINE(GPIOC, 12)
 #define LTC_GPIO_CURR_MON		2
 
 // CAN
@@ -146,7 +116,7 @@
 #define LINE_CAN_TX				PAL_LINE(GPIOB, 9)
 #define HW_CAN_DEV				CAND1
 #define HW_CAN_AF				9
-#define LINE_CAN_EN				PAL_LINE(GPIOB, 7)
+#define LINE_CAN_EN				PAL_LINE(GPIOB, 0)
 
 // UART
 #define LINE_UART_RX			PAL_LINE(GPIOA, 10)
@@ -156,10 +126,16 @@
 #define CONF_UART_BAUD_RATE		115200
 
 // HDC1080 (temp/humidity)
-#define HDC1080_SDA_GPIO		GPIOA
-#define HDC1080_SDA_PIN			8
-#define HDC1080_SCL_GPIO		GPIOA
-#define HDC1080_SCL_PIN			7
+#define HDC1080_SDA_GPIO		GPIOC
+#define HDC1080_SDA_PIN			1
+#define HDC1080_SCL_GPIO		GPIOC
+#define HDC1080_SCL_PIN			0
+
+// SHT32 (temp/humidity)
+#define SHT30_SDA_GPIO			GPIOB
+#define SHT30_SDA_PIN			7
+#define SHT30_SCL_GPIO			GPIOB
+#define SHT30_SCL_PIN			6
 
 // NRF SWD
 #define NRF5x_SWDIO_GPIO		GPIOB
@@ -181,9 +157,9 @@
 #define LINE_TEMP_5				PAL_LINE(GPIOA, 5)
 #define LINE_TEMP_6				PAL_LINE(GPIOA, 6)
 
-#define LINE_TEMP_0_EN			PAL_LINE(GPIOC, 10)
-#define LINE_TEMP_1_EN			PAL_LINE(GPIOC, 11)
-#define LINE_TEMP_2_EN			PAL_LINE(GPIOC, 12)
+#define LINE_TEMP_0_EN			PAL_LINE(GPIOC, 7)
+#define LINE_TEMP_1_EN			PAL_LINE(GPIOC, 8)
+#define LINE_TEMP_2_EN			PAL_LINE(GPIOC, 9)
 #define LINE_TEMP_3_EN			PAL_LINE(GPIOB, 2)
 #define LINE_TEMP_4_EN			PAL_LINE(GPIOB, 3)
 #define LINE_TEMP_5_EN			PAL_LINE(GPIOB, 4)
@@ -231,4 +207,4 @@ void hw_send_data(void(*reply_func)(unsigned char *data, unsigned int len));
 void hw_send_can_data(void);
 bool hw_charger_detected(void);
 
-#endif /* HWCONF_HW_RBAT_V1_H_ */
+#endif /* HWCONF_HW_RBAT_REV_B_H_ */
