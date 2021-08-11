@@ -26,6 +26,7 @@
 #include "comm_usb.h"
 #include "bms_if.h"
 #include "hdc1080.h"
+#include "sht30.h"
 #include "confparser.h"
 #include "commands.h"
 #include "timeout.h"
@@ -177,6 +178,11 @@ int main(void) {
 #ifdef HDC1080_SDA_GPIO
 	hdc1080_init(HDC1080_SDA_GPIO, HDC1080_SDA_PIN,
 			HDC1080_SCL_GPIO, HDC1080_SCL_PIN);
+#endif
+
+#ifdef SHT30_SDA_GPIO
+	sht30_init(SHT30_SDA_GPIO, SHT30_SDA_PIN,
+			SHT30_SCL_GPIO, SHT30_SCL_PIN);
 #endif
 
 #ifdef HW_UART_DEV

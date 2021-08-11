@@ -23,6 +23,7 @@
 #include "pwr.h"
 #include "utils.h"
 #include "hdc1080.h"
+#include "sht30.h"
 #include "comm_can.h"
 #include "timeout.h"
 #include "sleep.h"
@@ -297,9 +298,14 @@ static THD_FUNCTION(if_thd, p) {
 	chThdSleepMilliseconds(2000);
 
 	for(;;) {
-		float i_bms_ic = -(ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) - 1.65 + backup.ic_i_sens_v_ofs) *
+		float ltc_curr_adc = ltc_last_gpio_voltage(LTC_GPIO_CURR_MON);
+		float i_bms_ic = -(ltc_curr_adc - 1.65 + backup.ic_i_sens_v_ofs) *
 					(1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res) * IC_ISENSE_I_GAIN_CORR;
 		float i_adc = pwr_get_iin();
+
+		if (ltc_curr_adc <= 0.0) {
+			i_bms_ic = 0.0;
+		}
 
 		if (backup.config.i_measure_mode == I_MEASURE_MODE_VESC) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -502,11 +508,31 @@ void bms_if_zero_current_offset(void) {
 }
 
 float bms_if_get_humitidy(void) {
+#ifdef HDC1080_SDA_GPIO
 	return hdc1080_get_hum();
+#elif defined(SHT30_SDA_GPIO)
+	return sht30_get_hum();
+#else
+	return 0.0;
+#endif
 }
 
 float bms_if_get_humidity_sensor_temp(void) {
+#ifdef HDC1080_SDA_GPIO
 	return hdc1080_get_temp();
+#elif defined(SHT30_SDA_GPIO)
+	return sht30_get_temp();
+#else
+	return 0.0;
+#endif
+}
+
+float bms_if_get_humitidy_2(void) {
+	return sht30_get_hum();
+}
+
+float bms_if_get_humidity_sensor_temp_2(void) {
+	return sht30_get_temp();
 }
 
 float bms_if_get_soc(void) {

@@ -30,7 +30,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		8
+#define FW_TEST_VERSION_NUMBER		9
 
 // Init codes for the persistent storage. Change the config code when updating the config struct
 // in a way that is not backwards compatible.
@@ -47,6 +47,9 @@
 //#define HW_SOURCE					"hw_stormcore_bms.c"
 
 //#define HW_HEADER					"hw_rbat_v1.h"
+//#define HW_SOURCE					"hw_rbat_v1.c"
+
+//#define HW_HEADER					"hw_rbat_v2.h"
 //#define HW_SOURCE					"hw_rbat_v1.c"
 #endif
 
