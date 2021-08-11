@@ -51,6 +51,8 @@ void bms_if_force_balance(bool bal_en);
 void bms_if_zero_current_offset(void);
 float bms_if_get_humitidy(void);
 float bms_if_get_humidity_sensor_temp(void);
+float bms_if_get_humitidy_2(void);
+float bms_if_get_humidity_sensor_temp_2(void);
 float bms_if_get_soc(void);
 float bms_if_get_soh(void);
 void bms_if_sleep(void);
