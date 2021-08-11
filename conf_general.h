@@ -46,11 +46,8 @@
 //#define HW_HEADER					"hw_stormcore_bms.h"
 //#define HW_SOURCE					"hw_stormcore_bms.c"
 
-//#define HW_HEADER					"hw_rbat_v1.h"
-//#define HW_SOURCE					"hw_rbat_v1.c"
-
-//#define HW_HEADER					"hw_rbat_v2.h"
-//#define HW_SOURCE					"hw_rbat_v1.c"
+//#define HW_HEADER					"hw_rbat.h"
+//#define HW_SOURCE					"hw_rbat.c"
 #endif
 
 /*

@@ -1,3 +1,4 @@
+
 /*
 	Copyright 2019 - 2020 Benjamin Vedder	benjamin@vedder.se
 
@@ -17,10 +18,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HWCONF_HW_RBAT_V1_H_
-#define HWCONF_HW_RBAT_V1_H_
+#ifndef HWCONF_HW_RBAT_H_
+#define HWCONF_HW_RBAT_H_
 
-#define HW_NAME					"rbat_v2"
+#define HW_NAME					"rbat"
+#define HW_REV_CHAR				'B'
 
 // HW-specific
 #define HW_INIT_HOOK()			hw_board_init()
@@ -45,9 +47,17 @@
 #define CONF_MAX_BAL_CH			5
 #define HW_MAX_BAL_CH			8
 #define HW_SHUNT_RES			(0.1e-3)
+#if (HW_REV_CHAR == 'A')
+#define HW_SHUNT_AMP_GAIN		(50.0)
+#else
 #define HW_SHUNT_AMP_GAIN		(20.0)
+#endif
 #define V_REG					3.3
+#if (HW_REV_CHAR == 'A')
+#define R_CHARGE_TOP			(110e3)
+#else
 #define R_CHARGE_TOP			(100e3)
+#endif
 #define R_CHARGE_BOTTOM			(3e3)
 
 // Config default value overrides
@@ -86,13 +96,23 @@
 #define S_V_CONTACTOR_OFF			2.8 // VC
 
 // Enable pins
+#if (HW_REV_CHAR == 'A')
+#define LINE_CURR_MEASURE_EN	PAL_LINE(GPIOB, 6)
+#define LINE_5V_HP_EN			PAL_LINE(GPIOA, 15)
+#define LINE_3V3P_EN			PAL_LINE(GPIOB, 0)
+#else
 #define LINE_CURR_MEASURE_EN	PAL_LINE(GPIOC, 6)
+#endif
 #define LINE_12V_HP_EN			PAL_LINE(GPIOB, 1)
 #define LINE_AFTER_FUSE_EN		PAL_LINE(GPIOD, 2)
 
 // Relays
 #define LINE_RELAY_PCH			PAL_LINE(GPIOC, 13)
+#if (HW_REV_CHAR == 'A')
+#define LINE_RELAY_MAIN			PAL_LINE(GPIOC, 1)
+#else
 #define LINE_RELAY_MAIN			PAL_LINE(GPIOA, 8)
+#endif
 
 // External connectors
 #define LINE_PWRKEY_1			PAL_LINE(GPIOH, 0)
@@ -104,10 +124,17 @@
 #define LINE_LED_BLUE			PAL_LINE(GPIOB, 12) // TODO!
 
 // LTC6813
+#if (HW_REV_CHAR == 'A')
+#define LINE_LTC_CS				PAL_LINE(GPIOC, 6)
+#define LINE_LTC_SCLK			PAL_LINE(GPIOC, 7)
+#define LINE_LTC_MISO			PAL_LINE(GPIOC, 8)
+#define LINE_LTC_MOSI			PAL_LINE(GPIOC, 9)
+#else
 #define LINE_LTC_CS				PAL_LINE(GPIOA, 15)
 #define LINE_LTC_SCLK			PAL_LINE(GPIOC, 10)
 #define LINE_LTC_MISO			PAL_LINE(GPIOC, 11)
 #define LINE_LTC_MOSI			PAL_LINE(GPIOC, 12)
+#endif
 #define LTC_GPIO_CURR_MON		2
 
 // CAN
@@ -115,7 +142,11 @@
 #define LINE_CAN_TX				PAL_LINE(GPIOB, 9)
 #define HW_CAN_DEV				CAND1
 #define HW_CAN_AF				9
+#if (HW_REV_CHAR == 'A')
+#define LINE_CAN_EN				PAL_LINE(GPIOB, 7)
+#else
 #define LINE_CAN_EN				PAL_LINE(GPIOB, 0)
+#endif
 
 // UART
 #define LINE_UART_RX			PAL_LINE(GPIOA, 10)
@@ -125,16 +156,25 @@
 #define CONF_UART_BAUD_RATE		115200
 
 // HDC1080 (temp/humidity)
+#if (HW_REV_CHAR == 'A')
+#define HDC1080_SDA_GPIO		GPIOA
+#define HDC1080_SDA_PIN			8
+#define HDC1080_SCL_GPIO		GPIOA
+#define HDC1080_SCL_PIN			7
+#else
 #define HDC1080_SDA_GPIO		GPIOC
 #define HDC1080_SDA_PIN			1
 #define HDC1080_SCL_GPIO		GPIOC
 #define HDC1080_SCL_PIN			0
+#endif
 
 // SHT32 (temp/humidity)
+#if (HW_REV_CHAR == 'B')
 #define SHT30_SDA_GPIO			GPIOB
 #define SHT30_SDA_PIN			7
 #define SHT30_SCL_GPIO			GPIOB
 #define SHT30_SCL_PIN			6
+#endif
 
 // NRF SWD
 #define NRF5x_SWDIO_GPIO		GPIOB
@@ -156,9 +196,15 @@
 #define LINE_TEMP_5				PAL_LINE(GPIOA, 5)
 #define LINE_TEMP_6				PAL_LINE(GPIOA, 6)
 
+#if (HW_REV_CHAR == 'A')
+#define LINE_TEMP_0_EN			PAL_LINE(GPIOC, 10)
+#define LINE_TEMP_1_EN			PAL_LINE(GPIOC, 11)
+#define LINE_TEMP_2_EN			PAL_LINE(GPIOC, 12)
+#else
 #define LINE_TEMP_0_EN			PAL_LINE(GPIOC, 7)
 #define LINE_TEMP_1_EN			PAL_LINE(GPIOC, 8)
 #define LINE_TEMP_2_EN			PAL_LINE(GPIOC, 9)
+#endif
 #define LINE_TEMP_3_EN			PAL_LINE(GPIOB, 2)
 #define LINE_TEMP_4_EN			PAL_LINE(GPIOB, 3)
 #define LINE_TEMP_5_EN			PAL_LINE(GPIOB, 4)
@@ -206,4 +252,4 @@ void hw_send_data(void(*reply_func)(unsigned char *data, unsigned int len));
 void hw_send_can_data(void);
 bool hw_charger_detected(void);
 
-#endif /* HWCONF_HW_RBAT_V1_H_ */
+#endif /* HWCONF_HW_RBAT_H_ */
