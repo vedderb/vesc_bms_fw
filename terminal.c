@@ -202,6 +202,10 @@ void terminal_process_string(char *str) {
 		backup.wh_cnt_dis_total = 0.0;
 		flash_helper_store_backup_data();
 		commands_printf("Done!\n");
+	} else if (strcmp(argv[0], "hum") == 0) {
+		commands_printf("Hum1: %.2f (temp: %.2f)", bms_if_get_humitidy(), bms_if_get_humidity_sensor_temp());
+		commands_printf("Hum2: %.2f (temp: %.2f)", bms_if_get_humitidy_2(), bms_if_get_humidity_sensor_temp_2());
+		commands_printf(" ");
 	}
 
 	// The help command
@@ -245,6 +249,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("reset_cnt_dis_total");
 		commands_printf("  Reset discharge counters.");
+
+		commands_printf("hum");
+		commands_printf("  Print humidity sensor readings.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

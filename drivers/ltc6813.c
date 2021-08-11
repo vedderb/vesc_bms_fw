@@ -34,7 +34,7 @@ static THD_WORKING_AREA(ltc_thd_wa, 2048);
 static volatile float m_v_pack = 0.0;
 static volatile float m_v_cell[18] = {0.0};
 static volatile float m_v_cell_pu_diff[18] = {0.0};
-static volatile float m_v_gpio[9] = {0.0};
+static volatile float m_v_gpio[9] = {-1.0};
 static volatile float m_last_temp = 0.0;
 static volatile bool m_discharge_state[18] = {false};
 
