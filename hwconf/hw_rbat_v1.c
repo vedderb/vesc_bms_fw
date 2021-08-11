@@ -83,6 +83,7 @@ void hw_board_init(void) {
 	HW_RELAY_PCH_OFF();
 
 	palSetLineMode(LINE_CURR_MEASURE_EN, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetLineMode(LINE_CAN_EN, PAL_MODE_OUTPUT_PUSHPULL);
 
 #ifdef LINE_5V_HP_EN
 	palSetLineMode(LINE_5V_HP_EN, PAL_MODE_OUTPUT_PUSHPULL);
