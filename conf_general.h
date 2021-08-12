@@ -36,6 +36,8 @@
 // in a way that is not backwards compatible.
 #define VAR_INIT_CODE				92891935
 
+#define HW_NAME_MAX_CHARS			16
+
 #if !defined(HW_SOURCE) && !defined(HW_HEADER)
 #define HW_HEADER					"hw_12s7p_v1.h"
 #define HW_SOURCE					"hw_12s7p_v1.c"
