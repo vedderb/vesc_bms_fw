@@ -192,7 +192,7 @@ float pwr_get_vfuse(void) {
 
 float pwr_get_iin(void) {
 #ifdef AFE
-	return 2;
+	return 0.1;
 #endif
 	return m_i_in;
 }

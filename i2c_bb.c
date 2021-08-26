@@ -82,10 +82,10 @@ bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes
 	}
 
 	if (rxbytes > 0) {
-		i2c_write_byte(s, true, true, addr << 1 | 1); //i2c_write_byte(s, true, false, addr << 1 | 1);
+		i2c_write_byte(s, true, false, addr << 1 | 1); //i2c_write_byte(s, true, true, addr << 1 | 1);
 
 		for (unsigned int i = 0;i < rxbytes;i++) {
-			rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), true);//rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), false);
+			rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), false);//rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), true);
 		}
 	}
 
@@ -264,5 +264,5 @@ static bool clock_stretch_timeout(i2c_bb_state *s) {
 }
 
 static void i2c_delay(void) {
-	chThdSleep(2); //it was 1
+	chThdSleep(8); //it was 1
 }

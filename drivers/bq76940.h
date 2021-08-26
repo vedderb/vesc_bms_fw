@@ -22,9 +22,10 @@
 
 
 //Macros
-#define CHARGE 		charge_on()
-#define NUM_REG		55
-
+#define NUM_REG			55
+#define ADC_EN			10
+#define CC_EN			0x18
+#define DEVICE_XREADY	0x20
 #define SYS_STAT	0x00
 #define CELLBAL1	0x01
 #define CELLBAL2	0x02
@@ -82,8 +83,8 @@
 #define ADCGAIN2	0x59
 
 // Functions
-void bq76940_init(stm32_gpio_t *sda_gpio, int sda_pin,
-				  stm32_gpio_t *scl_gpio, int scl_pin);
+uint8_t bq76940_init(stm32_gpio_t *sda_gpio, int sda_pin,
+				  	 stm32_gpio_t *scl_gpio, int scl_pin);
 //float hdc1080_get_hum(void);
 //float hdc1080_get_temp(void);
 void bq_set_dsc(int cell, bool set);
@@ -98,4 +99,5 @@ void DISCHARGE_ON(void);
 void DISCHARGE_OFF(void);
 void CHARGE_ON(void);
 void CHARGE_OFF(void);
+bool ltc_get_dsc(int cell);
 #endif /* BQ76940_H_ */

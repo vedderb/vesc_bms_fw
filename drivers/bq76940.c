@@ -29,6 +29,8 @@
 // Private variables
 static i2c_bb_state  m_i2c;
 volatile uint8_t gain_offset = 0;
+volatile uint16_t gain = 0;
+volatile uint8_t offset = 0;
 static volatile float m_v_cell[14];
 static volatile float measurement_temp[5];
 static volatile float i_in = 0.0;
@@ -38,16 +40,18 @@ static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
 
 // Private functions
+uint16_t gainRead(void);
+int8_t offsetRead(void);
 void read_temp(volatile float *measurement_temp);
 void iin_measure(float *value_iin);
-static void write_reg(uint8_t reg, uint16_t val);
+uint8_t write_reg(uint8_t reg, uint16_t val);
 static void read_cell_voltages(volatile float *m_v_cell);
 uint8_t read_reg(uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 void balance(volatile bool *m_discharge_state);
 
 
-void bq76940_init(
+uint8_t bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin) {
 
@@ -59,55 +63,52 @@ void bq76940_init(
 
 	i2c_bb_init(&m_i2c);
 
-	volatile uint8_t data = 0;
+	volatile uint8_t data[10];
+	uint8_t error = 0;
 
-	chThdSleepMilliseconds(30);
-	write_reg(SYS_STAT, 0xBF);
+	// make sure the bq is booted up--->set TS1 to 3.3V and back to VSS
+	// maybe set temp-mode for internal or external temp here
 
-	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL1,0x18); //
+	// enable ADC
+	error |= write_reg(SYS_CTRL1, ADC_EN);
+	// check if ADC is active
+	error |= read_reg(SYS_CTRL1)& ADC_EN;
+	if(error == 1) { return 0;}//ERROR_ADC; }
 
-	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2,0x40);
+	// write 0x19 to CC_CFG according to datasheet page 39
+	error |= write_reg(CC_CFG, 0x19);
 
-	chThdSleepMilliseconds(30);
-	write_reg(CC_CFG, 0x19);
+	gain = gainRead();      				// get gain
+	if( (gain<365) | (gain>396) ) return 0;	//ERROR_GAIN check gain
 
-	chThdSleepMilliseconds(30);
-	write_reg(CELLBAL1, 0x00);
+	offset = offsetRead();  // get offset
+	if( (offset<0x00) | (offset>0xFF) ) return 1;// dont check offset
 
-	chThdSleepMilliseconds(30);
-	write_reg(CELLBAL2, 0x00);
+	//HERE set OVERVOLTAGE and UNDERVOLTAGE, I'll change
+	write_reg(OV_TRIP, 0xBC);
+	write_reg(UV_TRIP, 0x97);
 
-	chThdSleepMilliseconds(30);
-	write_reg(CELLBAL3, 0x00);
+	// for 190 A shutdown a main mosfet
+	error |= write_reg(PROTECT1, 0x04);//registerWrite(PROTECT1, 0x0B);	// write PROTECT1
+	error |= write_reg(PROTECT2, 0x0F);//registerWrite(PROTECT2, 0x9C);	// write PROTECT2
+	error |= write_reg(PROTECT3, 0x00);//registerWrite(PROTECT3, 0x50);	// write PROTECT3
 
-	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2, 0x60);
+	// clear SYS-STAT for init
+	write_reg(SYS_STAT,0xFF);
 
-	chThdSleepMilliseconds(30);
-	write_reg(PROTECT1, 0x00);
+	// doublecheck if bq is ready
+	if(read_reg(SYS_STAT) & DEVICE_XREADY){
+		// DEVICE_XREADY is set
+		// write 1 in DEVICE_XREADY to clear it
+		error |= write_reg(SYS_STAT, DEVICE_XREADY);
+		// check again
+		if(read_reg(SYS_STAT) & DEVICE_XREADY) return 1; // ERROR_XREADY;
+	}
 
-	chThdSleepMilliseconds(30);
-	write_reg(PROTECT2, 0x0F);
+	// enable countinous reading of the Coulomb Counter
+	error |= write_reg(SYS_CTRL2, CC_EN);	// sets ALERT at 250ms interval to high
 
-	chThdSleepMilliseconds(30);
-	write_reg(PROTECT3, 0xF0);
-
-	chThdSleepMilliseconds(30);
-	write_reg(OV_TRIP, 0xFF);
-
-	chThdSleepMilliseconds(30);
-	write_reg(UV_TRIP, 0x00);
-
-	chThdSleepMilliseconds(30);
-	data=read_reg(ADCOFFSET); //read the offset register
-	gain_offset=data;
-
-	chThdSleepMilliseconds(30);
-	read_reg(ADCGAIN1); //read the offset register
-
-	//DISCHARGE_ON();
+	//return error; // 0 if successful
 
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
 }
@@ -128,14 +129,10 @@ static THD_FUNCTION(sample_thread, arg) {
 		chThdSleepMilliseconds(30);
 		balance(m_discharge_state);
 		//iin_measure(&i_in);				//measure current
-		//write_reg(CELLBAL1, 0x00);
-		//write_reg(CELLBAL2, 0x02);
-		//write_reg(CELLBAL3, 0x00);
-		chThdSleepMilliseconds(1000);
 	}
 }
 
-static void write_reg(uint8_t reg, uint16_t val) {
+uint8_t write_reg(uint8_t reg, uint16_t val) {
 	m_i2c.has_error = 0;
 	uint8_t txbuf[3];
 	uint8_t buff[4];
@@ -149,10 +146,11 @@ static void write_reg(uint8_t reg, uint16_t val) {
 	uint8_t key=0x7;
 	txbuf[2]=CRC8(buff, 3, key);
 	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 3, 0, 0);
+
+	return 0;
 }
 
 uint8_t read_reg(uint8_t reg){//i2c_bb_state *s
-
 	uint8_t rxbuf[2],txbuf[1];
 	uint8_t data;
 
@@ -161,8 +159,21 @@ uint8_t read_reg(uint8_t reg){//i2c_bb_state *s
  	data=rxbuf[0];
 
  	return data;
-
 }
+
+uint16_t gainRead(void){
+	uint8_t reg1 = read_reg(ADCGAIN1);
+	uint8_t reg2 = read_reg(ADCGAIN2);
+
+	reg1 &= 0x0C;
+
+	return (365 + ((reg1 << 1)|(reg2 >> 5)));
+}
+
+int8_t offsetRead(void){
+	return read_reg(ADCOFFSET);
+}
+
 
 uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
 	uint8_t  i;
@@ -181,7 +192,8 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
         }
         ptr++;
     }
-return(crc);
+
+    return(crc);
 }
 
 static void read_cell_voltages(volatile float *m_v_cell) {
@@ -190,7 +202,7 @@ static void read_cell_voltages(volatile float *m_v_cell) {
 	//Cell 1
 	buffer[0]=read_reg(VC1_LO); //(&m_i2c,
 	buffer[1]=read_reg(VC1_HI); //(&m_i2c,
-	m_v_cell[0] = (((float)(buffer[0] | (buffer[1]<<8)))*379)/1e6;
+	m_v_cell[0] =  (((float)(buffer[2] | (buffer[3]<<8)))*gain)/1e6; //*((m_v_cell)+1)
 
 	//Cell 2
 	buffer[2]=read_reg(VC2_LO); //(&m_i2c,
@@ -311,33 +323,39 @@ void iin_measure(float *i_in ){
 	uint8_t buffer[2] = {0,0};
 	uint8_t	data = 0;
 
+	write_reg(SYS_STAT, 0xBF);
+	chThdSleepMilliseconds(100);
+	data = read_reg(SYS_STAT);
+	data = data & 0x80;
+
+	while(!(data == 0x80)){
+		chThdSleepMilliseconds(1000);
+		data = read_reg(SYS_STAT);
+		data = data & 0x80;
+	}
+
 	chThdSleepMilliseconds(30);
-	data = read_reg(SYS_CTRL2);
-	data = data | 0x80;
-	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2,data);
-	chThdSleepMilliseconds(260);
 	buffer[0]=read_reg(CC_HI);
 	chThdSleepMilliseconds(30);
 	buffer[1]=read_reg(CC_LO);
-	*(i_in)=(float)((buffer[0]) | (buffer[1]<<8));
+	*(i_in) = ((float)((buffer[0]) | (buffer[1]<<8)));
 	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2,0x40);
+			//write_reg(SYS_CTRL2,0x40);
 
 	return;
 }
 
 float get_current(void){
-	return i_in ;
+	return i_in;
 }
 
 void DISCHARGE_ON(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2); //read the offset register
-	data = data & 0xFF;
+	data = data | 0x02;
 	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2, 0X42);//0x42
+	//write_reg(SYS_CTRL2, data);//0x42
 
 	return;
 }
@@ -346,9 +364,9 @@ void DISCHARGE_OFF(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2);
-	data |= data & 0xFD;
+	data = (data & 0xFE); //
 	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2, 0X40); // 0x40
+	//write_reg(SYS_CTRL2, 0xFE); // 0x40
 
 	return;
 }
@@ -357,9 +375,9 @@ void CHARGE_ON(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2);
-	data = data & 0xFF;
+	data = data | 0x03;
 	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2, 0X41);
+	write_reg(SYS_CTRL2, data); //0x43
 
 	return;
 }
@@ -368,9 +386,9 @@ void CHARGE_OFF(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2);
-	data = data & 0xFE;
+	data = data & 0xFD;
 	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2, 0X42);
+	write_reg(SYS_CTRL2, data); //0x42
 
 	return;
 }
@@ -394,28 +412,42 @@ bool bq_get_dsc(int cell) {
 void balance(volatile bool *m_discharge_state) {
 	uint8_t buffer[3]= {0 ,0 ,0 };
 
-	buffer[0] = m_discharge_state[0] ? buffer[0] | 0x01 : buffer[0];
-	buffer[0] = m_discharge_state[1] ? buffer[0] | 0x02 : buffer[0];
-	buffer[0] = m_discharge_state[2] ? buffer[0] | 0x04 : buffer[0];
-	buffer[0] = m_discharge_state[3] ? buffer[0] | 0x08 : buffer[0];
-	buffer[0] = m_discharge_state[4] ? buffer[0] | 0x10 : buffer[0];
+	/*
+	 * for(int i=0; i<5; i++){
+	 * buffer[*0*] = m_discharge_state[i]? (1 << i) : 0;
+	 * }
+	 */
+	buffer[0] = m_discharge_state[0] ? buffer[0] = 0x01 : buffer[0];
+	buffer[0] = m_discharge_state[1] ? buffer[0] = 0x02 : buffer[0];
+	buffer[0] = m_discharge_state[2] ? buffer[0] = 0x04 : buffer[0];
+	buffer[0] = m_discharge_state[3] ? buffer[0] = 0x08 : buffer[0];
+	buffer[0] = m_discharge_state[4] ? buffer[0] = 0x10 : buffer[0];
 	chThdSleepMilliseconds(30);
 	write_reg(CELLBAL1, buffer[0]);
 
-	buffer[1] = m_discharge_state[5] ? buffer[1] | 0x01 : buffer[1];
-	buffer[1] = m_discharge_state[6] ? buffer[1] | 0x02 : buffer[1];
-	buffer[1] = m_discharge_state[7] ? buffer[1] | 0x04 : buffer[1];
-	buffer[1] = m_discharge_state[8] ? buffer[1] | 0x08 : buffer[1];
-	buffer[1] = m_discharge_state[9] ? buffer[1] | 0x10 : buffer[1];
+	buffer[1] = m_discharge_state[5] ? buffer[1] = 0x01 : buffer[1];
+	buffer[1] = m_discharge_state[6] ? buffer[1] = 0x02 : buffer[1];
+	buffer[1] = m_discharge_state[7] ? buffer[1] = 0x04 : buffer[1];
+	buffer[1] = m_discharge_state[8] ? buffer[1] = 0x08 : buffer[1];
+	buffer[1] = m_discharge_state[9] ? buffer[1] = 0x10 : buffer[1];
 	chThdSleepMilliseconds(30);
 	write_reg(CELLBAL2, buffer[1]);
 
-	buffer[2] = m_discharge_state[10] ? buffer[2] | 0x01 : buffer[2];
-	buffer[2] = m_discharge_state[11] ? buffer[2] | 0x02 : buffer[2];
-	buffer[2] = m_discharge_state[12] ? buffer[2] | 0x0C : buffer[2];
-	buffer[2] = m_discharge_state[13] ? buffer[2] | 0x10 : buffer[2]; //|
+	buffer[2] = m_discharge_state[10] ? buffer[2] = 0x01 : buffer[2];
+	buffer[2] = m_discharge_state[11] ? buffer[2] = 0x02 : buffer[2];
+	buffer[2] = m_discharge_state[12] ? buffer[2] = 0x0C : buffer[2];
+	buffer[2] = m_discharge_state[13] ? buffer[2] = 0x10 : buffer[2];
 	chThdSleepMilliseconds(30);
 	write_reg(CELLBAL3, buffer[2]);
 
 	return;
 }
+
+bool ltc_get_dsc(int cell) {
+	if (cell < 0 || cell > 17) {
+		return false;
+	}
+
+	return m_discharge_state[cell];
+}
+

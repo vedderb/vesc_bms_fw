@@ -424,6 +424,7 @@ void ltc_set_dsc(int cell, bool set) {
 	m_discharge_state[cell] = set;
 }
 
+#ifndef AFE
 bool ltc_get_dsc(int cell) {
 	if (cell < 0 || cell > 17) {
 		return false;
@@ -431,7 +432,7 @@ bool ltc_get_dsc(int cell) {
 
 	return m_discharge_state[cell];
 }
-
+#endif
 
 
 #endif /* LTC_C_ */

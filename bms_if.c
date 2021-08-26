@@ -99,13 +99,15 @@ static THD_FUNCTION(charge_thd, p) {
 				chThdSleepMilliseconds(2000);
 				if (charge_ok()) {
 					m_is_charging = true;
+
+
 #ifndef AFE
 					CHARGE_ENABLE();
 #endif
 #ifdef AFE
-					//DISCHARGE_OFF();
 				    CHARGE_ON();
 #endif
+
 				}
 			}
 		} else {
@@ -115,12 +117,11 @@ static THD_FUNCTION(charge_thd, p) {
 #endif
 #ifdef AFE
 			CHARGE_OFF();
-			//DISCHARGE_ON();
 #endif
 		}
 
 		chThdSleepMilliseconds(10);
-
+/*
 		if (m_i_in_filter > -0.5 && m_is_charging && !HW_CHARGER_DETECTED()) {
 			no_charge_cnt++;
 
@@ -131,7 +132,7 @@ static THD_FUNCTION(charge_thd, p) {
 				CHARGE_DISABLE();
 #endif
 #ifdef AFE
-				//CHARGE_OFF();
+				CHARGE_OFF();
 #endif
 				chThdSleepMilliseconds(5000);
 			}
@@ -147,14 +148,14 @@ static THD_FUNCTION(charge_thd, p) {
 				CHARGE_DISABLE();
 #endif
 #ifdef AFE
-				//CHARGE_OFF;
+				CHARGE_OFF;
 #endif
 				bms_if_fault_report(FAULT_CODE_CHARGE_OVERCURRENT);
 			}
 
 			sleep_reset();
 		}
-
+*/
 		// Charger must be disconnected and reconnected on charge overcurrent events
 		if (m_was_charge_overcurrent && HW_GET_V_CHARGE() < backup.config.v_charge_detect) {
 			m_was_charge_overcurrent = false;
@@ -167,6 +168,7 @@ static THD_FUNCTION(charge_thd, p) {
 		}
 		charger_connected_last = HW_GET_V_CHARGE() > backup.config.v_charge_detect;
 	}
+
 }
 
 static THD_FUNCTION(balance_thd, p) {
@@ -385,7 +387,7 @@ static THD_FUNCTION(if_thd, p) {
 	chThdSleepMilliseconds(2000);
 
 	for(;;) {
-		float i_bms_ic = 1;//-(ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) - 1.65 + backup.ic_i_sens_v_ofs) *
+		float i_bms_ic = 0.1;//-(ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) - 1.65 + backup.ic_i_sens_v_ofs) *
 					//(1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res) * IC_ISENSE_I_GAIN_CORR;
 		float i_adc = pwr_get_iin();
 
@@ -470,10 +472,12 @@ float bms_if_get_i_in(void) {
 }
 
 float bms_if_get_i_in_ic(void) {
-#ifdef	AFE
+#ifndef	AFE
 	return m_i_in_filter_ic;
 #endif
+#ifdef AFE
 	return get_current();
+#endif
 }
 
 float bms_if_get_v_cell(int cell) {

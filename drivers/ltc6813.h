@@ -27,13 +27,13 @@
 #ifndef AFE
 float ltc_last_pack_voltage(void);
 float ltc_last_cell_voltage(int cell);
+bool ltc_get_dsc(int cell);
 #endif
 void ltc_init(void);
 float ltc_last_pu_diff_voltage(int cell);
 float ltc_last_temp(void);
 
 void ltc_set_dsc(int cell, bool set);
-bool ltc_get_dsc(int cell);
 float ltc_last_gpio_voltage(int gpio);
 void ltc_sleep(void);
 
