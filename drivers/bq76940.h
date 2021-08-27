@@ -23,9 +23,10 @@
 
 //Macros
 #define NUM_REG			55
-#define ADC_EN			10
+#define ADC_EN			0x10
 #define CC_EN			0x18
 #define DEVICE_XREADY	0x20
+
 #define SYS_STAT	0x00
 #define CELLBAL1	0x01
 #define CELLBAL2	0x02
