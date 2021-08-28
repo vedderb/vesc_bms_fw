@@ -64,7 +64,7 @@ static THD_FUNCTION(sample_thread, arg) {
 		m_i2c.has_error = 0;
 		uint8_t rxbuf[6];
 
-		bool ok = i2c_bb_tx_rx(&m_i2c, 0x44, 0, 0, rxbuf, 6);
+		(void)i2c_bb_tx_rx(&m_i2c, 0x44, 0, 0, rxbuf, 6);
 
 		if (rxbuf[2] == crc8(rxbuf, 2) && rxbuf[5] == crc8(rxbuf + 3, 2)) {
 			uint16_t temp = (uint16_t)rxbuf[0] << 8 | (uint16_t)rxbuf[1];
