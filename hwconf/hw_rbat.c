@@ -105,6 +105,7 @@ void hw_board_init(void) {
 
 	palSetLineMode(LINE_PWRKEY_1, PAL_MODE_INPUT);
 	palSetLineMode(LINE_PWRKEY_2, PAL_MODE_INPUT);
+	palSetLineMode(LINE_CAN_EN, PAL_MODE_OUTPUT_OPENDRAIN);
 
 	terminal_register_command_callback(
 			"rbat_psw_set",

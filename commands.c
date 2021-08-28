@@ -92,21 +92,30 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_FW_VERSION: {
 		int32_t ind = 0;
 		uint8_t send_buffer[50];
+		uint8_t num_name_chars;
 		send_buffer[ind++] = COMM_FW_VERSION;
 		send_buffer[ind++] = FW_VERSION_MAJOR;
 		send_buffer[ind++] = FW_VERSION_MINOR;
 
-		strcpy((char*)(send_buffer + ind), HW_NAME);
-		ind += strlen(HW_NAME) + 1;
-
+		num_name_chars =  strlen(HW_NAME);
+		if (num_name_chars >= HW_NAME_MAX_CHARS) {
+			num_name_chars =  HW_NAME_MAX_CHARS;
+		}
+		strncpy((char*)(send_buffer + ind), HW_NAME, num_name_chars);
+		ind += num_name_chars;
+#ifdef HW_REV_CHAR
+		if (num_name_chars <= (HW_NAME_MAX_CHARS - 2)) {
+			send_buffer[ind++] = '_';
+			send_buffer[ind++] = HW_REV_CHAR;
+		}
+#endif
+		send_buffer[ind++] = '\0';
 		memcpy(send_buffer + ind, STM32_UUID_8, 12);
 		ind += 12;
 
 		send_buffer[ind++] = 0;
 		send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
-
 		send_buffer[ind++] = HW_TYPE_VESC_BMS;
-
 		send_buffer[ind++] = 1; // One custom config
 
 		reply_func(send_buffer, ind);
