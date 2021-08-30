@@ -117,7 +117,7 @@ static THD_FUNCTION(sleep_thread, arg) {
 		} else {
 			LED_OFF(LINE_LED_GREEN);
 //#ifdef MODE_DEBUG
-			go_to_sleep();
+			//go_to_sleep();
 //#endif
 		}
 

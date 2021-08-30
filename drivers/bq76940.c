@@ -29,11 +29,11 @@
 // Private variables
 static i2c_bb_state  m_i2c;
 volatile uint8_t gain_offset = 0;
-volatile float gain = 0;
-volatile float offset = 0;
+static volatile float gain = 0;
+static volatile float offset = 0;
 static volatile float m_v_cell[14];
 static volatile float measurement_temp[5];
-static volatile float i_in = 0.0;
+static volatile float i_in = 0;
 static volatile bool m_discharge_state[14] = {false};
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
@@ -105,7 +105,7 @@ uint8_t bq76940_init(
 	}
 
 	// enable countinous reading of the Coulomb Counter
-	error |= write_reg(SYS_CTRL2, CC_EN);	// sets ALERT at 250ms interval to high
+	//error |= write_reg(SYS_CTRL2, CC_EN);	// sets ALERT at 250ms interval to high
 
 	//return error; // 0 if successful
 
@@ -123,11 +123,11 @@ static THD_FUNCTION(sample_thread, arg) {
 
 		chThdSleepMilliseconds(250); 	// time to read the cells
 		read_cell_voltages(m_v_cell); 	//read cell voltages
-		//chThdSleepMilliseconds(250); 	// time to read the thermistors
+		chThdSleepMilliseconds(250); 	// time to read the thermistors
 		//read_temp(measurement_temp);  	//read temperature
-		chThdSleepMilliseconds(30);
+		//chThdSleepMilliseconds(30);
 		balance(m_discharge_state);
-		//iin_measure(&i_in);				//measure current
+		iin_measure(&i_in);				//measure current
 	}
 }
 
@@ -170,8 +170,9 @@ float gainRead(void){
 }
 
 float offsetRead(void){
-
-	return read_reg(ADCOFFSET)/100;
+	float data = 0;
+	data = read_reg(ADCOFFSET);
+	return (data/1000);
 }
 
 
@@ -334,16 +335,21 @@ float get_temp(int sensor){
 }
 
 void iin_measure(float *i_in ){
-	uint8_t buffer[2] = {0,0};
-	uint8_t	data = 0;
+	uint16_t 	buffer[2] = {0,0};
+	float		data = 0;
 
-	chThdSleepMilliseconds(250);
 
-	//chThdSleepMilliseconds(30);
+	write_reg(SYS_CTRL2, 0x20);
+	chThdSleepMilliseconds(251);
 	buffer[0]=read_reg(CC_HI);
-	//chThdSleepMilliseconds(30);
 	buffer[1]=read_reg(CC_LO);
-	*(i_in) = (((float)((buffer[0]) | (buffer[1]<<8))));
+	data = ((float)(buffer[1] | buffer[0] << 8))/100;
+	*(i_in) = data*2;
+
+
+	write_reg(SYS_CTRL2, 0x00);
+
+	write_reg(SYS_STAT,0xFF);
 
 	return;
 }
@@ -378,7 +384,7 @@ void CHARGE_ON(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2);
-	data = data | 0x03;
+	data = data | 0x01;
 	chThdSleepMilliseconds(30);
 	write_reg(SYS_CTRL2, data); //0x43
 
@@ -389,7 +395,7 @@ void CHARGE_OFF(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2);
-	data = data & 0xFD;
+	data = data & 0x00;
 	chThdSleepMilliseconds(30);
 	write_reg(SYS_CTRL2, data); //0x42
 
