@@ -87,7 +87,7 @@ static THD_FUNCTION(charge_thd, p) {
 	chRegSetThreadName("Charge");
 
 	int no_charge_cnt = 0;
-
+/*
 	for (;;) {
 		if (m_is_charging && HW_TEMP_CELLS_MAX() >= backup.config.t_charge_max) {
 			bms_if_fault_report(FAULT_CODE_CHARGE_OVERTEMP);
@@ -121,7 +121,7 @@ static THD_FUNCTION(charge_thd, p) {
 		}
 
 		chThdSleepMilliseconds(10);
-/*
+
 		if (m_i_in_filter > -0.5 && m_is_charging && !HW_CHARGER_DETECTED()) {
 			no_charge_cnt++;
 
@@ -155,7 +155,7 @@ static THD_FUNCTION(charge_thd, p) {
 
 			sleep_reset();
 		}
-*/
+
 		// Charger must be disconnected and reconnected on charge overcurrent events
 		if (m_was_charge_overcurrent && HW_GET_V_CHARGE() < backup.config.v_charge_detect) {
 			m_was_charge_overcurrent = false;
@@ -168,6 +168,7 @@ static THD_FUNCTION(charge_thd, p) {
 		}
 		charger_connected_last = HW_GET_V_CHARGE() > backup.config.v_charge_detect;
 	}
+	*/
 
 }
 

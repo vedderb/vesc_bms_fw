@@ -84,16 +84,17 @@ uint8_t bq76940_init(
 	if( (offset<0x00) | (offset>0xFF) ) return 1;// dont check offset
 
 	//HERE set OVERVOLTAGE and UNDERVOLTAGE, I'll change
-	write_reg(OV_TRIP, 0xBC);
+	write_reg(OV_TRIP, 0xBC);//BC
 	write_reg(UV_TRIP, 0x97);
 
 	// for 190 A shutdown a main mosfet
-	error |= write_reg(PROTECT1, 0x04);//registerWrite(PROTECT1, 0x0B);	// write PROTECT1
-	error |= write_reg(PROTECT2, 0x0F);//registerWrite(PROTECT2, 0x9C);	// write PROTECT2
+	error |= write_reg(PROTECT1, 0x02);//registerWrite(PROTECT1, 0x0B);	// write PROTECT1
+	error |= write_reg(PROTECT2, 0x01);//registerWrite(PROTECT2, 0x9C);	// write PROTECT2
 	error |= write_reg(PROTECT3, 0x00);//registerWrite(PROTECT3, 0x50);	// write PROTECT3
 
 	// clear SYS-STAT for init
 	write_reg(SYS_STAT,0xFF);
+
 
 	// doublecheck if bq is ready
 	if(read_reg(SYS_STAT) & DEVICE_XREADY){
@@ -105,7 +106,14 @@ uint8_t bq76940_init(
 	}
 
 	// enable countinous reading of the Coulomb Counter
-	//error |= write_reg(SYS_CTRL2, CC_EN);	// sets ALERT at 250ms interval to high
+	error |= write_reg(SYS_CTRL2, CC_EN);	// sets ALERT at 250ms interval to high
+
+	chThdSleepMilliseconds(10);
+	write_reg(SYS_STAT,0xFF);
+	chThdSleepMilliseconds(10);
+	DISCHARGE_ON();
+	chThdSleepMilliseconds(40);
+	read_reg(SYS_STAT);
 
 	//return error; // 0 if successful
 
@@ -123,7 +131,7 @@ static THD_FUNCTION(sample_thread, arg) {
 
 		chThdSleepMilliseconds(250); 	// time to read the cells
 		read_cell_voltages(m_v_cell); 	//read cell voltages
-		chThdSleepMilliseconds(250); 	// time to read the thermistors
+		//chThdSleepMilliseconds(250); 	// time to read the thermistors
 		//read_temp(measurement_temp);  	//read temperature
 		//chThdSleepMilliseconds(30);
 		balance(m_discharge_state);
@@ -170,9 +178,9 @@ float gainRead(void){
 }
 
 float offsetRead(void){
-	float data = 0;
+	float data = 0.0;
 	data = read_reg(ADCOFFSET);
-	return (data/1000);
+	return (data / 1000.0);
 }
 
 
@@ -203,85 +211,71 @@ static void read_cell_voltages(volatile float *m_v_cell) {
 	//Cell 1
 	buffer[0]=read_reg(VC1_LO); //(&m_i2c,
 	buffer[1]=read_reg(VC1_HI); //(&m_i2c,
-	//m_v_cell[0] = (((float)((buffer[0]) | (buffer[1]<<8)))*379)/1e6; //
 	m_v_cell[0] = (((((float)(buffer[0] | (buffer[1]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 2
 	buffer[2]=read_reg(VC2_LO); //(&m_i2c,
 	buffer[3]=read_reg(VC2_HI); //(&m_i2c,
-	//m_v_cell[1] = (((float)((buffer[2]) | (buffer[3]<<8)))*379)/1e6; //(
 	m_v_cell[1] = (((((float)(buffer[2] | (buffer[3]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 3
 	buffer[4]=read_reg(VC3_LO); //(&m_i2c,
 	buffer[5]=read_reg(VC3_HI); //(&m_i2c,
-	//m_v_cell[2] = (((float)((buffer[4]) | (buffer[5]<<8)))*379)/1e6;//
 	m_v_cell[2] = (((((float)(buffer[4] | (buffer[5]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 4
 	buffer[6]=read_reg(VC4_LO); //(&m_i2c,
 	buffer[7]=read_reg(VC4_HI); //(&m_i2c,
-	//m_v_cell[3] = (((float)((buffer[6]) | (buffer[7]<<8)))*379)/1e6;//
 	m_v_cell[3] = (((((float)(buffer[6] | (buffer[7]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 5
 	buffer[8]=read_reg(VC5_LO); //(&m_i2c,
 	buffer[9]=read_reg(VC5_HI); //(&m_i2c,
-    //m_v_cell[4] = (((float)((buffer[8]) | (buffer[9]<<8)))*379)/1e6;//
-	m_v_cell[4] = (((((float)(buffer[8] | (buffer[9]<<8)))*gain)/1e6)) + offset;
+    	m_v_cell[4] = (((((float)(buffer[8] | (buffer[9]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 6
 	buffer[10]=read_reg(VC6_LO); //(&m_i2c,
 	buffer[11]=read_reg(VC6_HI); //
-	//m_v_cell[5] = (((float)((buffer[10]) | (buffer[11]<<8)))*379)/1e6;//
 	m_v_cell[5] = (((((float)(buffer[10] | (buffer[11]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 7
 	buffer[12]=read_reg(VC7_LO); //
 	buffer[13]=read_reg(VC7_HI); //
-	//m_v_cell[6] = (((float)((buffer[12]) | (buffer[13]<<8)))*379)/1e6;//
 	m_v_cell[6] = (((((float)(buffer[12] | (buffer[13]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 8
 	buffer[14]=read_reg(VC8_LO); //
 	buffer[15]=read_reg(VC8_HI); //
-	//m_v_cell[7] = (((float)((buffer[14]) | (buffer[15]<<8)))*379)/1e6;//
 	m_v_cell[7] = (((((float)(buffer[14] | (buffer[15]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 9
 	buffer[16]=read_reg(VC9_LO); //
 	buffer[17]=read_reg(VC9_HI); //
-	//m_v_cell[8] = (((float)((buffer[16]) | (buffer[17]<<8)))*379)/1e6;//
 	m_v_cell[8] = (((((float)(buffer[16] | (buffer[17]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 10
 	buffer[18]=read_reg(VC10_LO); //
 	buffer[19]=read_reg(VC10_HI); //
-	//m_v_cell[9] = (((float)((buffer[18]) | (buffer[19]<<8)))*379)/1e6;//
 	m_v_cell[9] = (((((float)(buffer[18] | (buffer[19]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 11
 	buffer[20]=read_reg(VC11_LO); //
 	buffer[21]=read_reg(VC11_HI); //
-	//m_v_cell[10] = (((float)((buffer[20]) | (buffer[21]<<8)))*379)/1e6;//
 	m_v_cell[10] = (((((float)(buffer[20] | (buffer[21]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 12
 	buffer[22]=read_reg(VC12_LO); //
 	buffer[23]=read_reg(VC12_HI); //
-	//m_v_cell[11] = (((float)((buffer[22]) | (buffer[23]<<8)))*379)/1e6;//
 	m_v_cell[11] = (((((float)(buffer[22] | (buffer[23]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 13
 	buffer[24]=read_reg(VC13_LO); //
 	buffer[25]=read_reg(VC13_HI); //
-	//m_v_cell[12] = (((float)((buffer[24]) | (buffer[25]<<8)))*379)/1e6;//
 	m_v_cell[12] = (((((float)(buffer[24] | (buffer[25]<<8)))*gain)/1e6)) + offset;
 
 	//Cell 14
 	buffer[26]=read_reg(VC15_LO); //
 	buffer[27]=read_reg(VC15_HI); //
-	//m_v_cell[13] = (((float)((buffer[26]) | (buffer[27]<<8)))*379)/1e6;//
 	m_v_cell[13] = (((((float)(buffer[26] | (buffer[27]<<8)))*gain)/1e6)) + offset;
 }
 
@@ -336,18 +330,19 @@ float get_temp(int sensor){
 
 void iin_measure(float *i_in ){
 	uint16_t 	buffer[2] = {0,0};
-	float		data = 0;
+	uint8_t		data = 0;
 
 
-	write_reg(SYS_CTRL2, 0x20);
+	//data = read_reg(SYS_CTRL2);
+	//data = data | 0x20;
+	//write_reg(SYS_CTRL2, data);
 	chThdSleepMilliseconds(251);
-	buffer[0]=read_reg(CC_HI);
-	buffer[1]=read_reg(CC_LO);
-	data = ((float)(buffer[1] | buffer[0] << 8))/100;
-	*(i_in) = data*2;
-
-
-	write_reg(SYS_CTRL2, 0x00);
+	buffer[0] = read_reg(CC_HI);
+	buffer[1] = read_reg(CC_LO);
+	*(i_in) = ((float)(buffer[1] | buffer[0] << 8)) * 0.00844 / 0.5;
+	//data = read_reg(SYS_CTRL2);
+	//data = data & 0xBF;
+	//write_reg(SYS_CTRL2, data);
 
 	write_reg(SYS_STAT,0xFF);
 
@@ -361,10 +356,9 @@ float get_current(void){
 void DISCHARGE_ON(void){
 	uint8_t	data = 0;
 
-	data = read_reg(SYS_CTRL2); //read the offset register
+	data = read_reg(SYS_CTRL2);
 	data = data | 0x02;
-	chThdSleepMilliseconds(30);
-	//write_reg(SYS_CTRL2, data);//0x42
+	write_reg(SYS_CTRL2, data);
 
 	return;
 }
@@ -373,9 +367,8 @@ void DISCHARGE_OFF(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2);
-	data = (data & 0xFE); //
-	chThdSleepMilliseconds(30);
-	//write_reg(SYS_CTRL2, 0xFE); // 0x40
+	data = (data & 0xFD);
+	write_reg(SYS_CTRL2, data);
 
 	return;
 }
@@ -385,8 +378,7 @@ void CHARGE_ON(void){
 
 	data = read_reg(SYS_CTRL2);
 	data = data | 0x01;
-	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2, data); //0x43
+	write_reg(SYS_CTRL2, data);
 
 	return;
 }
@@ -395,9 +387,8 @@ void CHARGE_OFF(void){
 	uint8_t	data = 0;
 
 	data = read_reg(SYS_CTRL2);
-	data = data & 0x00;
-	chThdSleepMilliseconds(30);
-	write_reg(SYS_CTRL2, data); //0x42
+	data = data & 0xFE;
+	write_reg(SYS_CTRL2, data);
 
 	return;
 }
