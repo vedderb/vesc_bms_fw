@@ -25,15 +25,17 @@
 #include "main.h"
 #include "math.h"
 
+#define MAX_CELL_NUM	15
+
 // Private variables
 static i2c_bb_state  m_i2c;
 volatile uint8_t gain_offset = 0;
 static volatile float gain = 0;
 static volatile float offset = 0;
-static volatile float m_v_cell[14];
+static volatile float m_v_cell[MAX_CELL_NUM];
 static volatile float measurement_temp[5];
 static volatile float i_in = 0;
-static volatile bool m_discharge_state[14] = {false};
+static volatile bool m_discharge_state[MAX_CELL_NUM] = {false};
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
@@ -139,26 +141,27 @@ uint8_t write_reg(uint8_t reg, uint16_t val) {
 	uint8_t txbuf[3];
 	uint8_t buff[4];
 
-	buff[0]=0x08<<1;
-	buff[1]=reg;
-	buff[2]=val;
+	buff[0] = 0x08 << 1;
+	buff[1] = reg;
+	buff[2] = val;
 
 	txbuf[0] = reg;
 	txbuf[1] = val;
-	uint8_t key=0x7;
-	txbuf[2]=CRC8(buff, 3, key);
+	uint8_t key = 0x7;
+	txbuf[2] = CRC8(buff, 3, key);
 	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 3, 0, 0);
 
 	return 0;
 }
 
 uint8_t read_reg(uint8_t reg){//i2c_bb_state *s
-	uint8_t rxbuf[2],txbuf[1];
+	uint8_t rxbuf[2];
+	uint8_t txbuf[1];
 	uint8_t data;
 
-	txbuf[0]=reg;
+	txbuf[0] = reg;
  	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 1, rxbuf, 2);
- 	data=rxbuf[0];
+ 	data = rxbuf[0];
 
  	return data;
 }
@@ -169,7 +172,7 @@ float gainRead(void){
 
 	reg1 &= 0x0C;
 
-	return (365 + ((reg1 << 1) | (reg2 >> 5)));
+	return (365.0 + ((reg1 << 1) | (reg2 >> 5)));
 }
 
 float offsetRead(void){
@@ -191,7 +194,7 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
             }
             else
                 crc *= 2;
-            if((*ptr & i) != 0) //
+            if((*ptr & i) != 0)
                 crc ^= key;
         }
         ptr++;
@@ -201,7 +204,7 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
 }
 
 static void read_cell_voltages(volatile float *m_v_cell) {
-	uint16_t buffer[28];
+	uint16_t buffer[MAX_CELL_NUM * 2];
 
 	//Cell 1
 	buffer[0] = read_reg(BQ_VC1_LO);
@@ -275,7 +278,7 @@ static void read_cell_voltages(volatile float *m_v_cell) {
 }
 
 float bq_last_cell_voltage(int cell) {
-	if (cell < 0 || cell > 17) {
+	if (cell < 0 || cell >= MAX_CELL_NUM) {
 		return -1.0;
 	}
 
@@ -288,8 +291,8 @@ float bq_last_pack_voltage(void) {
 
 void read_temp(volatile float *measurement_temp) {
 	uint16_t buffer[6];
-	float vtsx=0.0;
-	float R_ts=0.0;
+	float vtsx = 0.0;
+	float R_ts = 0.0;
 
 	buffer[0] = read_reg(BQ_TS1_HI);
 	buffer[1] = read_reg(BQ_TS1_LO);
@@ -315,9 +318,8 @@ void read_temp(volatile float *measurement_temp) {
 
 }
 
-
 float get_temp(int sensor){
-	if (sensor < 0 || sensor >= 6){
+	if (sensor < 0 || sensor >= 5){
 			return -1.0;
 	}
 
@@ -327,7 +329,6 @@ float get_temp(int sensor){
 void iin_measure(float *i_in ){
 	uint16_t buffer[2] = {0,0};
 	uint8_t data = 0;
-
 
 	//data = read_reg(SYS_CTRL2);
 	//data = data | 0x20;
@@ -390,7 +391,7 @@ void CHARGE_OFF(void){
 }
 
 void bq_set_dsc(int cell, bool set) {
-	if (cell < 0 || cell > 17) {
+	if (cell < 0 || cell >= MAX_CELL_NUM) {
 		return;
 	}
 
@@ -398,7 +399,7 @@ void bq_set_dsc(int cell, bool set) {
 }
 
 bool bq_get_dsc(int cell) {
-	if (cell < 0 || cell > 17) {
+	if (cell < 0 || cell >= MAX_CELL_NUM) {
 		return false;
 	}
 
