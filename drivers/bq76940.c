@@ -25,7 +25,8 @@
 #include "main.h"
 #include "math.h"
 
-#define MAX_CELL_NUM	15
+#define MAX_CELL_NUM		15
+#define BQ_I2C_ADDR			0x08
 
 // Private variables
 static i2c_bb_state  m_i2c;
@@ -36,6 +37,8 @@ static volatile float m_v_cell[MAX_CELL_NUM];
 static volatile float measurement_temp[5];
 static volatile float i_in = 0;
 static volatile bool m_discharge_state[MAX_CELL_NUM] = {false};
+static volatile float hw_shunt_res = 1.0;
+
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
@@ -50,11 +53,15 @@ static void read_cell_voltages(volatile float *m_v_cell);
 uint8_t read_reg(uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 void balance(volatile bool *m_discharge_state);
+uint8_t tripVoltage(float voltage);
 
 uint8_t bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin) {
+		stm32_gpio_t *scl_gpio, int scl_pin,
+		float shunt_res) {
 
+	hw_shunt_res = shunt_res;
+	
 	memset(&m_i2c, 0, sizeof(i2c_bb_state));
 	m_i2c.sda_gpio = sda_gpio;
 	m_i2c.sda_pin = sda_pin;
@@ -79,14 +86,14 @@ uint8_t bq76940_init(
 	error |= write_reg(BQ_CC_CFG, 0x19);
 
 	gain = gainRead();      				// get gain
-	if( (gain<365) | (gain>396) ) return 0;	//ERROR_GAIN check gain
+	if( (gain < 365) | (gain > 396) ) return 0;	//ERROR_GAIN check gain
 
 	offset = offsetRead();  // get offset
-	if( (offset<0x00) | (offset>0xFF) ) return 1;// dont check offset
+	if( (offset < 0x00) | (offset > 0xFF) ) return 1;// dont check offset
 
-	//HERE set OVERVOLTAGE and UNDERVOLTAGE, I'll change
-	write_reg(BQ_OV_TRIP, 0xBC);//BC
-	write_reg(BQ_UV_TRIP, 0x97);
+	//OverVoltage and UnderVoltage thresholds
+	write_reg(BQ_OV_TRIP, tripVoltage(4.25));
+	write_reg(BQ_UV_TRIP, tripVoltage(2.80));
 
 	// for 190 A shutdown a main mosfet
 	error |= write_reg(BQ_PROTECT1, 0x02);//registerWrite(PROTECT1, 0x0B);	// write PROTECT1
@@ -142,7 +149,7 @@ uint8_t write_reg(uint8_t reg, uint16_t val) {
 	uint8_t txbuf[3];
 	uint8_t buff[4];
 
-	buff[0] = 0x08 << 1;
+	buff[0] = BQ_I2C_ADDR << 1;
 	buff[1] = reg;
 	buff[2] = val;
 
@@ -150,14 +157,14 @@ uint8_t write_reg(uint8_t reg, uint16_t val) {
 	txbuf[1] = val;
 	uint8_t key = 0x7;
 	txbuf[2] = CRC8(buff, 3, key);
-	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 3, 0, 0);
+	i2c_bb_tx_rx(&m_i2c, BQ_I2C_ADDR, txbuf, 3, 0, 0);
 
 	return 0;
 }
 
 uint8_t read_reg(uint8_t reg){
 	uint8_t data;
- 	i2c_bb_tx_rx(&m_i2c, 0x08, &reg, 1, &data, 2);
+ 	i2c_bb_tx_rx(&m_i2c, BQ_I2C_ADDR, &reg, 1, &data, 2);
  	return data;
 }
 
@@ -170,10 +177,20 @@ float gainRead(void){
 	return (365.0 + ((reg1 << 1) | (reg2 >> 5)));
 }
 
+// convert a voltage into the format used by the trip registers
+uint8_t tripVoltage(float threshold) {
+	uint16_t reg_val = (uint16_t)(threshold * 1000.0);
+	reg_val -= offset;
+	reg_val *= 1000;
+	reg_val /= gain;
+	reg_val++;
+	reg_val >>= 4;
+	return ((uint8_t)reg_val);
+}
+
 float offsetRead(void){
 	return ((float)read_reg(BQ_ADCOFFSET) / 1000.0);
 }
-
 
 uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
 	uint8_t  i;
@@ -266,7 +283,7 @@ void iin_measure(float *i_in ){
 	chThdSleepMilliseconds(251);
 	buffer[0] = read_reg(BQ_CC_HI);
 	buffer[1] = read_reg(BQ_CC_LO);
-	*(i_in) = ((float)(buffer[1] | buffer[0] << 8)) * 0.00844 / 0.5;
+	*(i_in) = ((float)(buffer[1] | buffer[0] << 8)) * 0.00000844 / hw_shunt_res;
 	//data = read_reg(SYS_CTRL2);
 	//data = data & 0xBF;
 	//write_reg(SYS_CTRL2, data);

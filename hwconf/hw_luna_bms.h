@@ -35,7 +35,7 @@
 
 // Settings
 #define HW_CELLS_SERIES			14
-#define HW_SHUNT_RES			(0.2e-3)
+#define HW_SHUNT_RES			(0.0005)
 #define HW_SHUNT_AMP_GAIN		(20.0)
 #define V_REG					3.3
 #define R_CHARGE_TOP			(520e3 + 2.5e3 + 100.0)

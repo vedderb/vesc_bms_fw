@@ -86,7 +86,8 @@
 
 // Functions
 uint8_t bq76940_init(stm32_gpio_t *sda_gpio, int sda_pin,
-				  	 stm32_gpio_t *scl_gpio, int scl_pin);
+				  	 stm32_gpio_t *scl_gpio, int scl_pin,
+					 float shunt_res);
 void bq_set_dsc(int cell, bool set);
 bool bq_get_dsc(int cell);
 float bq_last_pack_voltage(void);
