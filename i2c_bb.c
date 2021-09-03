@@ -75,20 +75,19 @@ void i2c_bb_restore_bus(i2c_bb_state *s) {
 bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes, uint8_t *rxbuf, size_t rxbytes) {
 	chMtxLock(&s->mutex);
 
-	i2c_write_byte(s, true, false, addr<<1);
+	i2c_write_byte(s, true, false, addr << 1);
 
 	for (unsigned int i = 0;i < txbytes;i++) {
 		i2c_write_byte(s, false, false, txbuf[i]);
 	}
 
 	if (rxbytes > 0) {
-		i2c_write_byte(s, true, false, addr << 1 | 1); //i2c_write_byte(s, true, true, addr << 1 | 1);
+		i2c_write_byte(s, true, false, addr << 1 | 1);
 
 		for (unsigned int i = 0;i < rxbytes;i++) {
-			rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), false);//rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), true);
+			rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), false);
 		}
 	}
-
 
 	i2c_stop_cond(s);
 
@@ -219,7 +218,7 @@ static bool i2c_write_byte(i2c_bb_state *s, bool send_start, bool send_stop, uns
 	}
 
 	for (bit = 0;bit < 8;bit++) {
-		i2c_write_bit(s, (byte & 0x80) != 0 );
+		i2c_write_bit(s, (byte & 0x80) != 0);
 		byte <<= 1;
 	}
 
@@ -264,5 +263,5 @@ static bool clock_stretch_timeout(i2c_bb_state *s) {
 }
 
 static void i2c_delay(void) {
-	chThdSleep(1); //it was 1
+	chThdSleep(1);
 }
