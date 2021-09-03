@@ -355,7 +355,7 @@ p, li { white-space: pre-wrap; }
             <minDouble>0</minDouble>
             <showDisplay>0</showDisplay>
             <stepDouble>0.01</stepDouble>
-            <valDouble>0.5</valDouble>
+            <valDouble>0.8</valDouble>
             <vTxDoubleScale>1</vTxDoubleScale>
             <suffix> A</suffix>
             <vTx>9</vTx>
