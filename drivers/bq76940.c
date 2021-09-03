@@ -25,7 +25,6 @@
 #include "main.h"
 #include "math.h"
 
-
 // Private variables
 static i2c_bb_state  m_i2c;
 volatile uint8_t gain_offset = 0;
@@ -49,7 +48,6 @@ static void read_cell_voltages(volatile float *m_v_cell);
 uint8_t read_reg(uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 void balance(volatile bool *m_discharge_state);
-
 
 uint8_t bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
@@ -95,7 +93,6 @@ uint8_t bq76940_init(
 	// clear SYS-STAT for init
 	write_reg(BQ_SYS_STAT,0xFF);
 
-
 	// doublecheck if bq is ready
 	if(read_reg(BQ_SYS_STAT) & DEVICE_XREADY){
 		// DEVICE_XREADY is set
@@ -115,12 +112,10 @@ uint8_t bq76940_init(
 	chThdSleepMilliseconds(40);
 	read_reg(BQ_SYS_STAT);
 
-	//return error; // 0 if successful
-
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
+
+	//return error; // 0 if successful
 }
-
-
 
 static THD_FUNCTION(sample_thread, arg) {
 	(void)arg;
@@ -174,7 +169,7 @@ float gainRead(void){
 
 	reg1 &= 0x0C;
 
-	return (365 + ((reg1 << 1)|(reg2 >> 5)));
+	return (365 + ((reg1 << 1) | (reg2 >> 5)));
 }
 
 float offsetRead(void){
@@ -188,7 +183,7 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
 	uint8_t  i;
 	uint8_t  crc=0;
 
-    while(len--!=0){
+    while(len-- != 0){
         for(i=0x80; i!=0; i/=2){
             if((crc & 0x80) != 0){
                 crc *= 2;
@@ -196,7 +191,7 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
             }
             else
                 crc *= 2;
-            if((*ptr & i)!=0) //
+            if((*ptr & i) != 0) //
                 crc ^= key;
         }
         ptr++;
@@ -209,74 +204,74 @@ static void read_cell_voltages(volatile float *m_v_cell) {
 	uint16_t buffer[28];
 
 	//Cell 1
-	buffer[0]=read_reg(BQ_VC1_LO); //(&m_i2c,
-	buffer[1]=read_reg(BQ_VC1_HI); //(&m_i2c,
-	m_v_cell[0] = (((((float)(buffer[0] | (buffer[1]<<8)))*gain)/1e6)) + offset;
+	buffer[0] = read_reg(BQ_VC1_LO);
+	buffer[1] = read_reg(BQ_VC1_HI);
+	m_v_cell[0] = (((((float)(buffer[0] | (buffer[1] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 2
-	buffer[2]=read_reg(BQ_VC2_LO); //(&m_i2c,
-	buffer[3]=read_reg(BQ_VC2_HI); //(&m_i2c,
-	m_v_cell[1] = (((((float)(buffer[2] | (buffer[3]<<8)))*gain)/1e6)) + offset;
+	buffer[2] = read_reg(BQ_VC2_LO);
+	buffer[3] = read_reg(BQ_VC2_HI);
+	m_v_cell[1] = (((((float)(buffer[2] | (buffer[3] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 3
-	buffer[4]=read_reg(BQ_VC3_LO); //(&m_i2c,
-	buffer[5]=read_reg(BQ_VC3_HI); //(&m_i2c,
-	m_v_cell[2] = (((((float)(buffer[4] | (buffer[5]<<8)))*gain)/1e6)) + offset;
+	buffer[4] = read_reg(BQ_VC3_LO);
+	buffer[5] = read_reg(BQ_VC3_HI);
+	m_v_cell[2] = (((((float)(buffer[4] | (buffer[5] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 4
-	buffer[6]=read_reg(BQ_VC4_LO); //(&m_i2c,
-	buffer[7]=read_reg(BQ_VC4_HI); //(&m_i2c,
-	m_v_cell[3] = (((((float)(buffer[6] | (buffer[7]<<8)))*gain)/1e6)) + offset;
+	buffer[6] = read_reg(BQ_VC4_LO);
+	buffer[7] = read_reg(BQ_VC4_HI);
+	m_v_cell[3] = (((((float)(buffer[6] | (buffer[7] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 5
-	buffer[8]=read_reg(BQ_VC5_LO); //(&m_i2c,
-	buffer[9]=read_reg(BQ_VC5_HI); //(&m_i2c,
-    	m_v_cell[4] = (((((float)(buffer[8] | (buffer[9]<<8)))*gain)/1e6)) + offset;
+	buffer[8] = read_reg(BQ_VC5_LO);
+	buffer[9] = read_reg(BQ_VC5_HI);
+	m_v_cell[4] = (((((float)(buffer[8] | (buffer[9] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 6
-	buffer[10]=read_reg(BQ_VC6_LO); //(&m_i2c,
-	buffer[11]=read_reg(BQ_VC6_HI); //
-	m_v_cell[5] = (((((float)(buffer[10] | (buffer[11]<<8)))*gain)/1e6)) + offset;
+	buffer[10] = read_reg(BQ_VC6_LO);
+	buffer[11] = read_reg(BQ_VC6_HI);
+	m_v_cell[5] = (((((float)(buffer[10] | (buffer[11] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 7
-	buffer[12]=read_reg(BQ_VC7_LO); //
-	buffer[13]=read_reg(BQ_VC7_HI); //
-	m_v_cell[6] = (((((float)(buffer[12] | (buffer[13]<<8)))*gain)/1e6)) + offset;
+	buffer[12] = read_reg(BQ_VC7_LO);
+	buffer[13] = read_reg(BQ_VC7_HI);
+	m_v_cell[6] = (((((float)(buffer[12] | (buffer[13] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 8
-	buffer[14]=read_reg(BQ_VC8_LO); //
-	buffer[15]=read_reg(BQ_VC8_HI); //
-	m_v_cell[7] = (((((float)(buffer[14] | (buffer[15]<<8)))*gain)/1e6)) + offset;
+	buffer[14] = read_reg(BQ_VC8_LO);
+	buffer[15] = read_reg(BQ_VC8_HI);
+	m_v_cell[7] = (((((float)(buffer[14] | (buffer[15] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 9
-	buffer[16]=read_reg(BQ_VC9_LO); //
-	buffer[17]=read_reg(BQ_VC9_HI); //
-	m_v_cell[8] = (((((float)(buffer[16] | (buffer[17]<<8)))*gain)/1e6)) + offset;
+	buffer[16] = read_reg(BQ_VC9_LO);
+	buffer[17] = read_reg(BQ_VC9_HI);
+	m_v_cell[8] = (((((float)(buffer[16] | (buffer[17] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 10
-	buffer[18]=read_reg(BQ_VC10_LO); //
-	buffer[19]=read_reg(BQ_VC10_HI); //
-	m_v_cell[9] = (((((float)(buffer[18] | (buffer[19]<<8)))*gain)/1e6)) + offset;
+	buffer[18] = read_reg(BQ_VC10_LO);
+	buffer[19] = read_reg(BQ_VC10_HI);
+	m_v_cell[9] = (((((float)(buffer[18] | (buffer[19] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 11
-	buffer[20]=read_reg(BQ_VC11_LO); //
-	buffer[21]=read_reg(BQ_VC11_HI); //
-	m_v_cell[10] = (((((float)(buffer[20] | (buffer[21]<<8)))*gain)/1e6)) + offset;
+	buffer[20] = read_reg(BQ_VC11_LO);
+	buffer[21] = read_reg(BQ_VC11_HI);
+	m_v_cell[10] = (((((float)(buffer[20] | (buffer[21]<<8))) * gain) / 1e6)) + offset;
 
 	//Cell 12
-	buffer[22]=read_reg(BQ_VC12_LO); //
-	buffer[23]=read_reg(BQ_VC12_HI); //
-	m_v_cell[11] = (((((float)(buffer[22] | (buffer[23]<<8)))*gain)/1e6)) + offset;
+	buffer[22] = read_reg(BQ_VC12_LO);
+	buffer[23] = read_reg(BQ_VC12_HI);
+	m_v_cell[11] = (((((float)(buffer[22] | (buffer[23] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 13
-	buffer[24]=read_reg(BQ_VC13_LO); //
-	buffer[25]=read_reg(BQ_VC13_HI); //
-	m_v_cell[12] = (((((float)(buffer[24] | (buffer[25]<<8)))*gain)/1e6)) + offset;
+	buffer[24] = read_reg(BQ_VC13_LO);
+	buffer[25] = read_reg(BQ_VC13_HI);
+	m_v_cell[12] = (((((float)(buffer[24] | (buffer[25] << 8))) * gain) / 1e6)) + offset;
 
 	//Cell 14
-	buffer[26]=read_reg(BQ_VC15_LO); //
-	buffer[27]=read_reg(BQ_VC15_HI); //
-	m_v_cell[13] = (((((float)(buffer[26] | (buffer[27]<<8)))*gain)/1e6)) + offset;
+	buffer[26] = read_reg(BQ_VC15_LO);
+	buffer[27] = read_reg(BQ_VC15_HI);
+	m_v_cell[13] = (((((float)(buffer[26] | (buffer[27] << 8))) * gain) / 1e6)) + offset;
 }
 
 float bq_last_cell_voltage(int cell) {
@@ -292,30 +287,31 @@ float bq_last_pack_voltage(void) {
 }
 
 void read_temp(volatile float *measurement_temp) {
-	uint16_t 	buffer[6];
-	float		vtsx=0, R_ts=0;
+	uint16_t buffer[6];
+	float vtsx=0.0;
+	float R_ts=0.0;
 
-	buffer[0]=read_reg(BQ_TS1_HI); //
-	buffer[1]=read_reg(BQ_TS1_LO); //
-	vtsx = (float)((buffer[0]) | (buffer[1]<<8));
-	R_ts = (vtsx*1e4)/(vtsx-3.3);
-	*((measurement_temp)+0) = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
+	buffer[0] = read_reg(BQ_TS1_HI);
+	buffer[1] = read_reg(BQ_TS1_LO);
+	vtsx = (float)((buffer[0]) | (buffer[1] << 8));
+	R_ts = (vtsx * 1e4) / (vtsx - 3.3);
+	*((measurement_temp) + 0) = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
-	buffer[2]=read_reg(BQ_TS2_HI); //
-	buffer[3]=read_reg(BQ_TS2_LO); //
+	buffer[2] = read_reg(BQ_TS2_HI);
+	buffer[3] = read_reg(BQ_TS2_LO);
 	//vtsx = ((buffer[2]) | (buffer[3]<<8));
 	//R_ts = (vtsx*1e4)/(vtsx-3.3);
-	*((measurement_temp)+1) = 10;//(1.0 / (((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
+	*((measurement_temp) + 1) = 10;//(1.0 / (((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
-	buffer[4]=read_reg(BQ_TS3_HI); //
-	buffer[5]=read_reg(BQ_TS3_LO); //
+	buffer[4] = read_reg(BQ_TS3_HI);
+	buffer[5] = read_reg(BQ_TS3_LO);
 	//vtsx = ((buffer[4]) | (buffer[5]<<8));
 	//R_ts = (vtsx*1e4)/(vtsx-3.3);
-	*((measurement_temp)+2) = 10;//(1.0 / (((logf(20000) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
+	*((measurement_temp) + 2) = 10;//(1.0 / (((logf(20000) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
-	*((measurement_temp)+3) = 10;
+	*((measurement_temp) + 3) = 10;
 
-	*((measurement_temp)+4) = 10;
+	*((measurement_temp) + 4) = 10;
 
 }
 
@@ -329,8 +325,8 @@ float get_temp(int sensor){
 }
 
 void iin_measure(float *i_in ){
-	uint16_t 	buffer[2] = {0,0};
-	uint8_t		data = 0;
+	uint16_t buffer[2] = {0,0};
+	uint8_t data = 0;
 
 
 	//data = read_reg(SYS_CTRL2);
@@ -450,4 +446,3 @@ bool ltc_get_dsc(int cell) {
 
 	return m_discharge_state[cell];
 }
-
