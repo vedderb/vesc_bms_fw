@@ -155,15 +155,9 @@ uint8_t write_reg(uint8_t reg, uint16_t val) {
 	return 0;
 }
 
-uint8_t read_reg(uint8_t reg){//i2c_bb_state *s
-	uint8_t rxbuf[2];
-	uint8_t txbuf[1];
+uint8_t read_reg(uint8_t reg){
 	uint8_t data;
-
-	txbuf[0] = reg;
- 	i2c_bb_tx_rx(&m_i2c, 0x08, txbuf, 1, rxbuf, 2);
- 	data = rxbuf[0];
-
+ 	i2c_bb_tx_rx(&m_i2c, 0x08, &reg, 1, &data, 2);
  	return data;
 }
 
