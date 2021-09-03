@@ -70,6 +70,7 @@ uint8_t bq76940_init(
 
 	// enable ADC
 	error |= write_reg(BQ_SYS_CTRL1, ADC_EN);
+	
 	// check if ADC is active
 	error |= read_reg(BQ_SYS_CTRL1) & ADC_EN;
 	if(error == 1) { return 0;}//ERROR_ADC; }
@@ -176,9 +177,7 @@ float gainRead(void){
 }
 
 float offsetRead(void){
-	float data = 0.0;
-	data = read_reg(BQ_ADCOFFSET);
-	return (data / 1000.0);
+	return ((float)read_reg(BQ_ADCOFFSET) / 1000.0);
 }
 
 
@@ -204,77 +203,14 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
 }
 
 static void read_cell_voltages(volatile float *m_v_cell) {
-	uint16_t buffer[MAX_CELL_NUM * 2];
-
-	//Cell 1
-	buffer[0] = read_reg(BQ_VC1_LO);
-	buffer[1] = read_reg(BQ_VC1_HI);
-	m_v_cell[0] = (((((float)(buffer[0] | (buffer[1] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 2
-	buffer[2] = read_reg(BQ_VC2_LO);
-	buffer[3] = read_reg(BQ_VC2_HI);
-	m_v_cell[1] = (((((float)(buffer[2] | (buffer[3] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 3
-	buffer[4] = read_reg(BQ_VC3_LO);
-	buffer[5] = read_reg(BQ_VC3_HI);
-	m_v_cell[2] = (((((float)(buffer[4] | (buffer[5] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 4
-	buffer[6] = read_reg(BQ_VC4_LO);
-	buffer[7] = read_reg(BQ_VC4_HI);
-	m_v_cell[3] = (((((float)(buffer[6] | (buffer[7] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 5
-	buffer[8] = read_reg(BQ_VC5_LO);
-	buffer[9] = read_reg(BQ_VC5_HI);
-	m_v_cell[4] = (((((float)(buffer[8] | (buffer[9] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 6
-	buffer[10] = read_reg(BQ_VC6_LO);
-	buffer[11] = read_reg(BQ_VC6_HI);
-	m_v_cell[5] = (((((float)(buffer[10] | (buffer[11] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 7
-	buffer[12] = read_reg(BQ_VC7_LO);
-	buffer[13] = read_reg(BQ_VC7_HI);
-	m_v_cell[6] = (((((float)(buffer[12] | (buffer[13] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 8
-	buffer[14] = read_reg(BQ_VC8_LO);
-	buffer[15] = read_reg(BQ_VC8_HI);
-	m_v_cell[7] = (((((float)(buffer[14] | (buffer[15] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 9
-	buffer[16] = read_reg(BQ_VC9_LO);
-	buffer[17] = read_reg(BQ_VC9_HI);
-	m_v_cell[8] = (((((float)(buffer[16] | (buffer[17] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 10
-	buffer[18] = read_reg(BQ_VC10_LO);
-	buffer[19] = read_reg(BQ_VC10_HI);
-	m_v_cell[9] = (((((float)(buffer[18] | (buffer[19] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 11
-	buffer[20] = read_reg(BQ_VC11_LO);
-	buffer[21] = read_reg(BQ_VC11_HI);
-	m_v_cell[10] = (((((float)(buffer[20] | (buffer[21]<<8))) * gain) / 1e6)) + offset;
-
-	//Cell 12
-	buffer[22] = read_reg(BQ_VC12_LO);
-	buffer[23] = read_reg(BQ_VC12_HI);
-	m_v_cell[11] = (((((float)(buffer[22] | (buffer[23] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 13
-	buffer[24] = read_reg(BQ_VC13_LO);
-	buffer[25] = read_reg(BQ_VC13_HI);
-	m_v_cell[12] = (((((float)(buffer[24] | (buffer[25] << 8))) * gain) / 1e6)) + offset;
-
-	//Cell 14
-	buffer[26] = read_reg(BQ_VC15_LO);
-	buffer[27] = read_reg(BQ_VC15_HI);
-	m_v_cell[13] = (((((float)(buffer[26] | (buffer[27] << 8))) * gain) / 1e6)) + offset;
+	for (int i=0; i<MAX_CELL_NUM; i++) {
+		uint16_t VCx_lo = read_reg(BQ_VC1_LO + i * 2);
+		uint16_t VCx_hi = read_reg(BQ_VC1_HI + i * 2);
+		m_v_cell[i] = (((((float)(VCx_lo | (VCx_hi << 8))) * gain) / 1e6)) + offset;
+	}
+	
+	// For 14s setups, handle the special case of cell 14 connected to VC15
+	m_v_cell[13] = m_v_cell[14];
 }
 
 float bq_last_cell_voltage(int cell) {
@@ -432,7 +368,7 @@ void balance(volatile bool *m_discharge_state) {
 
 	buffer[2] = m_discharge_state[10] ? buffer[2] = 0x01 : buffer[2];
 	buffer[2] = m_discharge_state[11] ? buffer[2] = 0x02 : buffer[2];
-	buffer[2] = m_discharge_state[12] ? buffer[2] = 0x0C : buffer[2];
+	buffer[2] = m_discharge_state[12] ? buffer[2] = 0x0C : buffer[2];	// Special case for a 14s setup
 	buffer[2] = m_discharge_state[13] ? buffer[2] = 0x10 : buffer[2];
 	chThdSleepMilliseconds(30);
 	write_reg(BQ_CELLBAL3, buffer[2]);
