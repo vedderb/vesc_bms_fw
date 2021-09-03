@@ -60,7 +60,6 @@ unsigned short crc16(unsigned char *buf, unsigned int len) {
 	return cksum;
 }
 
-
 /**
   * @brief  Computes the 32-bit CRC of a given buffer of data word(32-bit) using
   * Hardware Acceleration.
