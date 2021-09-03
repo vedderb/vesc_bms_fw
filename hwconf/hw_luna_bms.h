@@ -71,7 +71,8 @@
 #define BQ76940_SDA_PIN			11
 #define BQ76940_SCL_GPIO		GPIOB
 #define BQ76940_SCL_PIN			10
-
+#define BQ76940_ALERT_GPIO		GPIOA
+#define BQ76940_ALERT_PIN		2
 
 // Analog
 #define LINE_V_CHARGE			PAL_LINE(GPIOC, 2)

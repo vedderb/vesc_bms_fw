@@ -39,6 +39,13 @@ static volatile float i_in = 0;
 static volatile bool m_discharge_state[MAX_CELL_NUM] = {false};
 static volatile float hw_shunt_res = 1.0;
 
+typedef struct {
+	stm32_gpio_t *alert_gpio;
+	int alert_pin;
+} bq76940_pins_t;
+
+static bq76940_pins_t bq76940_pins;
+
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
@@ -55,13 +62,22 @@ uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 void balance(volatile bool *m_discharge_state);
 uint8_t tripVoltage(float voltage);
 
+//Macros
+#define READ_ALERT()	palReadPad(bq76940_pins.alert_gpio, bq76940_pins.alert_pin)
+
 uint8_t bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin,
+		stm32_gpio_t *alert_gpio, int alert_pin,
 		float shunt_res) {
 
 	hw_shunt_res = shunt_res;
+
+	bq76940_pins.alert_gpio = alert_gpio;
+	bq76940_pins.alert_pin = alert_pin;
 	
+	palSetPadMode(alert_gpio, alert_pin, PAL_MODE_INPUT);
+
 	memset(&m_i2c, 0, sizeof(i2c_bb_state));
 	m_i2c.sda_gpio = sda_gpio;
 	m_i2c.sda_pin = sda_pin;
@@ -104,12 +120,12 @@ uint8_t bq76940_init(
 	write_reg(BQ_SYS_STAT,0xFF);
 
 	// doublecheck if bq is ready
-	if(read_reg(BQ_SYS_STAT) & DEVICE_XREADY){
+	if(read_reg(BQ_SYS_STAT) & SYS_STAT_DEVICE_XREADY){
 		// DEVICE_XREADY is set
 		// write 1 in DEVICE_XREADY to clear it
-		error |= write_reg(BQ_SYS_STAT, DEVICE_XREADY);
+		error |= write_reg(BQ_SYS_STAT, SYS_STAT_DEVICE_XREADY);
 		// check again
-		if(read_reg(BQ_SYS_STAT) & DEVICE_XREADY) return 1; // ERROR_XREADY;
+		if(read_reg(BQ_SYS_STAT) & SYS_STAT_DEVICE_XREADY) return 1; // ERROR_XREADY;
 	}
 
 	// enable countinous reading of the Coulomb Counter
@@ -134,13 +150,39 @@ static THD_FUNCTION(sample_thread, arg) {
 	while (!chThdShouldTerminateX()) {
 		m_i2c.has_error = 0;
 
-		chThdSleepMilliseconds(250); 	// time to read the cells
-		read_cell_voltages(m_v_cell); 	//read cell voltages
-		//chThdSleepMilliseconds(250); 	// time to read the thermistors
-		//read_temp(measurement_temp);  	//read temperature
-		//chThdSleepMilliseconds(30);
-		balance(m_discharge_state);
-		iin_measure(&i_in);				//measure current
+		chThdSleepMilliseconds(20);
+
+		if (READ_ALERT() ) {
+			uint8_t sys_stat = read_reg(BQ_SYS_STAT);
+			write_reg(BQ_SYS_STAT,0xFF);
+
+			if ( sys_stat & SYS_STAT_DEVICE_XREADY ) {
+				//handle error
+			}
+			if ( sys_stat & SYS_STAT_OVRD_ALERT ) {
+				//handle error
+			}
+			if ( sys_stat & SYS_STAT_UV ) {
+				//handle error
+			}
+			if ( sys_stat & SYS_STAT_OV ) {
+				//handle error
+			}
+			if ( sys_stat & SYS_STAT_SCD ) {
+				//handle error
+			}
+			if ( sys_stat & SYS_STAT_OCD ) {
+				//handle error
+			}
+			
+			// time to read the cells
+			read_cell_voltages(m_v_cell); 	//read cell voltages
+			//chThdSleepMilliseconds(250); 	// time to read the thermistors
+			//read_temp(measurement_temp);  	//read temperature
+			//chThdSleepMilliseconds(30);
+			balance(m_discharge_state);
+			iin_measure(&i_in);				//measure current
+		}
 	}
 }
 

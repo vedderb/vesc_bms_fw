@@ -25,7 +25,12 @@
 #define NUM_REG			55
 #define ADC_EN			0x10
 #define CC_EN			0x40
-#define DEVICE_XREADY	0x20
+#define SYS_STAT_DEVICE_XREADY	0x20
+#define SYS_STAT_OVRD_ALERT		0x10
+#define SYS_STAT_UV		0x08
+#define SYS_STAT_OV		0x04
+#define SYS_STAT_SCD	0x02
+#define SYS_STAT_OCD	0x01
 
 // Register address
 #define BQ_SYS_STAT		0x00
@@ -86,8 +91,9 @@
 
 // Functions
 uint8_t bq76940_init(stm32_gpio_t *sda_gpio, int sda_pin,
-				  	 stm32_gpio_t *scl_gpio, int scl_pin,
-					 float shunt_res);
+					stm32_gpio_t *scl_gpio, int scl_pin,
+					stm32_gpio_t *alert_gpio, int alert_pin,
+					float shunt_res);
 void bq_set_dsc(int cell, bool set);
 bool bq_get_dsc(int cell);
 float bq_last_pack_voltage(void);
