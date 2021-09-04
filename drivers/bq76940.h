@@ -141,6 +141,13 @@
 #define BQ_ADCOFFSET	0x51
 #define BQ_ADCGAIN2		0x59
 
+typedef enum {
+	BQ76940_FAULT_NONE = 0,
+	BQ76940_FAULT_XREADY,
+	BQ76940_FAULT_GAIN,
+	BQ76940_FAULT_OFFSET
+} bq76940_fault_code;
+
 // Functions
 uint8_t bq76940_init(stm32_gpio_t *sda_gpio, int sda_pin,
 					stm32_gpio_t *scl_gpio, int scl_pin,

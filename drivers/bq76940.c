@@ -19,6 +19,7 @@
 
 #include "i2c_bb.h"
 #include "bq76940.h"
+#include "bms_if.h"
 #include "string.h"
 #include "stdbool.h"
 #include "utils.h"
@@ -30,9 +31,6 @@
 
 // Private variables
 static i2c_bb_state  m_i2c;
-volatile uint8_t gain_offset = 0;
-static volatile float gain = 0;
-static volatile float offset = 0;
 static volatile float m_v_cell[MAX_CELL_NUM];
 static volatile float measurement_temp[5];
 static volatile float i_in = 0;
@@ -40,19 +38,23 @@ static volatile bool m_discharge_state[MAX_CELL_NUM] = {false};
 static volatile float hw_shunt_res = 1.0;
 
 typedef struct {
+	i2c_bb_state m_i2c;
 	stm32_gpio_t *alert_gpio;
 	int alert_pin;
-} bq76940_pins_t;
+	float shunt_res;
+	float gain;
+	float offset;
+} bq76940_t;
 
-static bq76940_pins_t bq76940_pins;
+static bq76940_t bq76940;
 
 // Threads
 static THD_WORKING_AREA(sample_thread_wa, 512);
 static THD_FUNCTION(sample_thread, arg);
 
 // Private functions
-float gainRead(void);
-float offsetRead(void);
+int8_t gainRead(float *gain);
+int8_t offsetRead(float *offset);
 void read_temp(volatile float *measurement_temp);
 void iin_measure(float *value_iin);
 uint8_t write_reg(uint8_t reg, uint16_t val);
@@ -63,7 +65,7 @@ void balance(volatile bool *m_discharge_state);
 uint8_t tripVoltage(float voltage);
 
 //Macros
-#define READ_ALERT()	palReadPad(bq76940_pins.alert_gpio, bq76940_pins.alert_pin)
+#define READ_ALERT()	palReadPad(bq76940.alert_gpio, bq76940.alert_pin)
 
 uint8_t bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
@@ -71,11 +73,10 @@ uint8_t bq76940_init(
 		stm32_gpio_t *alert_gpio, int alert_pin,
 		float shunt_res) {
 
-	hw_shunt_res = shunt_res;
+	bq76940.alert_gpio = alert_gpio;
+	bq76940.alert_pin = alert_pin;
+	bq76940.shunt_res = shunt_res;
 
-	bq76940_pins.alert_gpio = alert_gpio;
-	bq76940_pins.alert_pin = alert_pin;
-	
 	palSetPadMode(alert_gpio, alert_pin, PAL_MODE_INPUT);
 
 	memset(&m_i2c, 0, sizeof(i2c_bb_state));
@@ -96,16 +97,12 @@ uint8_t bq76940_init(
 	
 	// check if ADC is active
 	error |= read_reg(BQ_SYS_CTRL1) & ADC_EN;
-	if(error == 1) { return 0;}//ERROR_ADC; }
-
+	
 	// write 0x19 to CC_CFG according to datasheet page 39
 	error |= write_reg(BQ_CC_CFG, 0x19);
 
-	gain = gainRead();      				// get gain
-	if( (gain < 365) | (gain > 396) ) return 0;	//ERROR_GAIN check gain
-
-	offset = offsetRead();  // get offset
-	if( (offset < 0x00) | (offset > 0xFF) ) return 1;// dont check offset
+	error |= gainRead(&bq76940.gain);
+	error |= offsetRead(&bq76940.offset);
 
 	//OverVoltage and UnderVoltage thresholds
 	write_reg(BQ_OV_TRIP, tripVoltage(4.25));
@@ -144,7 +141,7 @@ uint8_t bq76940_init(
 
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
 
-	//return error; // 0 if successful
+	return error; // 0 if successful
 }
 
 static THD_FUNCTION(sample_thread, arg) {
@@ -159,25 +156,6 @@ static THD_FUNCTION(sample_thread, arg) {
 		if (READ_ALERT() ) {
 			uint8_t sys_stat = read_reg(BQ_SYS_STAT);
 			write_reg(BQ_SYS_STAT,0xFF);
-
-			if ( sys_stat & SYS_STAT_DEVICE_XREADY ) {
-				//handle error
-			}
-			if ( sys_stat & SYS_STAT_OVRD_ALERT ) {
-				//handle error
-			}
-			if ( sys_stat & SYS_STAT_UV ) {
-				//handle error
-			}
-			if ( sys_stat & SYS_STAT_OV ) {
-				//handle error
-			}
-			if ( sys_stat & SYS_STAT_SCD ) {
-				//handle error
-			}
-			if ( sys_stat & SYS_STAT_OCD ) {
-				//handle error
-			}
 			
 			// time to read the cells
 			read_cell_voltages(m_v_cell); 	//read cell voltages
@@ -185,7 +163,27 @@ static THD_FUNCTION(sample_thread, arg) {
 			//read_temp(measurement_temp);  	//read temperature
 			chThdSleepMilliseconds(30);
 			balance(m_discharge_state);
-			iin_measure(&i_in);				//measure current
+			iin_measure(&i_in);	
+
+			// Report fault codes
+			if ( sys_stat & SYS_STAT_DEVICE_XREADY ) {
+				//handle error
+			}
+			if ( sys_stat & SYS_STAT_OVRD_ALERT ) {
+				//handle error
+			}
+			if ( sys_stat & SYS_STAT_UV ) {
+				bms_if_fault_report(FAULT_CODE_CELL_UNDERVOLTAGE);
+			}
+			if ( sys_stat & SYS_STAT_OV ) {
+				bms_if_fault_report(FAULT_CODE_CELL_OVERVOLTAGE);
+			}
+			if ( sys_stat & SYS_STAT_SCD ) {
+				bms_if_fault_report(FAULT_CODE_DISCHARGE_SHORT_CIRCUIT);
+			}
+			if ( sys_stat & SYS_STAT_OCD ) {
+				bms_if_fault_report(FAULT_CODE_DISCHARGE_OVERCURRENT);
+			}
 		}
 	}
 }
@@ -214,28 +212,39 @@ uint8_t read_reg(uint8_t reg){
  	return data;
 }
 
-float gainRead(void){
+int8_t gainRead(float *gain){
+	int8_t error = 0;
 	uint8_t reg1 = read_reg(BQ_ADCGAIN1);
 	uint8_t reg2 = read_reg(BQ_ADCGAIN2);
 
 	reg1 &= 0x0C;
+	*gain = (365.0 + ((reg1 << 1) | (reg2 >> 5)));
 
-	return (365.0 + ((reg1 << 1) | (reg2 >> 5)));
+	if ((*gain < 365) | (*gain > 396)) {
+		error = BQ76940_FAULT_GAIN;
+	}
+	return error;
 }
 
 // convert a voltage into the format used by the trip registers
 uint8_t tripVoltage(float threshold) {
 	uint16_t reg_val = (uint16_t)(threshold * 1000.0);
-	reg_val -= offset;
+	reg_val -= bq76940.offset;
 	reg_val *= 1000;
-	reg_val /= gain;
+	reg_val /= bq76940.gain;
 	reg_val++;
 	reg_val >>= 4;
 	return ((uint8_t)reg_val);
 }
 
-float offsetRead(void){
-	return ((float)read_reg(BQ_ADCOFFSET) / 1000.0);
+int8_t offsetRead(float *offset){
+	int8_t error = 0;
+	*offset = ((float)read_reg(BQ_ADCOFFSET) / 1000.0);
+
+	if( (*offset < 0x00) | (*offset > 0xFF) ) {
+		error = BQ76940_FAULT_OFFSET;
+	}
+	return error;
 }
 
 uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
@@ -265,7 +274,7 @@ static void read_cell_voltages(float *m_v_cell) {
 	for (int i=0; i<MAX_CELL_NUM; i++) {
 		uint16_t VCx_lo = read_reg(BQ_VC1_LO + i * 2);
 		uint16_t VCx_hi = read_reg(BQ_VC1_HI + i * 2);
-		cell_voltages[i] = (((((float)(VCx_lo | (VCx_hi << 8))) * gain) / 1e6)) + offset;
+		cell_voltages[i] = (((((float)(VCx_lo | (VCx_hi << 8))) * bq76940.gain) / 1e6)) + bq76940.offset;
 	}
 	
 	// For 14s setups, handle the special case of cell 14 connected to VC15
@@ -328,7 +337,7 @@ void iin_measure(float *i_in ) {
 	uint8_t CC_lo = read_reg(BQ_CC_LO);
 	int16_t CC_reg = (int16_t)(CC_lo | CC_hi << 8);
 	
-	*(i_in) = (float)CC_reg * 0.00844 ;/// hw_shunt_res;
+	*(i_in) = (float)CC_reg * 0.00844 ;/// bq76940.shunt_res;
 
 	return;
 }
