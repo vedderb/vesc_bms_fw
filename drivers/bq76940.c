@@ -56,7 +56,7 @@ float offsetRead(void);
 void read_temp(volatile float *measurement_temp);
 void iin_measure(float *value_iin);
 uint8_t write_reg(uint8_t reg, uint16_t val);
-static void read_cell_voltages(volatile float *m_v_cell);
+static void read_cell_voltages(float *m_v_cell);
 uint8_t read_reg(uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 void balance(volatile bool *m_discharge_state);
@@ -259,21 +259,19 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
     return(crc);
 }
 
-static void read_cell_voltages(volatile float *m_v_cell) {
-	float 	buffer[MAX_CELL_NUM];
+static void read_cell_voltages(float *m_v_cell) {
+	float 	cell_voltages[MAX_CELL_NUM];
 
 	for (int i=0; i<MAX_CELL_NUM; i++) {
 		uint16_t VCx_lo = read_reg(BQ_VC1_LO + i * 2);
 		uint16_t VCx_hi = read_reg(BQ_VC1_HI + i * 2);
-		buffer[i] = (((((float)(VCx_lo | (VCx_hi << 8))) * gain) / 1e6)) + offset;
-		//m_v_cell[i] = (((((float)(VCx_lo | (VCx_hi << 8))) * gain) / 1e6)) + offset;
+		cell_voltages[i] = (((((float)(VCx_lo | (VCx_hi << 8))) * gain) / 1e6)) + offset;
 	}
 	
-	for (int i=0; i<MAX_CELL_NUM; i++) {
-		m_v_cell[i] = buffer[i];
-	}
 	// For 14s setups, handle the special case of cell 14 connected to VC15
-	m_v_cell[13] = m_v_cell[14];
+	cell_voltages[13] = cell_voltages[14];
+	
+	memcpy( m_v_cell, cell_voltages, sizeof(cell_voltages) );
 }
 
 float bq_last_cell_voltage(int cell) {
