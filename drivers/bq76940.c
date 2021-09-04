@@ -112,9 +112,9 @@ uint8_t bq76940_init(
 	write_reg(BQ_UV_TRIP, tripVoltage(2.80));
 
 	// for 190 A shutdown a main mosfet
-	error |= write_reg(BQ_PROTECT1, 0x02);//registerWrite(PROTECT1, 0x0B);	// write PROTECT1
-	error |= write_reg(BQ_PROTECT2, 0x01);//registerWrite(PROTECT2, 0x9C);	// write PROTECT2
-	error |= write_reg(BQ_PROTECT3, 0x00);//registerWrite(PROTECT3, 0x50);	// write PROTECT3
+	error |= write_reg(BQ_PROTECT1, 0x85);//registerWrite(PROTECT1, 0x0B);	// write PROTECT1
+	error |= write_reg(BQ_PROTECT2, 0x4F);//registerWrite(PROTECT2, 0x9C);	// write PROTECT2
+	error |= write_reg(BQ_PROTECT3, 0xFF);//registerWrite(PROTECT3, 0x50);	// write PROTECT3
 
 	// clear SYS-STAT for init
 	write_reg(BQ_SYS_STAT,0xFF);
@@ -179,7 +179,7 @@ static THD_FUNCTION(sample_thread, arg) {
 			read_cell_voltages(m_v_cell); 	//read cell voltages
 			//chThdSleepMilliseconds(250); 	// time to read the thermistors
 			//read_temp(measurement_temp);  	//read temperature
-			//chThdSleepMilliseconds(30);
+			chThdSleepMilliseconds(30);
 			balance(m_discharge_state);
 			iin_measure(&i_in);				//measure current
 		}
@@ -256,12 +256,18 @@ uint8_t CRC8(uint8_t *ptr, uint8_t len,uint8_t key){
 }
 
 static void read_cell_voltages(volatile float *m_v_cell) {
+	float 	buffer[MAX_CELL_NUM];
+
 	for (int i=0; i<MAX_CELL_NUM; i++) {
 		uint16_t VCx_lo = read_reg(BQ_VC1_LO + i * 2);
 		uint16_t VCx_hi = read_reg(BQ_VC1_HI + i * 2);
-		m_v_cell[i] = (((((float)(VCx_lo | (VCx_hi << 8))) * gain) / 1e6)) + offset;
+		buffer[i] = (((((float)(VCx_lo | (VCx_hi << 8))) * gain) / 1e6)) + offset;
+		//m_v_cell[i] = (((((float)(VCx_lo | (VCx_hi << 8))) * gain) / 1e6)) + offset;
 	}
 	
+	for (int i=0; i<MAX_CELL_NUM; i++) {
+		m_v_cell[i] = buffer[i];
+	}
 	// For 14s setups, handle the special case of cell 14 connected to VC15
 	m_v_cell[13] = m_v_cell[14];
 }
@@ -318,6 +324,7 @@ float get_temp(int sensor){
 void iin_measure(float *i_in ){
 	uint16_t buffer[2] = {0,0};
 	uint8_t data = 0;
+	int16_t	value = 0;
 
 	//data = read_reg(SYS_CTRL2);
 	//data = data | 0x20;
@@ -325,7 +332,11 @@ void iin_measure(float *i_in ){
 	chThdSleepMilliseconds(251);
 	buffer[0] = read_reg(BQ_CC_HI);
 	buffer[1] = read_reg(BQ_CC_LO);
-	*(i_in) = ((float)(buffer[1] | buffer[0] << 8)) * 0.00000844 / hw_shunt_res;
+	value = ((float)(buffer[1] | buffer[0] << 8));
+	*(i_in) = value * 0.00844 ;/// hw_shunt_res;
+
+
+
 	//data = read_reg(SYS_CTRL2);
 	//data = data & 0xBF;
 	//write_reg(SYS_CTRL2, data);
