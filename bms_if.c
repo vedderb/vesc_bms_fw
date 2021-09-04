@@ -17,8 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#include "ltc6813.h"
-#include "bq76940.h"
 #include "main.h"
 #include "bms_if.h"
 #include "pwr.h"
@@ -29,6 +27,7 @@
 #include "sleep.h"
 #include "terminal.h"
 #include "flash_helper.h"
+#include "hw.h"
 
 #include <math.h>
 
@@ -68,18 +67,11 @@ void bms_if_init(void) {
 static bool charge_ok(void) {
 
 	float max = m_is_charging ? backup.config.vc_charge_end : backup.config.vc_charge_start;
-#ifdef AFE
-	return 1;//m_voltage_cell_min > backup.config.vc_charge_min &&
-		   //m_voltage_cell_max < max ;
-#endif
-
-#ifndef AFE
-	return W_GET_V_CHARGE() > backup.config.v_charge_detect &&	//Later I'll implement ADC measure voltage Charger
-		   m_voltage_cell_min > backup.config.vc_charge_min &&
-		   m_voltage_cell_max < max &&
-		   HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
-		   HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;
-#endif
+	return HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
+			m_voltage_cell_min > backup.config.vc_charge_min &&
+			m_voltage_cell_max < max &&
+			HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
+			HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;
 }
 
 static THD_FUNCTION(charge_thd, p) {
@@ -217,28 +209,15 @@ static THD_FUNCTION(balance_thd, p) {
 			break;
 		}
 
-#ifndef AFE
 		for (int i = backup.config.cell_first_index;i <
 		(backup.config.cell_num + backup.config.cell_first_index);i++) {
-				if (ltc_last_cell_voltage(i) > v_max) {
-					v_max = ltc_last_cell_voltage(i);
-				}
-				if (ltc_last_cell_voltage(i) < v_min) {
-					v_min = ltc_last_cell_voltage(i);
-				}
+			if (HW_LAST_CELL_VOLTAGE(i) > v_max) {
+				v_max = HW_LAST_CELL_VOLTAGE(i);
+			}
+			if (HW_LAST_CELL_VOLTAGE(i) < v_min) {
+				v_min = HW_LAST_CELL_VOLTAGE(i);
+			}
 		}
-#endif
-#ifdef AFE
-		for (int i = backup.config.cell_first_index;i <
-		(backup.config.cell_num + backup.config.cell_first_index);i++) {
-				if (bq_last_cell_voltage(i) > v_max) {
-					v_max = bq_last_cell_voltage(i);
-				}
-				if (bq_last_cell_voltage(i) < v_min) {
-					v_min = bq_last_cell_voltage(i);
-				}
-		}
-#endif
 
 		m_voltage_cell_min = v_min;
 		m_voltage_cell_max = v_max;
@@ -252,20 +231,10 @@ static THD_FUNCTION(balance_thd, p) {
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
 				if (m_balance_override[i] == 1) {
 					is_balance_override = true;
-#ifndef AFE
-					ltc_set_dsc(i, false);
-#endif
-#ifdef	AFE
-					bq_set_dsc(i, false);
-#endif
+					HW_SET_DSC(i, false);
 				} else if (m_balance_override[i] == 2) {
 					is_balance_override = true;
-#ifndef AFE
-					ltc_set_dsc(i, true);
-#endif
-#ifdef	AFE
-					bq_set_dsc(i, true);
-#endif
+					HW_SET_DSC(i, true);
 					bal_ch++;
 					m_is_balancing = true;
 				}
@@ -287,32 +256,18 @@ static THD_FUNCTION(balance_thd, p) {
 
 			bal_ch = 0;
 
-#ifndef AFE
 			for (int i = backup.config.cell_first_index;i <
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
-				float limit = ltc_get_dsc(i) ? backup.config.vc_balance_end : backup.config.vc_balance_start;
+				float limit = HW_GET_DSC(i) ? backup.config.vc_balance_end : backup.config.vc_balance_start;
 				limit += v_min;
-				if (ltc_last_cell_voltage(i) >= limit) {
-					ltc_set_dsc(i, true);
+				
+				if (HW_LAST_CELL_VOLTAGE(i) >= limit) {
+					HW_SET_DSC(i, true);
 					bal_ch++;
 					m_is_balancing = true;
 				} else {
-					ltc_set_dsc(i, false);
+					HW_SET_DSC(i, false);
 				}
-#endif
-#ifdef AFE
-				for (int i = backup.config.cell_first_index;i <
-				(backup.config.cell_num + backup.config.cell_first_index);i++) {
-					float limit = bq_get_dsc(i) ? backup.config.vc_balance_end : backup.config.vc_balance_start;
-					limit += v_min;
-				if (bq_last_cell_voltage(i) >= limit) {
-					bq_set_dsc(i, true);
-					bal_ch++;
-					m_is_balancing = true;
-				} else {
-					bq_set_dsc(i, false);
-				}
-#endif
 			}
 		}
 
@@ -332,30 +287,14 @@ static THD_FUNCTION(balance_thd, p) {
 		while (bal_ch > bal_ch_max) {
 			float v_min = 100.0;
 			int v_min_cell = 0;
-#ifndef AFE
 			for (int i = backup.config.cell_first_index;i <
 			(backup.config.cell_num + backup.config.cell_first_index);i++) {
-				if (ltc_last_cell_voltage(i) < v_min && ltc_get_dsc(i)) {
-					v_min = ltc_last_cell_voltage(i);
+				if (HW_LAST_CELL_VOLTAGE(i) < v_min && HW_GET_DSC(i)) {
+					v_min = HW_LAST_CELL_VOLTAGE(i);
 					v_min_cell = i;
 				}
 			}
-#endif
-#ifdef AFE
-			for (int i = backup.config.cell_first_index;i <
-			(backup.config.cell_num + backup.config.cell_first_index);i++) {
-				if (bq_last_cell_voltage(i) < v_min && bq_get_dsc(i)) {
-					v_min = bq_last_cell_voltage(i);
-					v_min_cell = i;
-				}
-			}
-#endif
-#ifndef AFE
-			ltc_set_dsc(v_min_cell, false);
-#endif
-#ifdef	AFE
-			bq_set_dsc(v_min_cell, false);
-#endif
+			HW_SET_DSC(v_min_cell, false);
 			bal_ch--;
 		}
 
@@ -365,12 +304,7 @@ static THD_FUNCTION(balance_thd, p) {
 			m_bal_ok = false;
 
 			for (int i = 0;i < HW_CELLS_SERIES;i++) {
-#ifndef AFE
-				ltc_set_dsc(i, false);
-#endif
-#ifdef AFE
-				bq_set_dsc(i, false);
-#endif
+				HW_SET_DSC(i, false);
 			}
 		}
 
@@ -499,7 +433,7 @@ float bms_if_get_v_tot(void) {
 	(backup.config.cell_num + backup.config.cell_first_index);i++) {
 		ret += bms_if_get_v_cell(i);
 	}
-	return ret; //get the battery voltage
+	return ret;
 }
 
 float bms_if_get_v_charge(void) {
@@ -507,12 +441,7 @@ float bms_if_get_v_charge(void) {
 }
 
 float bms_if_get_temp(int sensor) {
-#ifndef AFE
-	return pwr_get_temp(sensor); //get the temperature
-#endif
-#ifdef	AFE
-	return get_temp(sensor); //get the temperature
-#endif
+	return HW_GET_TEMP(sensor);
 }
 
 float bms_if_get_temp_ic(void) {
@@ -520,7 +449,7 @@ float bms_if_get_temp_ic(void) {
 }
 
 bool bms_if_is_balancing_cell(int cell) {
-	return ltc_get_dsc(cell);
+	return HW_GET_DSC(cell);
 }
 
 double bms_if_get_ah_cnt(void) {
@@ -583,7 +512,7 @@ void bms_if_force_balance(bool bal_en) {
 	} else {
 		m_bal_ok = false;
 		for (int i = 0;i < HW_CELLS_SERIES;i++) {
-			ltc_set_dsc(i, false);
+			HW_SET_DSC(i, false);
 		}
 	}
 }

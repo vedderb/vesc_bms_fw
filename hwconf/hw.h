@@ -87,8 +87,24 @@
 #define HW_GET_V_CHARGE()		pwr_get_vcharge()
 #endif
 
+#ifndef HW_GET_TEMP
+#define HW_GET_TEMP(sensors)	pwr_get_temp(sensors)
+#endif
+
 #ifndef HW_GET_BAL_TEMP
 #define HW_GET_BAL_TEMP()		bms_if_get_humidity_sensor_temp()
+#endif
+
+#ifndef HW_SET_DSC
+#define HW_SET_DSC(cell, set)	ltc_set_dsc(cell, set)
+#endif
+
+#ifndef HW_GET_DSC
+#define HW_GET_DSC(cell)		ltc_get_dsc(cell)
+#endif
+
+#ifndef HW_LAST_CELL_VOLTAGE
+#define HW_LAST_CELL_VOLTAGE(cell) ltc_last_cell_voltage(cell)
 #endif
 
 #ifndef HW_SOC_OVERRIDE

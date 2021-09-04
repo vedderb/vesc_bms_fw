@@ -180,9 +180,6 @@ void pwr_init(void) {
 }
 
 float pwr_get_vcharge(void) {
-#ifdef AFE
-	return 0.0;
-#endif
 	return m_v_charge;
 }
 
@@ -196,7 +193,7 @@ float pwr_get_iin(void) {
 #endif
 	return m_i_in;
 }
-#ifndef	AFE
+
 float pwr_get_temp(int sensor) {
 	if (sensor < 0 || sensor >= HW_ADC_TEMP_SENSORS) {
 		return -1.0;
@@ -204,4 +201,3 @@ float pwr_get_temp(int sensor) {
 
 	return m_temps[sensor];
 }
-#endif

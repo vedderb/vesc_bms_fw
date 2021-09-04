@@ -17,6 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+
 #include "i2c_bb.h"
 #include "bq76940.h"
 #include "bms_if.h"
@@ -25,6 +26,8 @@
 #include "utils.h"
 #include "main.h"
 #include "math.h"
+
+#ifdef HW_HAS_BQ76940
 
 #define MAX_CELL_NUM		15
 #define BQ_I2C_ADDR			0x08
@@ -324,7 +327,7 @@ void read_temp(volatile float *measurement_temp) {
 
 }
 
-float get_temp(int sensor){
+float bq_get_temp(int sensor){
 	if (sensor < 0 || sensor >= 5){
 			return -1.0;
 	}
@@ -435,3 +438,4 @@ void balance(volatile bool *m_discharge_state) {
 
 	return;
 }
+#endif

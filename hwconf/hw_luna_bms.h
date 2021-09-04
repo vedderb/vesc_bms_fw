@@ -20,18 +20,25 @@
 #ifndef HWCONF_HW_LUNA_BMS_H_
 #define HWCONF_HW_LUNA_BMS_H_
 
+#include "bq76940.h"
+
 #define HW_NAME					"luna_bms"
 
 // HW-specific
 #define HW_INIT_HOOK()			palSetLineMode(LINE_CURR_MEASURE_EN, PAL_MODE_OUTPUT_PUSHPULL)
+#define HW_HAS_BQ76940
 
 #define CURR_MEASURE_ON()		palClearLine(LINE_CURR_MEASURE_EN)
 #define CURR_MEASURE_OFF()		palSetLine(LINE_CURR_MEASURE_EN)
 
 // Macros
-#define CHARGE_ENABLE()			BQ_CHG_ON(); BQ_DSG_ON()
-#define CHARGE_DISABLE()		BQ_CHG_OFF(); BQ_DSG_OFF()
-//#define MODE_DEBUG				1
+#define CHARGE_ENABLE()				BQ_CHG_ON(); BQ_DSG_ON()
+#define CHARGE_DISABLE()			BQ_CHG_OFF(); BQ_DSG_OFF()
+#define HW_GET_TEMP(sensors)		bq_get_temp(sensors)
+#define HW_SET_DSC(cell, set)		bq_set_dsc(cell, set)
+#define HW_GET_DSC(cell)			bq_get_dsc(cell)
+#define HW_LAST_CELL_VOLTAGE(cell)	bq_last_cell_voltage(cell)
+#define HW_GET_V_CHARGE				bq_last_pack_voltage()	//until we implement charge voltage measurement in hw
 
 // Settings
 #define HW_CELLS_SERIES			14

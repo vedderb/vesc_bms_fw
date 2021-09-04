@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#include "ltc6813.h"
 #include "conf_general.h"
 #include "usbcfg.h"
 #include "pwr.h"
@@ -26,7 +25,6 @@
 #include "comm_usb.h"
 #include "bms_if.h"
 #include "hdc1080.h"
-#include "bq76940.h"
 #include "confparser.h"
 #include "commands.h"
 #include "timeout.h"

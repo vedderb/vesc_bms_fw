@@ -20,7 +20,6 @@
 #ifndef BQ76940_H_
 #define BQ76940_H_
 
-
 // SYS_STATUS bits
 #define NUM_REG			55
 #define ADC_EN			0x10
@@ -141,6 +140,8 @@
 #define BQ_ADCOFFSET	0x51
 #define BQ_ADCGAIN2		0x59
 
+// Macros
+
 typedef enum {
 	BQ76940_FAULT_NONE = 0,
 	BQ76940_FAULT_XREADY,
@@ -157,13 +158,11 @@ void bq_set_dsc(int cell, bool set);
 bool bq_get_dsc(int cell);
 float bq_last_pack_voltage(void);
 float bq_last_cell_voltage(int cell);
-#ifdef AFE
-float get_temp(int sensor);
-#endif
+float bq_get_temp(int sensor);
 float get_current(void);
 void DISCHARGE_ON(void);
 void DISCHARGE_OFF(void);
 void CHARGE_ON(void);
 void CHARGE_OFF(void);
-bool ltc_get_dsc(int cell);
+
 #endif /* BQ76940_H_ */
