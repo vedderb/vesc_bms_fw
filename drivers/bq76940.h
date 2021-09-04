@@ -32,6 +32,58 @@
 #define SYS_STAT_SCD	0x02
 #define SYS_STAT_OCD	0x01
 
+// SCP config
+#define BQ_SCP_70us		(0x00 << 3)
+#define BQ_SCP_100us	(0x01 << 3)
+#define BQ_SCP_200us	(0x02 << 3)
+#define BQ_SCP_400us	(0x03 << 3)
+
+#define BQ_SCP_44mV		0x80
+#define BQ_SCP_67mV		0x81
+#define BQ_SCP_89mV		0x82
+#define BQ_SCP_111mV	0x83
+#define BQ_SCP_133mV	0x84
+#define BQ_SCP_155mV	0x85
+#define BQ_SCP_178mV	0x86
+#define BQ_SCP_200mV	0x87
+
+// OCP config
+#define BQ_OCP_8ms		(0x00 << 4)
+#define BQ_OCP_20ms		(0x01 << 4)
+#define BQ_OCP_40ms		(0x02 << 4)
+#define BQ_OCP_80ms		(0x03 << 4)
+#define BQ_OCP_160ms	(0x04 << 4)
+#define BQ_OCP_320ms	(0x05 << 4)
+#define BQ_OCP_640ms	(0x06 << 4)
+#define BQ_OCP_1280ms	(0x07 << 4)
+
+#define BQ_OCP_17mV		0x00
+#define BQ_OCP_22mV		0x01
+#define BQ_OCP_28mV		0x02
+#define BQ_OCP_33mV		0x03
+#define BQ_OCP_39mV		0x04
+#define BQ_OCP_44mV		0x05
+#define BQ_OCP_50mV		0x06
+#define BQ_OCP_56mV		0x07
+#define BQ_OCP_61mV		0x08
+#define BQ_OCP_67mV		0x09
+#define BQ_OCP_72mV		0x0A
+#define BQ_OCP_78mV		0x0B
+#define BQ_OCP_83mV		0x0C
+#define BQ_OCP_89mV		0x0D
+#define BQ_OCP_94mV		0x0E
+#define BQ_OCP_100mV	0x0F
+
+#define BQ_UV_DELAY_1s	(0x00 << 6)
+#define BQ_UV_DELAY_4s	(0x01 << 6)
+#define BQ_UV_DELAY_8s	(0x02 << 6)
+#define BQ_UV_DELAY_16s	(0x03 << 6)
+
+#define BQ_OV_DELAY_1s	(0x00 << 4)
+#define BQ_OV_DELAY_2s	(0x01 << 4)
+#define BQ_OV_DELAY_4s	(0x02 << 4)
+#define BQ_OV_DELAY_8s	(0x03 << 4)
+
 // Register address
 #define BQ_SYS_STAT		0x00
 #define BQ_CELLBAL1		0x01

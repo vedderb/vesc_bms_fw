@@ -111,10 +111,14 @@ uint8_t bq76940_init(
 	write_reg(BQ_OV_TRIP, tripVoltage(4.25));
 	write_reg(BQ_UV_TRIP, tripVoltage(2.80));
 
-	// for 190 A shutdown a main mosfet
-	error |= write_reg(BQ_PROTECT1, 0x85);//registerWrite(PROTECT1, 0x0B);	// write PROTECT1
-	error |= write_reg(BQ_PROTECT2, 0x4F);//registerWrite(PROTECT2, 0x9C);	// write PROTECT2
-	error |= write_reg(BQ_PROTECT3, 0xFF);//registerWrite(PROTECT3, 0x50);	// write PROTECT3
+	// Short Circuit Protection at 300 A
+	error |= write_reg(BQ_PROTECT1, BQ_SCP_70us |  BQ_SCP_155mV);
+	
+	// Over Current Protection at 200 A
+	error |= write_reg(BQ_PROTECT2, BQ_OCP_640ms | BQ_OCP_100mV);
+	
+	// Overvoltage and UnderVoltage delays
+	error |= write_reg(BQ_PROTECT3, BQ_UV_DELAY_1s | BQ_OV_DELAY_1s);
 
 	// clear SYS-STAT for init
 	write_reg(BQ_SYS_STAT,0xFF);
@@ -321,27 +325,12 @@ float get_temp(int sensor){
 	return measurement_temp[sensor];
 }
 
-void iin_measure(float *i_in ){
-	uint16_t buffer[2] = {0,0};
-	uint8_t data = 0;
-	int16_t	value = 0;
-
-	//data = read_reg(SYS_CTRL2);
-	//data = data | 0x20;
-	//write_reg(SYS_CTRL2, data);
-	chThdSleepMilliseconds(251);
-	buffer[0] = read_reg(BQ_CC_HI);
-	buffer[1] = read_reg(BQ_CC_LO);
-	value = ((float)(buffer[1] | buffer[0] << 8));
-	*(i_in) = value * 0.00844 ;/// hw_shunt_res;
-
-
-
-	//data = read_reg(SYS_CTRL2);
-	//data = data & 0xBF;
-	//write_reg(SYS_CTRL2, data);
-
-	write_reg(BQ_SYS_STAT,0xFF);
+void iin_measure(float *i_in ) {
+	uint8_t CC_hi = read_reg(BQ_CC_HI);
+	uint8_t CC_lo = read_reg(BQ_CC_LO);
+	int16_t CC_reg = (int16_t)(CC_lo | CC_hi << 8);
+	
+	*(i_in) = (float)CC_reg * 0.00844 ;/// hw_shunt_res;
 
 	return;
 }
