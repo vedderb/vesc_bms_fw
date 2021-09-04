@@ -21,10 +21,6 @@
 #define PWR_H_
 
 #include "conf_general.h"
-#include "bq76940.h"
-
-#define BQ_CHG_ON()				palSetLine(LINE_BQ_CHG_EN)
-#define BQ_CHG_OFF()			palClearLine(LINE_BQ_CHG_EN)
 
 #define BQ_CHG_ON()				palSetLine(LINE_BQ_CHG_EN)
 #define BQ_CHG_OFF()			palClearLine(LINE_BQ_CHG_EN)
