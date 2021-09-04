@@ -79,7 +79,7 @@ static THD_FUNCTION(charge_thd, p) {
 	chRegSetThreadName("Charge");
 
 	int no_charge_cnt = 0;
-/*
+
 	for (;;) {
 		if (m_is_charging && HW_TEMP_CELLS_MAX() >= backup.config.t_charge_max) {
 			bms_if_fault_report(FAULT_CODE_CHARGE_OVERTEMP);
@@ -91,25 +91,12 @@ static THD_FUNCTION(charge_thd, p) {
 				chThdSleepMilliseconds(2000);
 				if (charge_ok()) {
 					m_is_charging = true;
-
-
-#ifndef AFE
 					CHARGE_ENABLE();
-#endif
-#ifdef AFE
-				    CHARGE_ON();
-#endif
-
 				}
 			}
 		} else {
 			m_is_charging = false;
-#ifndef AFE
 			CHARGE_DISABLE();
-#endif
-#ifdef AFE
-			CHARGE_OFF();
-#endif
 		}
 
 		chThdSleepMilliseconds(10);
@@ -120,12 +107,7 @@ static THD_FUNCTION(charge_thd, p) {
 			if (no_charge_cnt > 100) {
 				no_charge_cnt = 0;
 				m_is_charging = false;
-#ifndef AFE
 				CHARGE_DISABLE();
-#endif
-#ifdef AFE
-				CHARGE_OFF();
-#endif
 				chThdSleepMilliseconds(5000);
 			}
 		} else {
@@ -136,12 +118,7 @@ static THD_FUNCTION(charge_thd, p) {
 			if (fabsf(m_i_in_filter) > backup.config.max_charge_current) {
 				m_was_charge_overcurrent = true;
 				m_is_charging = false;
-#ifndef	AFE
 				CHARGE_DISABLE();
-#endif
-#ifdef AFE
-				CHARGE_OFF;
-#endif
 				bms_if_fault_report(FAULT_CODE_CHARGE_OVERCURRENT);
 			}
 
@@ -160,8 +137,6 @@ static THD_FUNCTION(charge_thd, p) {
 		}
 		charger_connected_last = HW_GET_V_CHARGE() > backup.config.v_charge_detect;
 	}
-	*/
-
 }
 
 static THD_FUNCTION(balance_thd, p) {
@@ -416,7 +391,7 @@ float bms_if_get_i_in_ic(void) {
 }
 
 float bms_if_get_v_cell(int cell) {
-	return bq_last_cell_voltage(cell);
+	return HW_LAST_CELL_VOLTAGE(cell);
 }
 
 float bms_if_get_v_cell_min(void) {

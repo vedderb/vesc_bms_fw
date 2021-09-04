@@ -138,7 +138,7 @@ uint8_t bq76940_init(
 	chThdSleepMilliseconds(10);
 	write_reg(BQ_SYS_STAT,0xFF);
 	chThdSleepMilliseconds(10);
-	DISCHARGE_ON();
+	bq_discharge_enable();
 	chThdSleepMilliseconds(40);
 	read_reg(BQ_SYS_STAT);
 
@@ -349,7 +349,7 @@ float get_current(void){
 	return i_in;
 }
 
-void DISCHARGE_ON(void){
+void bq_discharge_enable(void){
 	uint8_t	data = 0;
 
 	data = read_reg(BQ_SYS_CTRL2);
@@ -359,7 +359,7 @@ void DISCHARGE_ON(void){
 	return;
 }
 
-void DISCHARGE_OFF(void){
+void bq_discharge_disable(void){
 	uint8_t	data = 0;
 
 	data = read_reg(BQ_SYS_CTRL2);
@@ -369,7 +369,7 @@ void DISCHARGE_OFF(void){
 	return;
 }
 
-void CHARGE_ON(void){
+void bq_charge_enable(void){
 	uint8_t	data = 0;
 
 	data = read_reg(BQ_SYS_CTRL2);
@@ -379,7 +379,7 @@ void CHARGE_ON(void){
 	return;
 }
 
-void CHARGE_OFF(void){
+void bq_charge_disable(void){
 	uint8_t	data = 0;
 
 	data = read_reg(BQ_SYS_CTRL2);

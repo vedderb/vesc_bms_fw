@@ -160,9 +160,9 @@ float bq_last_pack_voltage(void);
 float bq_last_cell_voltage(int cell);
 float bq_get_temp(int sensor);
 float get_current(void);
-void DISCHARGE_ON(void);
-void DISCHARGE_OFF(void);
-void CHARGE_ON(void);
-void CHARGE_OFF(void);
+void bq_discharge_enable(void);
+void bq_discharge_disable(void);
+void bq_charge_enable(void);
+void bq_charge_disable(void);
 
 #endif /* BQ76940_H_ */
