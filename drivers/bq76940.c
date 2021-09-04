@@ -435,11 +435,3 @@ void balance(volatile bool *m_discharge_state) {
 
 	return;
 }
-
-bool ltc_get_dsc(int cell) {
-	if (cell < 0 || cell > 17) {
-		return false;
-	}
-
-	return m_discharge_state[cell];
-}
