@@ -25,13 +25,13 @@
 #define HW_NAME					"luna_bms"
 
 // HW-specific
-#define HW_INIT_HOOK()			palSetLineMode(LINE_CURR_MEASURE_EN, PAL_MODE_OUTPUT_PUSHPULL)
 #define HW_HAS_BQ76940
 
-#define CURR_MEASURE_ON()		palClearLine(LINE_CURR_MEASURE_EN)
-#define CURR_MEASURE_OFF()		palSetLine(LINE_CURR_MEASURE_EN)
-
 // Macros
+#define HW_INIT_HOOK()				bq76940_init(BQ76940_SDA_GPIO, BQ76940_SDA_PIN,\
+									BQ76940_SCL_GPIO , BQ76940_SCL_PIN,\
+									BQ76940_ALERT_GPIO , BQ76940_ALERT_PIN,\
+									HW_SHUNT_RES);
 #define CHARGE_ENABLE()				bq_charge_enable(); bq_discharge_enable()
 #define CHARGE_DISABLE()			bq_charge_disable(); bq_discharge_disable()
 #define HW_GET_TEMP(sensors)		bq_get_temp(sensors)
@@ -115,8 +115,5 @@
 #define ADC_CH_TEMP3			ADC_CHANNEL_IN14 // Lower right center
 #define ADC_CH_TEMP4			ADC_CHANNEL_IN15 // On wire
 #define ADC_CH_TEMP5			ADC_CHANNEL_IN16 // Top PCB center
-
-// Other
-#define LINE_CURR_MEASURE_EN	PAL_LINE(GPIOB, 6)
 
 #endif /* HWCONF_HW_LUNA_BMS_H_ */

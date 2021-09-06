@@ -70,7 +70,7 @@
 #endif
 
 #ifndef HW_INIT_HOOK
-#define HW_INIT_HOOK()
+#define HW_INIT_HOOK()			ltc_init()
 #endif
 
 #ifndef LINE_CAN_EN
