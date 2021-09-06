@@ -160,8 +160,12 @@ static THD_FUNCTION(sample_thread, arg) {
 			uint8_t sys_stat = read_reg(BQ_SYS_STAT);
 			write_reg(BQ_SYS_STAT,0xFF);
 			
-			// time to read the cells
-			read_cell_voltages(m_v_cell); 	//read cell voltages
+			static uint8_t i = 0;
+			if(i++ == 20){
+				// time to read the cells
+				read_cell_voltages(m_v_cell); 	//read cell voltages
+				i = 0;
+			}
 			//chThdSleepMilliseconds(250); 	// time to read the thermistors
 			//read_temp(measurement_temp);  	//read temperature
 			chThdSleepMilliseconds(30);
