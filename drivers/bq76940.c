@@ -343,11 +343,11 @@ float bq_get_temp(int sensor){
 }
 
 void iin_measure(float *i_in ) {
-	uint8_t CC_hi = read_reg(BQ_CC_HI);
-	uint8_t CC_lo = read_reg(BQ_CC_LO);
+	uint16_t CC_hi = read_reg(BQ_CC_HI);
+	uint16_t CC_lo = read_reg(BQ_CC_LO);
 	int16_t CC_reg = (int16_t)(CC_lo | CC_hi << 8);
 	
-	*(i_in) = (float)CC_reg * 0.00000844 * bq76940.shunt_res;
+	*(i_in) = (float)CC_reg * 0.00000844 / bq76940.shunt_res;
 
 	return;
 }
@@ -357,9 +357,7 @@ float get_current(void){
 }
 
 void bq_discharge_enable(void){
-	uint8_t	data = 0;
-
-	data = read_reg(BQ_SYS_CTRL2);
+	uint8_t data = read_reg(BQ_SYS_CTRL2);
 	data = data | 0x02;
 	write_reg(BQ_SYS_CTRL2, data);
 
@@ -367,9 +365,7 @@ void bq_discharge_enable(void){
 }
 
 void bq_discharge_disable(void){
-	uint8_t	data = 0;
-
-	data = read_reg(BQ_SYS_CTRL2);
+	uint8_t data = read_reg(BQ_SYS_CTRL2);
 	data = (data & 0xFD);
 	write_reg(BQ_SYS_CTRL2, data);
 
@@ -377,9 +373,7 @@ void bq_discharge_disable(void){
 }
 
 void bq_charge_enable(void){
-	uint8_t	data = 0;
-
-	data = read_reg(BQ_SYS_CTRL2);
+	uint8_t data = read_reg(BQ_SYS_CTRL2);
 	data = data | 0x01;
 	write_reg(BQ_SYS_CTRL2, data);
 
@@ -387,9 +381,7 @@ void bq_charge_enable(void){
 }
 
 void bq_charge_disable(void){
-	uint8_t	data = 0;
-
-	data = read_reg(BQ_SYS_CTRL2);
+	uint8_t data = read_reg(BQ_SYS_CTRL2);
 	data = data & 0xFE;
 	write_reg(BQ_SYS_CTRL2, data);
 
