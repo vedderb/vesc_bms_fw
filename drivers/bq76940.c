@@ -295,7 +295,10 @@ float bq_last_cell_voltage(int cell) {
 }
 
 float bq_last_pack_voltage(void) {
-	return 27.6;//m_v_pack;
+	uint16_t BAT_hi = read_reg(BQ_BAT_HI);
+	uint16_t BAT_lo = read_reg(BQ_BAT_LO);
+
+	return  (float)(((uint16_t)(BAT_lo | BAT_hi << 8)) * 0.001532)-(14 * bq76940.offset);
 }
 
 void read_temp(volatile float *measurement_temp) {
