@@ -340,7 +340,7 @@ void iin_measure(float *i_in ) {
 	uint8_t CC_lo = read_reg(BQ_CC_LO);
 	int16_t CC_reg = (int16_t)(CC_lo | CC_hi << 8);
 	
-	*(i_in) = (float)CC_reg * 0.00844 ;/// bq76940.shunt_res;
+	*(i_in) = (float)CC_reg * 0.00000844 * bq76940.shunt_res;
 
 	return;
 }
