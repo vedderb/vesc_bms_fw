@@ -107,6 +107,14 @@
 #define HW_LAST_CELL_VOLTAGE(cell) ltc_last_cell_voltage(cell)
 #endif
 
+#ifndef HW_GET_I_IN
+#define HW_GET_I_IN()			pwr_get_iin()
+#endif
+
+#ifndef HW_GET_I_IN_AFE
+#define HW_GET_I_IN_AFE()		ltc_get_iin()
+#endif
+
 #ifndef HW_SOC_OVERRIDE
 #define HW_SOC_OVERRIDE()		-1.0
 #endif

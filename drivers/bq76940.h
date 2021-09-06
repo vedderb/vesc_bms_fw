@@ -159,7 +159,7 @@ bool bq_get_dsc(int cell);
 float bq_last_pack_voltage(void);
 float bq_last_cell_voltage(int cell);
 float bq_get_temp(int sensor);
-float get_current(void);
+float bq_get_current(void);
 void bq_discharge_enable(void);
 void bq_discharge_disable(void);
 void bq_charge_enable(void);

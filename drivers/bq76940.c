@@ -348,7 +348,7 @@ void iin_measure(float *i_in ) {
 	return;
 }
 
-float get_current(void){
+float bq_get_current(void){
 	return i_in;
 }
 

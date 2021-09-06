@@ -80,9 +80,7 @@ static THD_FUNCTION(adc_thd, p) {
 
 		float v_ch = 0.0;
 		float ref = 0.0;
-#ifndef AFE
 		float i_in = 0.0;
-#endif
 		float v_fuse = 0.0;
 		float temps[HW_ADC_TEMP_SENSORS];
 		memset(temps, 0, sizeof(temps));
@@ -90,9 +88,8 @@ static THD_FUNCTION(adc_thd, p) {
 		for (int i = 0;i < num_samp;i++) {
 			ref += samples[ADC_CHANNELS * i + 0];
 			v_ch += samples[ADC_CHANNELS * i + 1];
-#ifndef	AFE
 			i_in += samples[ADC_CHANNELS * i + 2];
-#endif
+
 			for (int j = 0;j < HW_ADC_TEMP_SENSORS;j++) {
 				temps[j] += samples[ADC_CHANNELS * i + 3 + j];
 			}
@@ -102,9 +99,7 @@ static THD_FUNCTION(adc_thd, p) {
 
 		ref /= (float)num_samp;
 		v_ch /= (float)num_samp;
-#ifndef AFE
 		i_in /= (float)num_samp;
-#endif
 		v_fuse /= (float)num_samp;
 
 		for (int j = 0;j < HW_ADC_TEMP_SENSORS;j++) {
@@ -115,10 +110,7 @@ static THD_FUNCTION(adc_thd, p) {
 		float vdda = (3.0 * (float)vrefint_cal) / (float)ref;
 
 		m_v_charge = (v_ch / (4095 / vdda)) * ((R_CHARGE_TOP + R_CHARGE_BOTTOM) / R_CHARGE_BOTTOM);
-#ifndef AFE
 		m_i_in = -((3.3 * ((i_in / 4095.0))) - 1.65) * (1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res);
-#endif
-
 		m_v_fuse = (v_fuse / (4095 / vdda)) * ((R_CHARGE_TOP + R_CHARGE_BOTTOM) / R_CHARGE_BOTTOM);
 
 		for (int j = 0;j < HW_ADC_TEMP_SENSORS;j++) {
@@ -188,9 +180,6 @@ float pwr_get_vfuse(void) {
 }
 
 float pwr_get_iin(void) {
-#ifdef AFE
-	return 0.1;
-#endif
 	return m_i_in;
 }
 
