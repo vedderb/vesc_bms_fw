@@ -37,6 +37,7 @@ static i2c_bb_state  m_i2c;
 static volatile float m_v_cell[MAX_CELL_NUM];
 static volatile float measurement_temp[5];
 static volatile float i_in = 0;
+static volatile float v_bat = 0;
 static volatile bool m_discharge_state[MAX_CELL_NUM] = {false};
 static volatile float hw_shunt_res = 1.0;
 
@@ -48,7 +49,16 @@ typedef struct {
 	float gain;
 	float offset;
 } bq76940_t;
-
+/*
+static I2CConfig i2cfg1 = {
+	     STM32_TIMINGR_PRESC(5U)  |            // 48MHz/6 = 8MHz I2CCLK.
+	     STM32_TIMINGR_SCLDEL(3U) | STM32_TIMINGR_SDADEL(3U) |
+	     STM32_TIMINGR_SCLH(3U)   | STM32_TIMINGR_SCLL(9U),
+	                    // Just scale bits 28..31 if not 8MHz clock
+	    0,              // CR1
+	    0,              // CR2
+};
+*/
 static bq76940_t bq76940;
 
 // Threads
@@ -89,6 +99,9 @@ uint8_t bq76940_init(
 	m_i2c.scl_pin = scl_pin;
 
 	i2c_bb_init(&m_i2c);
+	//i2cStart(&I2CD2, &i2cfg1);
+	//palSetPadMode(GPIOB, 10, PAL_MODE_OUTPUT_OPENDRAIN);
+	//palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_OPENDRAIN);
 
 	uint8_t error = 0;
 
@@ -164,6 +177,9 @@ static THD_FUNCTION(sample_thread, arg) {
 			if(i++ == 20){
 				// time to read the cells
 				read_cell_voltages(m_v_cell); 	//read cell voltages
+				uint16_t BAT_hi = read_reg(BQ_BAT_HI);
+				uint16_t BAT_lo = read_reg(BQ_BAT_LO);
+				v_bat = (float)(((uint16_t)(BAT_lo | BAT_hi << 8)) * lsb_unit_regVbat )-(14 * bq76940.offset);
 				i = 0;
 			}
 			//chThdSleepMilliseconds(250); 	// time to read the thermistors
@@ -209,6 +225,7 @@ uint8_t write_reg(uint8_t reg, uint16_t val) {
 	uint8_t key = 0x7;
 	txbuf[2] = CRC8(buff, 3, key);
 	i2c_bb_tx_rx(&m_i2c, BQ_I2C_ADDR, txbuf, 3, 0, 0);
+	//i2cMasterTransmit(&I2CD2, BQ_I2C_ADDR, txbuf, 3, NULL, 0);
 
 	return 0;
 }
@@ -216,6 +233,7 @@ uint8_t write_reg(uint8_t reg, uint16_t val) {
 uint8_t read_reg(uint8_t reg){
 	uint8_t data;
  	i2c_bb_tx_rx(&m_i2c, BQ_I2C_ADDR, &reg, 1, &data, 2);
+	//i2cMasterTransmit(&I2CD2, BQ_I2C_ADDR, &reg, 1, &data, 2);
  	return data;
 }
 
@@ -299,10 +317,7 @@ float bq_last_cell_voltage(int cell) {
 }
 
 float bq_last_pack_voltage(void) {
-	uint16_t BAT_hi = read_reg(BQ_BAT_HI);
-	uint16_t BAT_lo = read_reg(BQ_BAT_LO);
-
-	return  (float)(((uint16_t)(BAT_lo | BAT_hi << 8)) * 0.001532)-(14 * bq76940.offset);
+	return  v_bat;
 }
 
 void read_temp(volatile float *measurement_temp) {
@@ -347,7 +362,7 @@ void iin_measure(float *i_in ) {
 	uint16_t CC_lo = read_reg(BQ_CC_LO);
 	int16_t CC_reg = (int16_t)(CC_lo | CC_hi << 8);
 	
-	*(i_in) = (float)CC_reg * 0.00000844 / bq76940.shunt_res;
+	*(i_in) = (float)CC_reg * lsb_unit_regCC / bq76940.shunt_res;
 
 	return;
 }

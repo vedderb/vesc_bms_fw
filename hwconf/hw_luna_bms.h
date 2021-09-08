@@ -28,10 +28,11 @@
 #define HW_HAS_BQ76940
 
 // Macros
-#define HW_INIT_HOOK()				bq76940_init(BQ76940_SDA_GPIO, BQ76940_SDA_PIN,\
-									BQ76940_SCL_GPIO , BQ76940_SCL_PIN,\
-									BQ76940_ALERT_GPIO , BQ76940_ALERT_PIN,\
-									HW_SHUNT_RES);
+#define HW_INIT_HOOK()				//bq76940_init(BQ76940_SDA_GPIO, BQ76940_SDA_PIN,\
+									//BQ76940_SCL_GPIO , BQ76940_SCL_PIN,\
+									//BQ76940_ALERT_GPIO , BQ76940_ALERT_PIN,\
+									//HW_SHUNT_RES);
+
 #define CHARGE_ENABLE()				bq_charge_enable(); bq_discharge_enable()
 #define CHARGE_DISABLE()			bq_charge_disable(); bq_discharge_disable()
 #define HW_GET_TEMP(sensors)		bq_get_temp(sensors)

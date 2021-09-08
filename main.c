@@ -177,6 +177,13 @@ int main(void) {
 			HDC1080_SCL_GPIO, HDC1080_SCL_PIN);
 #endif
 
+#ifdef BQ76940_SDA_GPIO
+	bq76940_init(BQ76940_SDA_GPIO, BQ76940_SDA_PIN,
+	BQ76940_SCL_GPIO , BQ76940_SCL_PIN,
+	BQ76940_ALERT_GPIO , BQ76940_ALERT_PIN,
+	HW_SHUNT_RES);
+#endif
+
 #ifdef HW_UART_DEV
 	comm_uart_init();
 #endif

@@ -140,6 +140,8 @@
 #define BQ_ADCOFFSET	0x51
 #define BQ_ADCGAIN2		0x59
 
+#define lsb_unit_regCC   0.00000844
+#define lsb_unit_regVbat 0.001532
 // Macros
 
 typedef enum {
