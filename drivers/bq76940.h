@@ -23,6 +23,7 @@
 // SYS_STATUS bits
 #define NUM_REG			55
 #define ADC_EN			0x10
+#define TS_ON			0x08
 #define CC_EN			0x40
 #define SYS_STAT_DEVICE_XREADY	0x20
 #define SYS_STAT_OVRD_ALERT		0x10
@@ -37,6 +38,14 @@
 #define BQ_SCP_200us	(0x02 << 3)
 #define BQ_SCP_400us	(0x03 << 3)
 
+/*#define BQ_SCP_22mV		0x00
+#define BQ_SCP_33mV 	0x01
+#define BQ_SCP_44mV     0x02
+#define BQ_SCP_56mV     0x03
+#define BQ_SCP_67mV     0x04
+#define BQ_SCP_78mV     0x05
+#define BQ_SCP_89mV     0x06
+#define BQ_SCP_100mV    0x07*/
 #define BQ_SCP_44mV		0x80
 #define BQ_SCP_67mV		0x81
 #define BQ_SCP_89mV		0x82

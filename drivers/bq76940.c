@@ -99,20 +99,24 @@ uint8_t bq76940_init(
 	m_i2c.scl_pin = scl_pin;
 
 	i2c_bb_init(&m_i2c);
-	//i2cStart(&I2CD2, &i2cfg1);
-	//palSetPadMode(GPIOB, 10, PAL_MODE_OUTPUT_OPENDRAIN);
-	//palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_OPENDRAIN);
-
+/*	i2cStart(&I2CD2, &i2cfg1);
+	palSetPadMode(GPIOB, 10, PAL_STM32_MODE_ALTERNATE
+							| PAL_MODE_OUTPUT_OPENDRAIN
+							| PAL_STM32_ALTERNATE(4) );
+	palSetPadMode(GPIOB, 11, PAL_STM32_MODE_ALTERNATE
+							| PAL_MODE_OUTPUT_OPENDRAIN
+							| PAL_STM32_ALTERNATE(4) );
+*/
 	uint8_t error = 0;
 
 	// make sure the bq is booted up--->set TS1 to 3.3V and back to VSS
 	// maybe set temp-mode for internal or external temp here
 
-	// enable ADC
-	error |= write_reg(BQ_SYS_CTRL1, ADC_EN);
+	// enable ADC and thermistors
+	error |= write_reg(BQ_SYS_CTRL1, (ADC_EN | TS_ON));
 	
-	// check if ADC is active
-	error |= read_reg(BQ_SYS_CTRL1) & ADC_EN;
+	// check if ADC and thermistors is active
+	error |= read_reg(BQ_SYS_CTRL1) & (ADC_EN | TS_ON);
 	
 	// write 0x19 to CC_CFG according to datasheet page 39
 	error |= write_reg(BQ_CC_CFG, 0x19);
@@ -125,10 +129,10 @@ uint8_t bq76940_init(
 	write_reg(BQ_UV_TRIP, tripVoltage(2.80));
 
 	// Short Circuit Protection at 300 A
-	error |= write_reg(BQ_PROTECT1, BQ_SCP_70us |  BQ_SCP_155mV);
+	error |= write_reg(BQ_PROTECT1, BQ_SCP_70us |  BQ_SCP_44mV); //BQ_SCP_70us |  BQ_SCP_155mV
 	
 	// Over Current Protection at 200 A
-	error |= write_reg(BQ_PROTECT2, BQ_OCP_640ms | BQ_OCP_100mV);
+	error |= write_reg(BQ_PROTECT2, BQ_OCP_8ms | BQ_OCP_17mV);//BQ_OCP_640ms | BQ_OCP_100mV
 	
 	// Overvoltage and UnderVoltage delays
 	error |= write_reg(BQ_PROTECT3, BQ_UV_DELAY_1s | BQ_OV_DELAY_1s);
@@ -174,8 +178,9 @@ static THD_FUNCTION(sample_thread, arg) {
 			write_reg(BQ_SYS_STAT,0xFF);
 			
 			static uint8_t i = 0;
-			if(i++ == 20){
+			if(i++ == 10){
 				// time to read the cells
+				read_temp(measurement_temp);  	//read temperature
 				read_cell_voltages(m_v_cell); 	//read cell voltages
 				uint16_t BAT_hi = read_reg(BQ_BAT_HI);
 				uint16_t BAT_lo = read_reg(BQ_BAT_LO);
@@ -183,7 +188,7 @@ static THD_FUNCTION(sample_thread, arg) {
 				i = 0;
 			}
 			//chThdSleepMilliseconds(250); 	// time to read the thermistors
-			//read_temp(measurement_temp);  	//read temperature
+			//
 			chThdSleepMilliseconds(30);
 			balance(m_discharge_state);
 			iin_measure(&i_in);	
@@ -321,31 +326,38 @@ float bq_last_pack_voltage(void) {
 }
 
 void read_temp(volatile float *measurement_temp) {
-	uint16_t buffer[6];
-	float vtsx = 0.0;
-	float R_ts = 0.0;
+	//uint16_t buffer[6];
+	//float vtsx = 0.0;
+	//float R_ts = 0.0;
 
+
+	for(int i = 0 ; i < 3 ; i++){
+		uint16_t BQ_TSx_hi = read_reg(BQ_TS1_HI + i * 2 );
+		uint16_t BQ_TSx_lo = read_reg(BQ_TS1_LO + i * 2);
+		float vtsx = (float)((BQ_TSx_hi << 8) | BQ_TSx_hi) * 0.000382;
+		float R_ts = ( vtsx * 1e4 ) / ( 3.3 - vtsx );
+		measurement_temp[i] = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
+	}
+/*
 	buffer[0] = read_reg(BQ_TS1_HI);
 	buffer[1] = read_reg(BQ_TS1_LO);
-	vtsx = (float)((buffer[0]) | (buffer[1] << 8));
-	R_ts = (vtsx * 1e4) / (vtsx - 3.3);
-	*((measurement_temp) + 0) = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
+	vtsx = (float)((buffer[0]<<8) | (buffer[1])) * 0.000382;
+	R_ts = ( vtsx * 1e4 ) / ( 3.3 - vtsx );
+	measurement_temp[0] = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
 	buffer[2] = read_reg(BQ_TS2_HI);
 	buffer[3] = read_reg(BQ_TS2_LO);
-	//vtsx = ((buffer[2]) | (buffer[3]<<8));
-	//R_ts = (vtsx*1e4)/(vtsx-3.3);
-	*((measurement_temp) + 1) = 10;//(1.0 / (((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
+	vtsx = (float)((buffer[2]<<8) | (buffer[3])) * 0.000382;
+	R_ts = ( vtsx * 1e4 ) / ( 3.3 - vtsx );
+	measurement_temp[1] = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
 	buffer[4] = read_reg(BQ_TS3_HI);
 	buffer[5] = read_reg(BQ_TS3_LO);
-	//vtsx = ((buffer[4]) | (buffer[5]<<8));
-	//R_ts = (vtsx*1e4)/(vtsx-3.3);
-	*((measurement_temp) + 2) = 10;//(1.0 / (((logf(20000) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
-
-	*((measurement_temp) + 3) = 10;
-
-	*((measurement_temp) + 4) = 10;
+	vtsx = ((buffer[4]) | (buffer[5]<<8));
+	R_ts = (vtsx*1e4)/(vtsx-3.3);
+    measurement_temp[2] = (1.0 / (((logf(20000) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
+*/
+	return;
 
 }
 
