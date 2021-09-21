@@ -107,6 +107,10 @@
 #define HW_CHARGER_DETECTED()	false
 #endif
 
+#ifndef NTC_TEMP_WITH_IND
+#define NTC_TEMP_WITH_IND(adc, ind) NTC_TEMP(adc)
+#endif
+
 // Functions
 uint8_t hw_id_from_uuid(void);
 

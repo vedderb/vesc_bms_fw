@@ -87,8 +87,9 @@
 #define LINE_TEMP_4_EN			PAL_LINE(GPIOC, 11)
 #define LINE_TEMP_5_EN			PAL_LINE(GPIOB, 2)
 
-#define NTC_RES(adc)			(10000.0 / ((4095.0 / (float)adc) - 1.0))
-#define NTC_TEMP(adc)			(1.0 / ((logf(NTC_RES(adc) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_RES(adc)					(10000.0 / ((4095.0 / (float)adc) - 1.0))
+#define NTC_RES_2(adc)					((4095.0 / (float)adc) * 10000.0 - 10000.0)
+#define NTC_TEMP_WITH_IND(adc, ind)		(1.0 / ((logf((ind == 5 ? NTC_RES_2(adc) : NTC_RES(adc)) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
 // TODO: Take highest of all temp sensors
 #define HW_TEMP_CELLS_MAX()		bms_if_get_temp(2)

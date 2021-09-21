@@ -114,7 +114,7 @@ static THD_FUNCTION(adc_thd, p) {
 		m_v_fuse = (v_fuse / (4095 / vdda)) * ((R_CHARGE_TOP + R_CHARGE_BOTTOM) / R_CHARGE_BOTTOM);
 
 		for (int j = 0;j < HW_ADC_TEMP_SENSORS;j++) {
-			m_temps[j] = NTC_TEMP(temps[j]);
+			m_temps[j] = NTC_TEMP_WITH_IND(temps[j], j);
 		}
 
 		chThdSleepMilliseconds(1);
