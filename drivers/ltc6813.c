@@ -60,7 +60,7 @@ void ltc_init(void) {
 	palSetLineMode(LINE_LTC_MOSI, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLine(LINE_LTC_MOSI);
 	
-	chThdCreateStatic(ltc_thd_wa, sizeof(ltc_thd_wa), NORMALPRIO, ltc_thd, 0);
+	chThdCreateStatic(ltc_thd_wa, sizeof(ltc_thd_wa), NORMALPRIO - 1, ltc_thd, 0);
 
 	(void)ltc_wakeup();
 }
@@ -401,6 +401,7 @@ static void spi_begin(void) {
 
 static void spi_end(void) {
 	palSetLine(LINE_LTC_CS);
+	chThdSleep(1);
 }
 
 static void spi_delay(void) {
