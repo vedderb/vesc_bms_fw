@@ -45,6 +45,7 @@ static bms_soc_soh_temp_stat bms_stat_v_cell_min;
 static psw_status psw_stat[CAN_STATUS_MSGS_TO_STORE];
 
 static mutex_t can_mtx;
+static mutex_t can_rx_mtx;
 static CANRxFrame rx_frames[RX_FRAMES_SIZE];
 static int rx_frame_read;
 static int rx_frame_write;
@@ -83,6 +84,7 @@ static void(*sid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
 
 void comm_can_init(void) {
 	chMtxObjectInit(&can_mtx);
+	chMtxObjectInit(&can_rx_mtx);
 
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 		stat_msgs[i].id = -1;
@@ -105,9 +107,9 @@ void comm_can_init(void) {
 
 	canStart(&HW_CAN_DEV, &cancfg);
 
-	chThdCreateStatic(cancom_read_thread_wa, sizeof(cancom_read_thread_wa), NORMALPRIO + 2,
+	chThdCreateStatic(cancom_read_thread_wa, sizeof(cancom_read_thread_wa), NORMALPRIO + 1,
 			cancom_read_thread, NULL);
-	chThdCreateStatic(cancom_process_thread_wa, sizeof(cancom_process_thread_wa), NORMALPRIO + 1,
+	chThdCreateStatic(cancom_process_thread_wa, sizeof(cancom_process_thread_wa), NORMALPRIO,
 			cancom_process_thread, NULL);
 	chThdCreateStatic(cancom_status_thread_wa, sizeof(cancom_status_thread_wa), NORMALPRIO,
 			cancom_status_thread, NULL);
@@ -174,6 +176,7 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 		send_buffer[ind++] = send;
 		memcpy(send_buffer + ind, data, len);
 		ind += len;
+
 		comm_can_transmit_eid(controller_id |
 				((uint32_t)CAN_PACKET_PROCESS_SHORT_BUFFER << 8), send_buffer, ind);
 	} else {
@@ -422,10 +425,13 @@ static THD_FUNCTION(cancom_read_thread, arg) {
 		msg_t result = canReceive(&HW_CAN_DEV, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
 
 		while (result == MSG_OK) {
+
+			chMtxLock(&can_rx_mtx);
 			rx_frames[rx_frame_write++] = rxmsg;
 			if (rx_frame_write == RX_FRAMES_SIZE) {
 				rx_frame_write = 0;
 			}
+			chMtxUnlock(&can_rx_mtx);
 
 			chEvtSignal(process_tp, (eventmask_t) 1);
 
@@ -445,18 +451,25 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-		while (rx_frame_read != rx_frame_write) {
-			CANRxFrame rxmsg = rx_frames[rx_frame_read++];
-			if (rx_frame_read == RX_FRAMES_SIZE) {
-				rx_frame_read = 0;
-			}
-
-			if (rxmsg.IDE == CAN_IDE_EXT) {
-				decode_msg(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
-			} else {
-				if (sid_callback) {
-					sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+		for(;;) {
+			chMtxLock(&can_rx_mtx);
+			if (rx_frame_read != rx_frame_write) {
+				CANRxFrame rxmsg = rx_frames[rx_frame_read++];
+				if (rx_frame_read == RX_FRAMES_SIZE) {
+					rx_frame_read = 0;
 				}
+				chMtxUnlock(&can_rx_mtx);
+
+				if (rxmsg.IDE == CAN_IDE_EXT) {
+					decode_msg(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
+				} else {
+					if (sid_callback) {
+						sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+					}
+				}
+			} else {
+				chMtxUnlock(&can_rx_mtx);
+				break;
 			}
 		}
 	}
