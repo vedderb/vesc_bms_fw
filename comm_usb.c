@@ -36,6 +36,7 @@ static thread_t *process_tp;
 static volatile unsigned int write_timeout_cnt = 0;
 static volatile bool was_timeout = false;
 static PACKET_STATE_t packet_state;
+static mutex_t rx_mtx;
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
@@ -50,15 +51,19 @@ static THD_FUNCTION(serial_read_thread, arg) {
 	int had_data = 0;
 
 	for(;;) {
+		// http://forum.chibios.org/viewtopic.php?f=25&t=3938&start=10
+
 		int len = chnReadTimeout(&SDU1, (uint8_t*) buffer, 100, 1);
 		chThdSleep(1);
 
 		for (int i = 0;i < len;i++) {
+			chMtxLock(&rx_mtx);
 			serial_rx_buffer[serial_rx_write_pos++] = buffer[i];
 
 			if (serial_rx_write_pos == SERIAL_RX_BUFFER_SIZE) {
 				serial_rx_write_pos = 0;
 			}
+			chMtxUnlock(&rx_mtx);
 
 			had_data = 1;
 		}
@@ -80,11 +85,20 @@ static THD_FUNCTION(serial_process_thread, arg) {
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-		while (serial_rx_read_pos != serial_rx_write_pos) {
-			packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], &packet_state);
+		for (;;) {
+			chMtxLock(&rx_mtx);
+			if (serial_rx_read_pos != serial_rx_write_pos) {
+				uint8_t byte = serial_rx_buffer[serial_rx_read_pos++];
 
-			if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
-				serial_rx_read_pos = 0;
+				if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
+					serial_rx_read_pos = 0;
+				}
+				chMtxUnlock(&rx_mtx);
+
+				packet_process_byte(byte, &packet_state);
+			} else {
+				chMtxUnlock(&rx_mtx);
+				break;
 			}
 		}
 	}
@@ -120,9 +134,10 @@ void comm_usb_init(void) {
 	packet_init(send_packet_raw, process_packet, &packet_state);
 
 	chMtxObjectInit(&send_mutex);
+	chMtxObjectInit(&rx_mtx);
 
 	// Threads
-	chThdCreateStatic(serial_read_thread_wa, sizeof(serial_read_thread_wa), NORMALPRIO, serial_read_thread, NULL);
+	chThdCreateStatic(serial_read_thread_wa, sizeof(serial_read_thread_wa), NORMALPRIO + 1, serial_read_thread, NULL);
 	chThdCreateStatic(serial_process_thread_wa, sizeof(serial_process_thread_wa), NORMALPRIO, serial_process_thread, NULL);
 }
 

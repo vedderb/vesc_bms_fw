@@ -29,7 +29,7 @@
 #define HALCONF_H
 
 #define _CHIBIOS_HAL_CONF_
-#define _CHIBIOS_HAL_CONF_VER_7_0_
+#define _CHIBIOS_HAL_CONF_VER_7_1_
 
 #include "mcuconf.h"
 
@@ -66,6 +66,13 @@
  */
 #if !defined(HAL_USE_DAC) || defined(__DOXYGEN__)
 #define HAL_USE_DAC                         FALSE
+#endif
+
+/**
+ * @brief   Enables the EFlash subsystem.
+ */
+#if !defined(HAL_USE_EFL) || defined(__DOXYGEN__)
+#define HAL_USE_EFL                         FALSE
 #endif
 
 /**
@@ -242,7 +249,7 @@
  * @brief   Sleep mode related APIs inclusion switch.
  */
 #if !defined(CAN_USE_SLEEP_MODE) || defined(__DOXYGEN__)
-#define CAN_USE_SLEEP_MODE                  TRUE
+#define CAN_USE_SLEEP_MODE                  FALSE
 #endif
 
 /**
@@ -420,7 +427,7 @@
  *          buffers.
  */
 #if !defined(SERIAL_USB_BUFFERS_SIZE) || defined(__DOXYGEN__)
-#define SERIAL_USB_BUFFERS_SIZE             1024
+#define SERIAL_USB_BUFFERS_SIZE             64
 #endif
 
 /**
@@ -451,7 +458,6 @@
 #define SPI_USE_CIRCULAR                    FALSE
 #endif
 
-
 /**
  * @brief   Enables the @p spiAcquireBus() and @p spiReleaseBus() APIs.
  * @note    Disabling this option saves both code and data space.
@@ -477,7 +483,7 @@
  * @note    Disabling this option saves both code and data space.
  */
 #if !defined(UART_USE_WAIT) || defined(__DOXYGEN__)
-#define UART_USE_WAIT                       FALSE
+#define UART_USE_WAIT                       TRUE
 #endif
 
 /**

@@ -142,7 +142,7 @@ void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len) {
 	memcpy(txmsg.data8, data, len);
 
 	chMtxLock(&can_mtx);
-	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(5));
+	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(50));
 	chMtxUnlock(&can_mtx);
 }
 
@@ -159,7 +159,7 @@ void comm_can_transmit_sid(uint32_t id, const uint8_t *data, uint8_t len) {
 	memcpy(txmsg.data8, data, len);
 
 	chMtxLock(&can_mtx);
-	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(5));
+	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(50));
 	chMtxUnlock(&can_mtx);
 }
 
@@ -418,14 +418,11 @@ static THD_FUNCTION(cancom_read_thread, arg) {
 	while(!chThdShouldTerminateX()) {
 		timeout_feed_WDT(THREAD_CANBUS);
 
-		if (chEvtWaitAnyTimeout(ALL_EVENTS, TIME_MS2I(10)) == 0) {
-			continue;
-		}
+		chEvtWaitAnyTimeout(ALL_EVENTS, TIME_MS2I(10));
 
 		msg_t result = canReceive(&HW_CAN_DEV, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
 
 		while (result == MSG_OK) {
-
 			chMtxLock(&can_rx_mtx);
 			rx_frames[rx_frame_write++] = rxmsg;
 			if (rx_frame_write == RX_FRAMES_SIZE) {
@@ -591,6 +588,10 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_AH_WH_DIS_TOTAL << 8), buffer, send_index);
 
 		HW_SEND_CAN_DATA();
+
+		while (backup.config.send_can_status_rate_hz == 0) {
+			chThdSleepMilliseconds(10);
+		}
 
 		systime_t sleep_time = CH_CFG_ST_FREQUENCY / backup.config.send_can_status_rate_hz;
 		if (sleep_time == 0) {
