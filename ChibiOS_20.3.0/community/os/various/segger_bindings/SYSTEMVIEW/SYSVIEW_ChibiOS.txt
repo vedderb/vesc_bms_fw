@@ -1,0 +1,8 @@
+# This file describes the ChibiOS Tasks' states.
+# Put this file in the following directory:
+#       Path\to\SystemView\Description\
+
+#
+# Task States
+#
+TaskState 0xFF 0=Ready, 1=Current, 2=Wait start, 3=Suspended, 4=Wait queue, 5=Wait semaphore, 6=Wait mutex, 7=Wait condvar, 8=Sleeping, 9=Wait thread, 10=Wait one event, 11=Wait several events, 12=Send message queue, 13=Wait answer, 14=Wait message, 15=Terminated
