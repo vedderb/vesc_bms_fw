@@ -38,14 +38,14 @@
 #define BQ_SCP_200us	(0x02 << 3)
 #define BQ_SCP_400us	(0x03 << 3)
 
-/*#define BQ_SCP_22mV		0x00
+#define BQ_SCP_22mV		0x00
 #define BQ_SCP_33mV 	0x01
 #define BQ_SCP_44mV     0x02
 #define BQ_SCP_56mV     0x03
 #define BQ_SCP_67mV     0x04
 #define BQ_SCP_78mV     0x05
 #define BQ_SCP_89mV     0x06
-#define BQ_SCP_100mV    0x07*/
+#define BQ_SCP_100mV    0x07
 #define BQ_SCP_44mV		0x80
 #define BQ_SCP_67mV		0x81
 #define BQ_SCP_89mV		0x82
@@ -164,6 +164,7 @@ typedef enum {
 uint8_t bq76940_init(stm32_gpio_t *sda_gpio, int sda_pin,
 					stm32_gpio_t *scl_gpio, int scl_pin,
 					stm32_gpio_t *alert_gpio, int alert_pin,
+					stm32_gpio_t *lrd_gpio, int lrd_pin,
 					float shunt_res);
 void bq_set_dsc(int cell, bool set);
 bool bq_get_dsc(int cell);

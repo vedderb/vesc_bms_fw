@@ -34,7 +34,7 @@
 									//HW_SHUNT_RES);
 
 #define CHARGE_ENABLE()				bq_charge_enable(); bq_discharge_enable()
-#define CHARGE_DISABLE()			bq_charge_disable(); bq_discharge_disable()
+#define CHARGE_DISABLE()			bq_charge_disable(); bq_discharge_disable();chThdSleepMilliseconds(10)
 #define HW_GET_TEMP(sensors)		bq_get_temp(sensors)
 #define HW_SET_DSC(cell, set)		bq_set_dsc(cell, set)
 #define HW_GET_DSC(cell)			bq_get_dsc(cell)
@@ -83,6 +83,8 @@
 #define BQ76940_SCL_PIN			10
 #define BQ76940_ALERT_GPIO		GPIOA
 #define BQ76940_ALERT_PIN		2
+#define BQ76940_LRD_GPIO		GPIOB
+#define BQ76940_LRD_PIN			0
 
 // Analog
 #define LINE_V_CHARGE			PAL_LINE(GPIOC, 2)
@@ -91,7 +93,7 @@
 #define LINE_TEMP_1				PAL_LINE(GPIOC, 0)
 #define LINE_TEMP_2				PAL_LINE(GPIOC, 4)
 #define LINE_TEMP_3				PAL_LINE(GPIOC, 5)
-#define LINE_TEMP_4				PAL_LINE(GPIOB, 0)
+#define LINE_TEMP_4				PAL_LINE(GPIOF, 3)
 #define LINE_TEMP_5				PAL_LINE(GPIOB, 1)
 
 #define LINE_TEMP_0_EN			PAL_LINE(GPIOB, 5)

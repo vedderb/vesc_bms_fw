@@ -39,12 +39,16 @@ static volatile float measurement_temp[5];
 static volatile float i_in = 0;
 static volatile float v_bat = 0;
 static volatile bool m_discharge_state[MAX_CELL_NUM] = {false};
+static volatile bool status_pin_discharge = false;
+static volatile bool status_pin_charge = false;
 static volatile float hw_shunt_res = 1.0;
 
 typedef struct {
 	i2c_bb_state m_i2c;
 	stm32_gpio_t *alert_gpio;
 	int alert_pin;
+	stm32_gpio_t *lrd_gpio;
+    int lrd_pin;
 	float shunt_res;
 	float gain;
 	float offset;
@@ -78,19 +82,24 @@ void balance(volatile bool *m_discharge_state);
 uint8_t tripVoltage(float voltage);
 
 //Macros
-#define READ_ALERT()	palReadPad(bq76940.alert_gpio, bq76940.alert_pin)
+#define READ_ALERT()						palReadPad(bq76940.alert_gpio, bq76940.alert_pin)
+#define LOAD_REMOVAL_DISCHARGE()			palReadPad(bq76940.lrd_gpio, bq76940.lrd_pin)
 
 uint8_t bq76940_init(
 		stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin,
 		stm32_gpio_t *alert_gpio, int alert_pin,
+		stm32_gpio_t *lrd_gpio, int lrd_pin,
 		float shunt_res) {
 
 	bq76940.alert_gpio = alert_gpio;
 	bq76940.alert_pin = alert_pin;
+	bq76940.lrd_gpio = lrd_gpio;
+	bq76940.lrd_pin = lrd_pin;
 	bq76940.shunt_res = shunt_res;
 
 	palSetPadMode(alert_gpio, alert_pin, PAL_MODE_INPUT);
+	palSetPadMode(lrd_gpio, lrd_pin, PAL_MODE_INPUT_PULLDOWN);
 
 	memset(&m_i2c, 0, sizeof(i2c_bb_state));
 	m_i2c.sda_gpio = sda_gpio;
@@ -125,11 +134,11 @@ uint8_t bq76940_init(
 	error |= offsetRead(&bq76940.offset);
 
 	//OverVoltage and UnderVoltage thresholds
-	write_reg(BQ_OV_TRIP, tripVoltage(4.25));
+	write_reg(BQ_OV_TRIP, 0xC9);//tripVoltage(4.25));
 	write_reg(BQ_UV_TRIP, tripVoltage(2.80));
 
 	// Short Circuit Protection at 300 A
-	error |= write_reg(BQ_PROTECT1, BQ_SCP_70us |  BQ_SCP_44mV); //BQ_SCP_70us |  BQ_SCP_155mV
+	error |= write_reg(BQ_PROTECT1, BQ_SCP_70us |  BQ_SCP_22mV); //BQ_SCP_70us |  BQ_SCP_155mV
 	
 	// Over Current Protection at 200 A
 	error |= write_reg(BQ_PROTECT2, BQ_OCP_8ms | BQ_OCP_17mV);//BQ_OCP_640ms | BQ_OCP_100mV
@@ -159,6 +168,19 @@ uint8_t bq76940_init(
 	chThdSleepMilliseconds(40);
 	read_reg(BQ_SYS_STAT);
 
+	/////////////////////////////////////////////////// provisional
+    if(status_pin_discharge){
+		uint8_t data = read_reg(BQ_SYS_CTRL2);
+		data = data | 0x02;
+		write_reg(BQ_SYS_CTRL2, data);
+	}
+	else{
+		uint8_t data = read_reg(BQ_SYS_CTRL2);
+		data = (data & 0xFD);
+		write_reg(BQ_SYS_CTRL2, data);
+	}
+    ////////////////////////////////////////////////////provisional
+
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
 
 	return error; // 0 if successful
@@ -187,11 +209,26 @@ static THD_FUNCTION(sample_thread, arg) {
 				v_bat = (float)(((uint16_t)(BAT_lo | BAT_hi << 8)) * lsb_unit_regVbat )-(14 * bq76940.offset);
 				i = 0;
 			}
-			//chThdSleepMilliseconds(250); 	// time to read the thermistors
-			//
+
+			/////////////////////////provisional
+			if(status_pin_charge){
+				uint8_t data = read_reg(BQ_SYS_CTRL2);
+				data = data | 0x01;
+				write_reg(BQ_SYS_CTRL2, data);
+			}
+			else{
+				uint8_t data = read_reg(BQ_SYS_CTRL2);
+				data = data & 0xE2;
+				write_reg(BQ_SYS_CTRL2, data);
+			}
+			////////////////////////provisional
+			if(LOAD_REMOVAL_DISCHARGE()){
+				commands_printf("SHORT CIRCUIT! LOAD CONNECT");
+			}
 			chThdSleepMilliseconds(30);
 			balance(m_discharge_state);
 			iin_measure(&i_in);	
+
 
 			// Report fault codes
 			if ( sys_stat & SYS_STAT_DEVICE_XREADY ) {
@@ -326,11 +363,6 @@ float bq_last_pack_voltage(void) {
 }
 
 void read_temp(volatile float *measurement_temp) {
-	//uint16_t buffer[6];
-	//float vtsx = 0.0;
-	//float R_ts = 0.0;
-
-
 	for(int i = 0 ; i < 3 ; i++){
 		uint16_t BQ_TSx_hi = read_reg(BQ_TS1_HI + i * 2 );
 		uint16_t BQ_TSx_lo = read_reg(BQ_TS1_LO + i * 2);
@@ -338,25 +370,7 @@ void read_temp(volatile float *measurement_temp) {
 		float R_ts = ( vtsx * 1e4 ) / ( 3.3 - vtsx );
 		measurement_temp[i] = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 	}
-/*
-	buffer[0] = read_reg(BQ_TS1_HI);
-	buffer[1] = read_reg(BQ_TS1_LO);
-	vtsx = (float)((buffer[0]<<8) | (buffer[1])) * 0.000382;
-	R_ts = ( vtsx * 1e4 ) / ( 3.3 - vtsx );
-	measurement_temp[0] = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
-	buffer[2] = read_reg(BQ_TS2_HI);
-	buffer[3] = read_reg(BQ_TS2_LO);
-	vtsx = (float)((buffer[2]<<8) | (buffer[3])) * 0.000382;
-	R_ts = ( vtsx * 1e4 ) / ( 3.3 - vtsx );
-	measurement_temp[1] = (1.0 / ((logf(R_ts / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
-
-	buffer[4] = read_reg(BQ_TS3_HI);
-	buffer[5] = read_reg(BQ_TS3_LO);
-	vtsx = ((buffer[4]) | (buffer[5]<<8));
-	R_ts = (vtsx*1e4)/(vtsx-3.3);
-    measurement_temp[2] = (1.0 / (((logf(20000) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
-*/
 	return;
 
 }
@@ -384,33 +398,25 @@ float bq_get_current(void){
 }
 
 void bq_discharge_enable(void){
-	uint8_t data = read_reg(BQ_SYS_CTRL2);
-	data = data | 0x02;
-	write_reg(BQ_SYS_CTRL2, data);
+	status_pin_discharge = true;
 
 	return;
 }
 
 void bq_discharge_disable(void){
-	uint8_t data = read_reg(BQ_SYS_CTRL2);
-	data = (data & 0xFD);
-	write_reg(BQ_SYS_CTRL2, data);
+	status_pin_discharge = false;
 
 	return;
 }
 
 void bq_charge_enable(void){
-	uint8_t data = read_reg(BQ_SYS_CTRL2);
-	data = data | 0x01;
-	write_reg(BQ_SYS_CTRL2, data);
+	status_pin_charge = true;
 
 	return;
 }
 
 void bq_charge_disable(void){
-	uint8_t data = read_reg(BQ_SYS_CTRL2);
-	data = data & 0xFE;
-	write_reg(BQ_SYS_CTRL2, data);
+	status_pin_charge = false;
 
 	return;
 }
