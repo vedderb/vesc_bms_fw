@@ -145,6 +145,9 @@ typedef struct {
 
 	// Enable temperature monitoring during charging
 	bool t_charge_mon_en;
+
+	// Configurable battery type, used for application-specific purposes.
+	uint32_t battery_type;
 } main_config_t;
 
 // Backup data that is retained between boots and firmware updates. When adding new
@@ -500,6 +503,8 @@ typedef enum {
 	COMM_GET_EXT_HUM_TMP,
 	COMM_GET_STATS,
 	COMM_RESET_STATS,
+	COMM_BMS_SET_BATT_TYPE,
+	COMM_BMS_GET_BATT_TYPE,
 } COMM_PACKET_ID;
 
 #endif /* DATATYPES_H_ */

@@ -310,6 +310,38 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_BMS_GET_BATT_TYPE: {
+		main_config_t *conf = mempools_alloc_conf();
+		int32_t ind;
+
+
+		chMtxLock(&send_buffer_mutex);
+		ind = 0;
+		*conf = backup.config;
+		send_buffer_global[ind++] = packet_id;
+		buffer_append_uint32(send_buffer_global, conf->battery_type, &ind);
+		commands_send_packet(send_buffer_global, ind);
+		chMtxUnlock(&send_buffer_mutex);
+
+		mempools_free_conf(conf);
+	} break;
+	case COMM_BMS_SET_BATT_TYPE: {
+		main_config_t *conf = mempools_alloc_conf();
+		int32_t ind;
+
+		*conf = backup.config;
+		ind = 0;
+		conf->battery_type = buffer_get_uint32(data, &ind);
+		backup.config = *conf;
+		flash_helper_store_backup_data();
+
+		mempools_free_conf(conf);
+		// Send ack
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = packet_id;
+		reply_func(send_buffer, ind);
+	} break;
 	case COMM_FORWARD_CAN:
 		comm_can_send_buffer(data[0], data + 1, len - 1, 0);
 		break;
