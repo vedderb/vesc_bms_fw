@@ -33,10 +33,12 @@
 static THD_WORKING_AREA(ltc_thd_wa, 2048);
 static volatile float m_v_pack = 0.0;
 static volatile float m_v_cell[18] = {0.0};
+static volatile float m_v_cell_no_mute[18] = {0.0};
 static volatile float m_v_cell_pu_diff[18] = {0.0};
 static volatile float m_v_gpio[9] = {-1.0};
 static volatile float m_last_temp = 0.0;
 static volatile bool m_discharge_state[18] = {false};
+static mutex_t ltc_mtx;
 
 // Private functions
 static THD_FUNCTION(ltc_thd, arg);
@@ -60,6 +62,8 @@ void ltc_init(void) {
 	palSetLineMode(LINE_LTC_MOSI, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLine(LINE_LTC_MOSI);
 	
+	chMtxObjectInit(&ltc_mtx);
+
 	chThdCreateStatic(ltc_thd_wa, sizeof(ltc_thd_wa), NORMALPRIO - 1, ltc_thd, 0);
 
 	(void)ltc_wakeup();
@@ -79,6 +83,14 @@ float ltc_last_cell_voltage(int cell) {
 	}
 
 	return m_v_cell[cell];
+}
+
+float ltc_last_cell_voltage_no_mute(int cell) {
+	if (cell < 0 || cell > 17) {
+		return -1.0;
+	}
+
+	return m_v_cell_no_mute[cell];
 }
 
 float ltc_last_pu_diff_voltage(int cell) {
@@ -120,11 +132,35 @@ void ltc_sleep(void) {
 	write_reg_group(LTC_WRCFGA, buffer);
 }
 
+bool ltc_self_test(void) {
+	bool res = true;
+
+	chMtxLock(&ltc_mtx);
+
+	float cells_st[18];
+	write_cmd(LTC_CVST | LTC_MD10 | LTC_ST01);
+	poll_adc();
+	read_cell_voltages((float*)cells_st);
+
+	for (int i = 0;i < 18;i++) {
+		if ((uint16_t)(cells_st[i] * 1e4) != 0x9555) {
+			res = false;
+			break;
+		}
+	}
+
+	chMtxUnlock(&ltc_mtx);
+
+	return res;
+}
+
 static THD_FUNCTION(ltc_thd, p) {
 	(void)p;
 	chRegSetThreadName("LTC");
 
 	while (!chThdShouldTerminateX()) {
+		chMtxLock(&ltc_mtx);
+
 		uint8_t buffer[100];
 
 //		ltc_wakeup();
@@ -155,24 +191,28 @@ static THD_FUNCTION(ltc_thd, p) {
 		SET_BIT(buffer[1], 0, m_discharge_state[16]);
 		write_reg_group(LTC_WRCFGB, buffer);
 
+		write_cmd(LTC_ADCV | LTC_MD10 | LTC_DCP);
+		poll_adc();
+		read_cell_voltages((float*)m_v_cell_no_mute);
+
 		write_cmd(LTC_MUTE);
-		chThdSleepMilliseconds(1);
+		chThdSleepMilliseconds(10);
 
 		write_cmd(LTC_ADCV | LTC_MD10);
 		poll_adc();
 		read_cell_voltages((float*)m_v_cell);
 
 		// Open wire check
-		float cells_pu[18], cells_pd[18];
-		write_cmd(LTC_ADOW | LTC_MD10);
-		poll_adc();
-		read_cell_voltages(cells_pu);
-		write_cmd(LTC_ADOW | LTC_MD10 | LTC_PUP);
-		poll_adc();
-		read_cell_voltages(cells_pd);
-		for (int i = 0;i < 18;i++) {
-			m_v_cell_pu_diff[i] = cells_pu[i] - cells_pd[i];
-		}
+//		float cells_pu[18], cells_pd[18];
+//		write_cmd(LTC_ADOW | LTC_MD10 | LTC_PUP);
+//		poll_adc();
+//		read_cell_voltages(cells_pd);
+//		write_cmd(LTC_ADOW | LTC_MD10);
+//		poll_adc();
+//		read_cell_voltages(cells_pu);
+//		for (int i = 0;i < 18;i++) {
+//			m_v_cell_pu_diff[i] = cells_pu[i] - cells_pd[i];
+//		}
 
 		write_cmd(LTC_ADSTAT | LTC_MD10);
 		poll_adc();
@@ -198,7 +238,9 @@ static THD_FUNCTION(ltc_thd, p) {
 			m_v_gpio[4] = (float)((uint16_t)buffer[2] | (uint16_t)buffer[3] << 8) / 1e4;
 		}
 
-		chThdSleepMilliseconds(100);
+		chMtxUnlock(&ltc_mtx);
+
+		chThdSleepMilliseconds(90);
 	}
 }
 

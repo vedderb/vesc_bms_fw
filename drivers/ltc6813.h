@@ -27,15 +27,18 @@ void ltc_init(void);
 float ltc_last_pack_voltage(void);
 float ltc_last_temp(void);
 float ltc_last_cell_voltage(int cell);
+float ltc_last_cell_voltage_no_mute(int cell);
 float ltc_last_pu_diff_voltage(int cell);
 float ltc_last_gpio_voltage(int gpio);
 void ltc_set_dsc(int cell, bool set);
 bool ltc_get_dsc(int cell);
 void ltc_sleep(void);
+bool ltc_self_test(void);
 
 // Commands
 #define LTC_ADCV					0x0260
 #define LTC_ADOW					0x0228
+#define LTC_CVST					0x0207
 #define LTC_ADSTAT					0x0468
 #define LTC_ADCVSC					0x0467
 #define LTC_ADAX					0x0460
@@ -70,6 +73,11 @@ void ltc_sleep(void);
 #define LTC_CHG000					0x0000 // GPIO 1-5, 2nd ref, GPIO 6-9
 #define LTC_CHG101					0x0005 // GPIO 5
 #define LTC_PUP						0x0040
+#define LTC_ST00					0x0000
+#define LTC_ST01					0x0020
+#define LTC_ST10					0x0040
+#define LTC_ST11					0x0060
+
 
 // Configuration bits
 #define LTC_REFON					0x04

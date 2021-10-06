@@ -22,6 +22,8 @@
 
 #define HW_NAME					"12s7p"
 
+#define HW_NO_CH0_TEST
+
 // HW-specific
 #define HW_INIT_HOOK()			palSetLineMode(LINE_CURR_MEASURE_EN, PAL_MODE_OUTPUT_PUSHPULL)
 

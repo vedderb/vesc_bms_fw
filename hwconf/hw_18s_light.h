@@ -36,6 +36,8 @@
 
 #define HW_NAME					"18s_light"
 
+#define HW_NO_CH0_TEST
+
 // HW-specific
 #define HW_INIT_HOOK()			palSetLineMode(LINE_CAN_EN, PAL_MODE_OUTPUT_PUSHPULL); \
 								palSetLineMode(LINE_CURR_MEASURE_EN, PAL_MODE_OUTPUT_PUSHPULL)

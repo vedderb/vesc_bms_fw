@@ -34,6 +34,7 @@
 #include "flash_helper.h"
 #include "comm_uart.h"
 #include "hw.h"
+#include "selftest.h"
 
 #include <math.h>
 #include <string.h>
@@ -191,6 +192,7 @@ int main(void) {
 
 	sleep_init();
 	timeout_init();
+	selftest_init();
 
 	for(;;) {
 		backup.controller_id = backup.config.controller_id;

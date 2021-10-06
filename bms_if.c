@@ -201,19 +201,16 @@ static THD_FUNCTION(balance_thd, p) {
 
 		bool is_balance_override = false;
 		int bal_ch = 0;
-		for (int i = backup.config.cell_first_index;i <
-		(backup.config.cell_num + backup.config.cell_first_index);i++) {
-			for (int i = backup.config.cell_first_index;i <
-			(backup.config.cell_num + backup.config.cell_first_index);i++) {
-				if (m_balance_override[i] == 1) {
-					is_balance_override = true;
-					ltc_set_dsc(i, false);
-				} else if (m_balance_override[i] == 2) {
-					is_balance_override = true;
-					ltc_set_dsc(i, true);
-					bal_ch++;
-					m_is_balancing = true;
-				}
+		for (int i = backup.config.cell_first_index;
+				i < (backup.config.cell_num + backup.config.cell_first_index);i++) {
+			if (m_balance_override[i] == 1) {
+				is_balance_override = true;
+				ltc_set_dsc(i, false);
+			} else if (m_balance_override[i] == 2) {
+				is_balance_override = true;
+				ltc_set_dsc(i, true);
+				bal_ch++;
+				m_is_balancing = true;
 			}
 		}
 
@@ -468,6 +465,18 @@ bool bms_if_is_balancing(void) {
 	return m_is_balancing;
 }
 
+/**
+ * Override balancing.
+ *
+ * cell
+ * Cell number
+ *
+ * override
+ * Override setting.
+ * 0: Do not override balancing
+ * 1: Override and disable balancing on cell
+ * 2: Override and enable balancing on cell
+ */
 void bms_if_set_balance_override(int cell, int override) {
 	if (cell >= 0 && cell < HW_CELLS_SERIES) {
 		m_balance_override[cell] = override;
