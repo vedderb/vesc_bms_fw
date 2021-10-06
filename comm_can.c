@@ -142,7 +142,7 @@ void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len) {
 	memcpy(txmsg.data8, data, len);
 
 	chMtxLock(&can_mtx);
-	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(50));
+	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(5));
 	chMtxUnlock(&can_mtx);
 }
 
@@ -159,7 +159,7 @@ void comm_can_transmit_sid(uint32_t id, const uint8_t *data, uint8_t len) {
 	memcpy(txmsg.data8, data, len);
 
 	chMtxLock(&can_mtx);
-	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(50));
+	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(5));
 	chMtxUnlock(&can_mtx);
 }
 
