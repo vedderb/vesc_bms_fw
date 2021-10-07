@@ -67,11 +67,11 @@ void bms_if_init(void) {
 static bool charge_ok(void) {
 
 	float max = m_is_charging ? backup.config.vc_charge_end : backup.config.vc_charge_start;
-	return 1;//HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
+	return  1;//HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
 			//m_voltage_cell_min > backup.config.vc_charge_min &&
-			//m_voltage_cell_max < max &&
+			//m_voltage_cell_max;// < max &&
 			//HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
-			//HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;
+			//HW_TEMP_CELLS_MAX() > backup.config.t_charge_min;*/
 }
 
 static THD_FUNCTION(charge_thd, p) {
@@ -81,9 +81,9 @@ static THD_FUNCTION(charge_thd, p) {
 	int no_charge_cnt = 0;
 
 	for (;;) {
-		//if (m_is_charging && HW_TEMP_CELLS_MAX() >= backup.config.t_charge_max) {
-			//bms_if_fault_report(FAULT_CODE_CHARGE_OVERTEMP);
-		//}
+		if (m_is_charging && HW_TEMP_CELLS_MAX() >= backup.config.t_charge_max) {
+			bms_if_fault_report(FAULT_CODE_CHARGE_OVERTEMP);
+		}
 
 		if (charge_ok() && m_charge_allowed && !m_was_charge_overcurrent) {
 			if (!m_is_charging) {
@@ -113,7 +113,7 @@ static THD_FUNCTION(charge_thd, p) {
 		} else {
 			no_charge_cnt = 0;
 		}
-
+/*
 		if (m_is_charging) {
 			if (fabsf(m_i_in_filter) > backup.config.max_charge_current) {
 				m_was_charge_overcurrent = true;

@@ -41,6 +41,7 @@ static volatile float v_bat = 0;
 static volatile bool m_discharge_state[MAX_CELL_NUM] = {false};
 static volatile bool status_pin_discharge = false;
 static volatile bool status_pin_charge = false;
+static volatile bool status = false;
 static volatile float hw_shunt_res = 1.0;
 
 typedef struct {
@@ -71,6 +72,7 @@ static THD_FUNCTION(sample_thread, arg);
 
 // Private functions
 int8_t gainRead(float *gain);
+void toggle_pincharge();
 int8_t offsetRead(float *offset);
 void read_temp(volatile float *measurement_temp);
 void iin_measure(float *value_iin);
@@ -211,16 +213,7 @@ static THD_FUNCTION(sample_thread, arg) {
 			}
 
 			/////////////////////////provisional
-			if(status_pin_charge){
-				uint8_t data = read_reg(BQ_SYS_CTRL2);
-				data = data | 0x01;
-				write_reg(BQ_SYS_CTRL2, data);
-			}
-			else{
-				uint8_t data = read_reg(BQ_SYS_CTRL2);
-				data = data & 0xE2;
-				write_reg(BQ_SYS_CTRL2, data);
-			}
+			toggle_pin_charge();
 			////////////////////////provisional
 			if(LOAD_REMOVAL_DISCHARGE()){
 				commands_printf("SHORT CIRCUIT! LOAD CONNECT");
@@ -467,6 +460,25 @@ void balance(volatile bool *m_discharge_state) {
 	buffer[2] = m_discharge_state[13] ? buffer[2] = 0x10 : buffer[2];
 	chThdSleepMilliseconds(30);
 	write_reg(BQ_CELLBAL3, buffer[2]);
+
+	return;
+}
+void toggle_pin_charge(){
+
+	if(!(status == status_pin_charge)){
+		status = status_pin_charge;
+
+		if(status_pin_charge){
+			uint8_t data = read_reg(BQ_SYS_CTRL2);
+			data = data | 0x01;
+			write_reg(BQ_SYS_CTRL2, data);
+		}
+		else{
+			uint8_t data = read_reg(BQ_SYS_CTRL2);
+			data = data & 0xE2;
+			write_reg(BQ_SYS_CTRL2, data);
+		}
+	}
 
 	return;
 }
