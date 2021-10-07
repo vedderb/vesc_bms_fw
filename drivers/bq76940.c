@@ -212,11 +212,16 @@ static THD_FUNCTION(sample_thread, arg) {
 				i = 0;
 			}
 
-			/////////////////////////provisional
 			toggle_pin_charge();
 			////////////////////////provisional
 			if(LOAD_REMOVAL_DISCHARGE()){
+				//FAULT!
+				bms_if_fault_report(FAULT_CODE_CELL_UNDERVOLTAGE);
 				commands_printf("SHORT CIRCUIT! LOAD CONNECT");
+				//time to wait (2min)
+				chThdSleepMilliseconds(6000);
+				//Can turn on the big mosfet?
+				if(!(LOAD_REMOVAL_DISCHARGE())) bq_discharge_enable();
 			}
 			chThdSleepMilliseconds(30);
 			balance(m_discharge_state);
