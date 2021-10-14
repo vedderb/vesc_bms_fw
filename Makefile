@@ -11,7 +11,7 @@ endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = 
+  USE_COPT =
 endif
 
 # C++ specific options here (added to USE_OPT).
@@ -26,7 +26,7 @@ endif
 
 # Linker extra options here.
 ifeq ($(USE_LDOPT),)
-  USE_LDOPT = 
+  USE_LDOPT =
 endif
 
 # Enable this if you want link time optimizations (LTO)
@@ -247,3 +247,11 @@ upload: build/$(PROJECT).bin
 
 upload_remote: build/$(PROJECT).bin
 	./upload_remote build/$(PROJECT).bin benjamin 127.0.0.1 62122
+
+mass_erase:
+	@openocd -f stm32l4_stlinkv2.cfg \
+		-c "init" \
+		-c "reset halt" \
+		-c "stm32l4x mass_erase 0" \
+		-c "sleep 200" \
+		-c "shutdown"
