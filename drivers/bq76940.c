@@ -72,6 +72,10 @@ static THD_FUNCTION(sample_thread, arg);
 
 // Private functions
 int8_t gainRead(float *gain);
+int8_t current_discharge_protect_set(uint8_t time1,
+								     uint8_t short_circuit_current,
+									 uint8_t time2,
+									 uint8_t overcurrent);
 void toggle_pincharge();
 int8_t offsetRead(float *offset);
 void read_temp(volatile float *measurement_temp);
@@ -139,11 +143,13 @@ uint8_t bq76940_init(
 	write_reg(BQ_OV_TRIP, 0xC9);//tripVoltage(4.25));
 	write_reg(BQ_UV_TRIP, tripVoltage(2.80));
 
-	// Short Circuit Protection at 300 A
-	error |= write_reg(BQ_PROTECT1, BQ_SCP_70us |  BQ_SCP_22mV); //BQ_SCP_70us |  BQ_SCP_155mV
+	// Short Circuit Protection
+	current_discharge_protect_set(BQ_SCP_70us, BQ_SCP_22mV,5,5);
+	//error |= write_reg(BQ_PROTECT1, BQ_SCP_70us |  BQ_SCP_22mV);
 	
+
 	// Over Current Protection at 200 A
-	error |= write_reg(BQ_PROTECT2, BQ_OCP_8ms | BQ_OCP_17mV);//BQ_OCP_640ms | BQ_OCP_100mV
+	error |= write_reg(BQ_PROTECT2, BQ_OCP_8ms | BQ_OCP_17mV);
 	
 	// Overvoltage and UnderVoltage delays
 	error |= write_reg(BQ_PROTECT3, BQ_UV_DELAY_1s | BQ_OV_DELAY_1s);
@@ -486,5 +492,31 @@ void toggle_pin_charge(){
 	}
 
 	return;
+}
+int8_t current_discharge_protect_set(uint8_t time1,
+									 uint8_t current_short_circuit,
+									 uint8_t time2,
+									 uint8_t overcurrent){
+	int8_t RSNS = 0;
+
+	if(current_short_circuit == ( BQ_SCP_22mV | BQ_SCP_33mV | BQ_SCP_44mV | BQ_SCP_56mV |
+				    			  BQ_SCP_67mV | BQ_SCP_78mV | BQ_SCP_89mV | BQ_SCP_100mV )){
+		RSNS = 0x00;
+	}
+	if(current_short_circuit == ( BQ_SCP_44mV | BQ_SCP_67mV | BQ_SCP_89mV | BQ_SCP_111mV |
+				                  BQ_SCP_133mV | BQ_SCP_155mV | BQ_SCP_178mV | BQ_SCP_200mV )){
+		RSNS = 0x80;
+	}
+	write_reg(BQ_PROTECT1, ( time1 | (RSNS | current_short_circuit) ) );
+
+	if(overcurrent == (BQ_OCP_8mV | BQ_OCP_11mV | BQ_OCP_14mV | BQ_OCP_17mV | BQ_OCP_19mV |
+			          BQ_OCP_22mV | BQ_OCP_25mV | BQ_OCP_28mV | BQ_OCP_31mV | BQ_OCP_33mV |
+					  BQ_OCP_36mV | BQ_OCP_39mV | BQ_OCP_39mV | BQ_OCP_42mV | BQ_OCP_44mV |
+					  BQ_OCP_47mV | BQ_OCP_50mV)){
+		write_reg(BQ_PROTECT1, ( time2 | (RSNS | overcurrent) ) );
+	}
+
+
+	return 0;
 }
 #endif

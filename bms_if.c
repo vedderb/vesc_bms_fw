@@ -67,7 +67,13 @@ void bms_if_init(void) {
 static bool charge_ok(void) {
 
 	float max = m_is_charging ? backup.config.vc_charge_end : backup.config.vc_charge_start;
-	return  1;//HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
+	commands_printf("v_charge_detect: %f", backup.config.v_charge_detect);
+	commands_printf("HW_GET_CHARGE: %f", HW_GET_V_CHARGE());
+	commands_printf("m_voltage_cell_min: %f", m_voltage_cell_min);
+	commands_printf("charge_min: %f", backup.config.vc_charge_min);
+	commands_printf("m_voltage_cell_max: %f", m_voltage_cell_max);
+	commands_printf("max: %f", max);
+	return  1;//HW_GET_V_CHARGE() > backup.config.v_charge_detect;/* &&
 			//m_voltage_cell_min > backup.config.vc_charge_min &&
 			//m_voltage_cell_max;// < max &&
 			//HW_TEMP_CELLS_MAX() < backup.config.t_charge_max &&
