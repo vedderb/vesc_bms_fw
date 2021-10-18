@@ -77,11 +77,13 @@ int8_t current_discharge_protect_set(uint8_t time1,
 									 uint8_t time2,
 									 uint8_t overcurrent);
 void toggle_pincharge();
+void status_load_removal_discharge();
 int8_t offsetRead(float *offset);
 void read_temp(volatile float *measurement_temp);
 void iin_measure(float *value_iin);
 uint8_t write_reg(uint8_t reg, uint16_t val);
 static void read_cell_voltages(float *m_v_cell);
+static void read_v_batt(float *v_bat);
 uint8_t read_reg(uint8_t reg);
 uint8_t CRC8(unsigned char *ptr, unsigned char len,unsigned char key);
 void balance(volatile bool *m_discharge_state);
@@ -177,7 +179,7 @@ uint8_t bq76940_init(
 	read_reg(BQ_SYS_STAT);
 
 	/////////////////////////////////////////////////// provisional
-    if(status_pin_discharge){
+    /*if(status_pin_discharge){
 		uint8_t data = read_reg(BQ_SYS_CTRL2);
 		data = data | 0x02;
 		write_reg(BQ_SYS_CTRL2, data);
@@ -186,7 +188,7 @@ uint8_t bq76940_init(
 		uint8_t data = read_reg(BQ_SYS_CTRL2);
 		data = (data & 0xFD);
 		write_reg(BQ_SYS_CTRL2, data);
-	}
+	}*/
     ////////////////////////////////////////////////////provisional
 
 	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
@@ -212,23 +214,12 @@ static THD_FUNCTION(sample_thread, arg) {
 				// time to read the cells
 				read_temp(measurement_temp);  	//read temperature
 				read_cell_voltages(m_v_cell); 	//read cell voltages
-				uint16_t BAT_hi = read_reg(BQ_BAT_HI);
-				uint16_t BAT_lo = read_reg(BQ_BAT_LO);
-				v_bat = (float)(((uint16_t)(BAT_lo | BAT_hi << 8)) * lsb_unit_regVbat )-(14 * bq76940.offset);
+				read_v_batt(&v_bat);
 				i = 0;
 			}
 
-			toggle_pin_charge();
-			////////////////////////provisional
-			if(LOAD_REMOVAL_DISCHARGE()){
-				//FAULT!
-				bms_if_fault_report(FAULT_CODE_CELL_UNDERVOLTAGE);
-				commands_printf("SHORT CIRCUIT! LOAD CONNECT");
-				//time to wait (2min)
-				chThdSleepMilliseconds(6000);
-				//Can turn on the big mosfet?
-				if(!(LOAD_REMOVAL_DISCHARGE())) bq_discharge_enable();
-			}
+			toggle_pin_charge(); //if only if the status of pin charge toggle
+			status_load_removal_discharge();
 			chThdSleepMilliseconds(30);
 			balance(m_discharge_state);
 			iin_measure(&i_in);	
@@ -497,7 +488,8 @@ int8_t current_discharge_protect_set(uint8_t time1,
 									 uint8_t current_short_circuit,
 									 uint8_t time2,
 									 uint8_t overcurrent){
-	int8_t RSNS = 0;
+
+	uint8_t RSNS = 0;
 
 	if(current_short_circuit == ( BQ_SCP_22mV | BQ_SCP_33mV | BQ_SCP_44mV | BQ_SCP_56mV |
 				    			  BQ_SCP_67mV | BQ_SCP_78mV | BQ_SCP_89mV | BQ_SCP_100mV )){
@@ -507,16 +499,48 @@ int8_t current_discharge_protect_set(uint8_t time1,
 				                  BQ_SCP_133mV | BQ_SCP_155mV | BQ_SCP_178mV | BQ_SCP_200mV )){
 		RSNS = 0x80;
 	}
+	else{
+		RSNS = 0x00;
+		current_short_circuit = BQ_SCP_22mV;
+		time1 = BQ_SCP_70us;
+	}
+
 	write_reg(BQ_PROTECT1, ( time1 | (RSNS | current_short_circuit) ) );
+
 
 	if(overcurrent == (BQ_OCP_8mV | BQ_OCP_11mV | BQ_OCP_14mV | BQ_OCP_17mV | BQ_OCP_19mV |
 			          BQ_OCP_22mV | BQ_OCP_25mV | BQ_OCP_28mV | BQ_OCP_31mV | BQ_OCP_33mV |
 					  BQ_OCP_36mV | BQ_OCP_39mV | BQ_OCP_39mV | BQ_OCP_42mV | BQ_OCP_44mV |
 					  BQ_OCP_47mV | BQ_OCP_50mV)){
-		write_reg(BQ_PROTECT1, ( time2 | (RSNS | overcurrent) ) );
+		write_reg(BQ_PROTECT2, ( time2 | (RSNS | overcurrent) ) );
+	}
+	else{
+		write_reg(BQ_PROTECT2, ( BQ_OCP_8ms | (RSNS | BQ_OCP_8mV) ) );
 	}
 
 
 	return 0;
 }
+
+void status_load_removal_discharge(){
+
+	if(LOAD_REMOVAL_DISCHARGE()){
+		//FAULT!
+		bms_if_fault_report(FAULT_CODE_CELL_UNDERVOLTAGE);
+		commands_printf("SHORT CIRCUIT! LOAD CONNECT");
+		//time to wait (2min)
+		chThdSleepMilliseconds(6000);
+		//Can turn on the big mosfet?
+		if(!(LOAD_REMOVAL_DISCHARGE())) bq_discharge_enable();
+		}
+
+}
+
+static void read_v_batt(float *v_bat){
+	uint16_t BAT_hi = read_reg(BQ_BAT_HI);
+	uint16_t BAT_lo = read_reg(BQ_BAT_LO);
+
+	*v_bat = (float)(((uint16_t)(BAT_lo | BAT_hi << 8)) * lsb_unit_regVbat )-(14 * bq76940.offset);
+}
+
 #endif
