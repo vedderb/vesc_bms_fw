@@ -255,3 +255,8 @@ mass_erase:
 		-c "stm32l4x mass_erase 0" \
 		-c "sleep 200" \
 		-c "shutdown"
+
+server:
+	@openocd -f stm32l4_stlinkv2.cfg \
+		-c "init" \
+		-c "reset halt"
