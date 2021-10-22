@@ -476,6 +476,8 @@ typedef enum {
 
 	COMM_BMS_FWD_CAN_RX,
 	COMM_BMS_HW_DATA,
+
+	COMM_BALANCE_SELFTEST,
 } COMM_PACKET_ID;
 
 #endif /* DATATYPES_H_ */
