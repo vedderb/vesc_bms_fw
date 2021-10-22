@@ -44,7 +44,8 @@ static void terminal_st(int argc, const char **argv) {
 
 	commands_printf("Testing LTC6813... %s\n", res_ok ? "Ok" : "Failed");
 
-	for (int i = 0;i < backup.config.cell_num;i++) {
+	for (int i = backup.config.cell_first_index;
+			i < (backup.config.cell_first_index + backup.config.cell_num);i++) {
 		bms_if_set_balance_override(i, 1);
 	}
 
@@ -82,8 +83,13 @@ static void terminal_st(int argc, const char **argv) {
 			res_ok = false;
 		}
 
-		bms_if_set_balance_override(i, 0);
+		bms_if_set_balance_override(i, 1);
 		ltc_set_dsc(i, 0);
+	}
+
+	for (int i = backup.config.cell_first_index;
+			i < (backup.config.cell_first_index + backup.config.cell_num);i++) {
+		bms_if_set_balance_override(i, 0);
 	}
 
 	commands_printf(res_ok ? "\nAll tests passed!\n" : "\nOne or more tests failed...\n");
