@@ -26,6 +26,11 @@
 #include "ch.h"
 #include "hal.h"
 
+typedef struct {
+	float no_bal;
+	float bal;
+} cell_test_voltage_t;
+
 // Private functions
 static void terminal_st(int argc, const char **argv);
 
@@ -37,12 +42,9 @@ void selftest_init(void) {
 			terminal_st);
 }
 
-static void terminal_st(int argc, const char **argv) {
-	(void)argc; (void)argv;
-
-	bool res_ok = ltc_self_test();
-
-	commands_printf("Testing LTC6813... %s\n", res_ok ? "Ok" : "Failed");
+static int32_t balancing_selftest(cell_test_voltage_t *p_test_v) {
+	if ((backup.config.cell_first_index + backup.config.cell_num) >= LTC_MAX_NBR_CELLS)
+		return -1;
 
 	for (int i = backup.config.cell_first_index;
 			i < (backup.config.cell_first_index + backup.config.cell_num);i++) {
@@ -51,43 +53,61 @@ static void terminal_st(int argc, const char **argv) {
 
 	chThdSleepMilliseconds(500);
 
-	commands_printf("Testing balancing and open connections...\n");
-	commands_printf("Cell NoBal   Bal     Diff    Result");
-	commands_printf("===================================");
-
 	for (int i = backup.config.cell_first_index;
 			i < (backup.config.cell_first_index + backup.config.cell_num);i++) {
 		bms_if_set_balance_override(i, 2);
 		ltc_set_dsc(i, 1);
 		chThdSleepMilliseconds(200);
 
-		float no_bal = ltc_last_cell_voltage(i);
-		float bal = ltc_last_cell_voltage_no_mute(i);
-		float diff = fabsf(bal - no_bal);
-		bool ok = (diff / no_bal > 0.03 && bal > 2.0);
-
-#ifdef HW_NO_CH0_TEST
-		if (i == 0) {
-			ok = bal > 2.0;
-		}
-#endif
-
-		commands_printf("%02d   %.4f  %.4f  %.4f  %s",
-				i + 1,
-				no_bal,
-				bal,
-				diff,
-				ok ? "Ok" : "Failed");
-
-		if (!ok) {
-			res_ok = false;
-		}
+		p_test_v[i].no_bal = ltc_last_cell_voltage(i);
+		p_test_v[i].bal = ltc_last_cell_voltage_no_mute(i);
 	}
 
 	for (int i = backup.config.cell_first_index;
 			i < (backup.config.cell_first_index + backup.config.cell_num);i++) {
 		bms_if_set_balance_override(i, 0);
 		ltc_set_dsc(i, 0);
+	}
+
+	return 0;
+}
+
+static void terminal_st(int argc, const char **argv) {
+	(void)argc; (void)argv;
+
+	cell_test_voltage_t cell_v[LTC_MAX_NBR_CELLS];
+	bool res_ok = ltc_self_test();
+
+	commands_printf("Testing LTC6813... %s\n", res_ok ? "Ok" : "Failed");
+
+	balancing_selftest(cell_v);
+
+	commands_printf("Testing balancing and open connections...\n");
+	commands_printf("Cell NoBal   Bal     Diff    Result");
+	commands_printf("===================================");
+
+	for (int i = backup.config.cell_first_index;
+			i < (backup.config.cell_first_index + backup.config.cell_num);i++) {
+
+		float diff = fabsf(cell_v[i].bal - cell_v[i].no_bal);
+		bool ok = (diff / cell_v[i].no_bal > 0.03 && cell_v[i].bal > 2.0);
+
+#ifdef HW_NO_CH0_TEST
+		if (i == 0) {
+			ok = cell_v[i].bal > 2.0;
+		}
+#endif
+
+		commands_printf("%02d   %.4f  %.4f  %.4f  %s",
+				i + 1,
+				cell_v[i].no_bal,
+				cell_v[i].bal,
+				diff,
+				ok ? "Ok" : "Failed");
+
+		if (!ok) {
+			res_ok = false;
+		}
 	}
 
 	commands_printf(res_ok ? "\nAll tests passed!\n" : "\nOne or more tests failed...\n");
