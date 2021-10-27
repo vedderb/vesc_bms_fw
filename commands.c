@@ -335,6 +335,18 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		bms_if_force_balance(data[0]);
 		break;
 
+	case COMM_GET_EXT_HUM_TMP: {
+		int32_t ind = 0;
+		uint8_t send_buffer[12];
+
+		send_buffer[ind++] = packet_id;
+
+		buffer_append_float32(send_buffer, bms_if_get_humitidy_2(), 1e2, &ind);
+		buffer_append_float32(send_buffer, bms_if_get_humidity_sensor_temp_2(), 1e2, &ind);
+
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_GET_CUSTOM_CONFIG:
 	case COMM_GET_CUSTOM_CONFIG_DEFAULT: {
 		main_config_t *conf = mempools_alloc_conf();
