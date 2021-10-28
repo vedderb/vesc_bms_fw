@@ -59,6 +59,7 @@ static thread_t *blocking_tp;
 // Function pointers
 static void(* volatile send_func)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_blocking)(unsigned char *data, unsigned int len) = 0;
+static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
 
 void commands_init(void) {
 	chMtxObjectInit(&send_buffer_mutex);
@@ -487,6 +488,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		HW_SEND_DATA(reply_func);
 	} break;
 
+	case COMM_CUSTOM_APP_DATA: {
+		if (appdata_func) {
+			appdata_func(data, len);
+		}
+	} break;
+
 		// Blocking commands. Only one of them runs at any given time, in their
 		// own thread. If other blocking commands come before the previous one has
 		// finished, they are discarded.
@@ -542,6 +549,24 @@ void commands_printf(const char* format, ...) {
 	}
 
 	chMtxUnlock(&print_mutex);
+}
+
+void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int len)) {
+	appdata_func = func;
+}
+
+void commands_send_app_data(unsigned char *data, unsigned int len) {
+	int32_t index = 0;
+
+	if (len > PACKET_MAX_PL_LEN)
+		return;
+
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[index++] = COMM_CUSTOM_APP_DATA;
+	memcpy(send_buffer_global + index, data, len);
+	index += len;
+	commands_send_packet(send_buffer_global, index);
+	chMtxUnlock(&send_buffer_mutex);
 }
 
 static THD_FUNCTION(blocking_thread, arg) {
