@@ -37,6 +37,7 @@
 #define HW_RELAY_PCH_ON()		palSetLine(LINE_RELAY_PCH)
 #define HW_RELAY_PCH_OFF()		palClearLine(LINE_RELAY_PCH)
 #define HW_RELAY_MAIN_IS_ON()	palReadLine(LINE_RELAY_MAIN)
+#define HW_RELAY_PCH_IS_ON()    palReadLine(LINE_RELAY_PCH)
 
 // Macros
 #define CHARGE_ENABLE()			hw_board_chg_en(true)

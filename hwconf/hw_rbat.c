@@ -30,10 +30,12 @@
 #include "ltc6813.h"
 #include "comm_can.h"
 
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #define MAX_RESP_BUF_LEN  		16
+#define CMD_SET_RELAY_NBR_ARGS	3
 
 // Types
 typedef enum {
@@ -73,6 +75,8 @@ static void append_hw_data_to_buffer(uint8_t *buffer, int32_t *len);
 static void update_conn_state(void);
 static void terminal_psw_set(int argc, const char **argv);
 static void terminal_info(int argc, const char **argv);
+static void terminal_get_relay_state(int argc, const char **argv);
+static void terminal_set_relay_state(int argc, const char **argv);
 
 // Threads
 static THD_WORKING_AREA(hw_thd_wa, 2048);
@@ -107,7 +111,6 @@ static void app_data_cmd_handler(unsigned char *data, unsigned int len) {
 	switch (cmd) {
 	case CMD_SET_DECOMM_STATE:
 		m_config->is_decommissioned = !!data[0];
-
 		resp_buf[idx++] = cmd;
 		resp_buf[idx++] = RSP_OK;
 		break;
@@ -167,6 +170,19 @@ void hw_board_init(void) {
 			"Print HW info",
 			0,
 			terminal_info);
+
+	terminal_register_command_callback(
+			"rbat_get_relays",
+			"Print state of relays",
+			0,
+			terminal_get_relay_state);
+
+	terminal_register_command_callback(
+			"rbat_set_relay",
+			"Set state of relay",
+			"[main or pch] [on or off]",
+			terminal_set_relay_state);
+
 	commands_set_app_data_handler(app_data_cmd_handler);
 
 	chThdSleepMilliseconds(10);
@@ -535,4 +551,42 @@ static void terminal_info(int argc, const char **argv) {
 		commands_printf("Invalid CONN_STATE\n");
 		break;
 	}
+}
+
+static void terminal_get_relay_state(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	commands_printf("Main relay: %s", (HW_RELAY_MAIN_IS_ON() ? "On" : "Off"));
+	commands_printf("Precharge relay: %s\n", (HW_RELAY_PCH_IS_ON() ? "On" : "Off"));
+}
+
+static void terminal_set_relay_state(int argc, const char **argv) {
+	if (argc == 3) {
+		commands_printf("rbat_set_relay: %s %s\n", argv[1], argv[2]);
+
+		if (strcmp(argv[1], "pch") == 0) {
+			if (strcmp(argv[2], "on") == 0) {
+				HW_RELAY_PCH_ON();
+				return;
+			}
+			if (strcmp(argv[2], "off") == 0) {
+				HW_RELAY_PCH_OFF();
+				return;
+			}
+		} else 	if (strcmp(argv[1], "main") == 0) {
+			if (strcmp(argv[2], "on") == 0) {
+				m_terminal_override_psw = true;
+				HW_RELAY_MAIN_ON();
+				return;
+			}
+			if (strcmp(argv[2], "off") == 0) {
+				m_terminal_override_psw = false;
+				HW_RELAY_MAIN_OFF();
+				return;
+			}
+		}
+	}
+
+	commands_printf("Invalid arguments");
 }
