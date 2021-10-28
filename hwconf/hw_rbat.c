@@ -37,8 +37,21 @@
 typedef enum {
 	CONN_STATE_UNPLUGGED = 0,
 	CONN_STATE_JETPACK,
-	CONN_STATE_CHARGER
+	CONN_STATE_CHARGER,
+	NUM_CONN_STATES,
 } CONN_STATE;
+
+typedef enum {
+	CMD_DUMMY = 0,
+	NUM_COMMANDS,
+} CMD;
+
+typedef enum {
+	RSP_OK = 0,
+	RSP_INVALID_CMD,
+	RSP_INVALID_ARG,
+	NUM_RESPONSES,
+} RSP;
 
 typedef struct __attribute__((packed)) {
 	// If the battery is decommissioned it is permanently disabled.
@@ -75,6 +88,19 @@ static volatile float m_soc_override = -1.0;
 
 // The config is stored in the backup struct so that it is retained while sleeping.
 static volatile hw_config *m_config = (hw_config*)&backup.hw_config[0];
+
+static void app_data_cmd_handler(unsigned char *data, unsigned int len) {
+	uint8_t buf[2];
+	CMD cmd;
+
+	if (!data || !len)
+		return;
+
+	cmd = data[0];
+	buf[0] = cmd;
+	buf[1] = RSP_INVALID_CMD;
+	commands_send_app_data(buf, sizeof(buf));
+}
 
 void hw_board_init(void) {
 	chMtxObjectInit(&m_sw_mutex);
@@ -118,6 +144,7 @@ void hw_board_init(void) {
 			"Print HW info",
 			0,
 			terminal_info);
+	commands_set_app_data_handler(app_data_cmd_handler);
 
 	chThdSleepMilliseconds(10);
 	update_conn_state();
@@ -480,6 +507,9 @@ static void terminal_info(int argc, const char **argv) {
 		break;
 	case CONN_STATE_CHARGER:
 		commands_printf("CONN_STATE_CHARGER\n");
+		break;
+	default:
+		commands_printf("Invalid CONN_STATE\n");
 		break;
 	}
 }
