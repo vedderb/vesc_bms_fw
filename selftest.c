@@ -34,6 +34,7 @@ typedef struct {
 
 // Private functions
 static void terminal_st(int argc, const char **argv);
+static int32_t balancing_selftest(cell_test_voltage_t *p_test_v);
 
 void selftest_init(void) {
 	terminal_register_command_callback(
@@ -41,6 +42,30 @@ void selftest_init(void) {
 			"Run hardware self test",
 			0,
 			terminal_st);
+}
+
+int32_t selftest_serialize_result(uint8_t *buffer, uint32_t buffer_size) {
+	cell_test_voltage_t cell_v[LTC_MAX_NBR_CELLS];
+	int32_t len = 0;
+	bool res_ok = false;
+
+	if (buffer_size < (sizeof(uint16_t) +
+			((backup.config.cell_num - backup.config.cell_first_index) * sizeof(float))))
+		return 0;
+
+	res_ok = ltc_self_test();
+	buffer_append_int16(buffer, res_ok, &len);
+
+	if (balancing_selftest(cell_v) < 0)
+		return len;
+
+	for (int i = backup.config.cell_first_index;
+			i < (backup.config.cell_first_index + backup.config.cell_num);i++) {
+		buffer_append_float32_auto(buffer, cell_v[i].no_bal, &len);
+		buffer_append_float32_auto(buffer, cell_v[i].bal, &len);
+	}
+
+	return len;
 }
 
 static int32_t balancing_selftest(cell_test_voltage_t *p_test_v) {
@@ -114,29 +139,4 @@ static void terminal_st(int argc, const char **argv) {
 	}
 
 	commands_printf(res_ok ? "\nAll tests passed!\n" : "\nOne or more tests failed...\n");
-}
-
-int32_t selftest_serialize_result(uint8_t *buffer, uint32_t buffer_size) {
-	cell_test_voltage_t cell_v[LTC_MAX_NBR_CELLS];
-	int32_t len;
-	bool res_ok;
-
-	if (buffer_size < (sizeof(uint16_t) +
-			((backup.config.cell_num - backup.config.cell_first_index) * sizeof(float))))
-		return 0;
-
-	len = 0;
-	res_ok = ltc_self_test();
-	buffer_append_int16(buffer, res_ok, &len);
-
-	if (balancing_selftest(cell_v) < 0)
-		return len;
-
-	for (int i = backup.config.cell_first_index;
-			i < (backup.config.cell_first_index + backup.config.cell_num);i++) {
-		buffer_append_float32_auto(buffer, cell_v[i].no_bal, &len);
-		buffer_append_float32_auto(buffer, cell_v[i].bal, &len);
-	}
-
-	return len;
 }

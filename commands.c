@@ -475,19 +475,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		HW_SEND_DATA(reply_func);
 	} break;
 
-	case COMM_BALANCE_SELFTEST: {
-		int32_t ind;
-		int32_t len;
-
-		chMtxLock(&send_buffer_mutex);
-		ind = 0;
-		send_buffer_global[ind++] = packet_id;
-		len = selftest_serialize_result(send_buffer_global + ind, (sizeof(send_buffer_global) - ind));
-		reply_func(send_buffer_global, ind + len);
-
-		chMtxUnlock(&send_buffer_mutex);
-	} break;
-
 		// Blocking commands. Only one of them runs at any given time, in their
 		// own thread. If other blocking commands come before the previous one has
 		// finished, they are discarded.
@@ -504,6 +491,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_MAP_PINS_NRF5X:
 	case COMM_BM_MEM_READ:
 	case COMM_BM_MEM_WRITE:
+	case COMM_BALANCE_SELFTEST:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len + 1;
@@ -715,6 +703,16 @@ static THD_FUNCTION(blocking_thread, arg) {
 			}
 		} break;
 #endif
+
+		case COMM_BALANCE_SELFTEST: {
+			int32_t ind = 0;
+
+			chMtxLock(&send_buffer_mutex);
+			send_buffer_global[ind++] = packet_id;
+			ind += selftest_serialize_result(send_buffer_global + ind, (sizeof(send_buffer_global) - ind));
+			send_func_blocking(send_buffer_global, ind);
+			chMtxUnlock(&send_buffer_mutex);
+		} break;
 
 		default:
 			break;
