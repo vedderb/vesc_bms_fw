@@ -35,6 +35,8 @@ bool ltc_get_dsc(int cell);
 void ltc_sleep(void);
 bool ltc_self_test(void);
 
+#define LTC_MAX_NBR_CELLS           18
+
 // Commands
 #define LTC_ADCV					0x0260
 #define LTC_ADOW					0x0228
