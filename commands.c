@@ -35,6 +35,7 @@
 #include "bm_if.h"
 #endif
 #include "minilzo.h"
+#include "selftest.h"
 
 #include <math.h>
 #include <string.h>
@@ -472,6 +473,19 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_BMS_HW_DATA: {
 		HW_SEND_DATA(reply_func);
+	} break;
+
+	case COMM_BALANCE_SELFTEST: {
+		int32_t ind;
+		int32_t len;
+
+		chMtxLock(&send_buffer_mutex);
+		ind = 0;
+		send_buffer_global[ind++] = packet_id;
+		len = selftest_serialize_result(send_buffer_global + ind, (sizeof(send_buffer_global) - ind));
+		reply_func(send_buffer_global, ind + len);
+
+		chMtxUnlock(&send_buffer_mutex);
 	} break;
 
 		// Blocking commands. Only one of them runs at any given time, in their

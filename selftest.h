@@ -20,7 +20,10 @@
 #ifndef SELFTEST_H_
 #define SELFTEST_H_
 
+#include <stdio.h>
+
 // Functions
 void selftest_init(void);
+int32_t selftest_serialize_result(uint8_t *buffer, uint32_t buffer_size);
 
 #endif /* SELFTEST_H_ */
