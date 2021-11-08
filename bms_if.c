@@ -516,7 +516,7 @@ void bms_if_zero_current_offset(void) {
 	flash_helper_store_backup_data();
 }
 
-float bms_if_get_humitidy(void) {
+float bms_if_get_humsens_hum_pcb(void) {
 #ifdef HDC1080_SDA_GPIO
 	return hdc1080_get_hum();
 #elif defined(SHT30_SDA_GPIO)
@@ -526,7 +526,7 @@ float bms_if_get_humitidy(void) {
 #endif
 }
 
-float bms_if_get_humidity_sensor_temp(void) {
+float bms_if_get_humsens_temp_pcb(void) {
 #ifdef HDC1080_SDA_GPIO
 	return hdc1080_get_temp();
 #elif defined(SHT30_SDA_GPIO)
@@ -536,11 +536,11 @@ float bms_if_get_humidity_sensor_temp(void) {
 #endif
 }
 
-float bms_if_get_humitidy_2(void) {
+float bms_if_get_humsens_hum_ext(void) {
 	return sht30_get_hum();
 }
 
-float bms_if_get_humidity_sensor_temp_2(void) {
+float bms_if_get_humsens_temp_ext(void) {
 	return sht30_get_temp();
 }
 

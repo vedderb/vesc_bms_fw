@@ -288,8 +288,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		buffer_append_float16(send_buffer, bms_if_get_temp_ic(), 1e2, &ind);
 
 		// Humidity
-		buffer_append_float16(send_buffer, bms_if_get_humidity_sensor_temp(), 1e2, &ind);
-		buffer_append_float16(send_buffer, bms_if_get_humitidy(), 1e2, &ind);
+		buffer_append_float16(send_buffer, bms_if_get_humsens_temp_pcb(), 1e2, &ind);
+		buffer_append_float16(send_buffer, bms_if_get_humsens_hum_pcb(), 1e2, &ind);
 
 		// Highest cell temperature
 		buffer_append_float16(send_buffer, HW_TEMP_CELLS_MAX(), 1e2, &ind);
@@ -342,8 +342,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		send_buffer[ind++] = packet_id;
 
-		buffer_append_float32(send_buffer, bms_if_get_humitidy_2(), 1e2, &ind);
-		buffer_append_float32(send_buffer, bms_if_get_humidity_sensor_temp_2(), 1e2, &ind);
+		buffer_append_float32(send_buffer, bms_if_get_humsens_hum_ext(), 1e2, &ind);
+		buffer_append_float32(send_buffer, bms_if_get_humsens_temp_ext(), 1e2, &ind);
 
 		reply_func(send_buffer, ind);
 	} break;

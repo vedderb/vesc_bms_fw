@@ -88,7 +88,7 @@
 #endif
 
 #ifndef HW_GET_BAL_TEMP
-#define HW_GET_BAL_TEMP()		bms_if_get_humidity_sensor_temp()
+#define HW_GET_BAL_TEMP()		bms_if_get_humsens_temp_pcb()
 #endif
 
 #ifndef HW_SOC_OVERRIDE

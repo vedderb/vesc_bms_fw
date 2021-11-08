@@ -203,8 +203,8 @@ void terminal_process_string(char *str) {
 		flash_helper_store_backup_data();
 		commands_printf("Done!\n");
 	} else if (strcmp(argv[0], "hum") == 0) {
-		commands_printf("Hum1: %.2f (temp: %.2f)", bms_if_get_humitidy(), bms_if_get_humidity_sensor_temp());
-		commands_printf("Hum2: %.2f (temp: %.2f)", bms_if_get_humitidy_2(), bms_if_get_humidity_sensor_temp_2());
+		commands_printf("Hum1: %.2f (temp: %.2f)", bms_if_get_humsens_hum_pcb(), bms_if_get_humsens_temp_pcb());
+		commands_printf("Hum2: %.2f (temp: %.2f)", bms_if_get_humsens_hum_ext(), bms_if_get_humsens_temp_ext());
 		commands_printf(" ");
 	} else if (strcmp(argv[0], "bms_get_values") == 0) {
 		commands_printf("\n\nBms values\n================================");
@@ -227,7 +227,7 @@ void terminal_process_string(char *str) {
 			commands_printf("%d\t%.2f", i, bms_if_get_temp(i));
 		}
 		commands_printf("Ic\t%.2f\n", bms_if_get_temp_ic());
-		commands_printf("Hum: %.2f temp: %.2f", bms_if_get_humitidy(), bms_if_get_humidity_sensor_temp());
+		commands_printf("Hum: %.2f temp: %.2f", bms_if_get_humsens_hum_pcb(), bms_if_get_humsens_temp_pcb());
 		commands_printf("Highest cell temp: %.2f", HW_TEMP_CELLS_MAX());
 		commands_printf("Soc: %.2f Soh: %.2f", bms_if_get_soc(), bms_if_get_soh());
 		commands_printf("Can id: 0x%X", backup.config.controller_id);
