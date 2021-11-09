@@ -401,8 +401,8 @@ static THD_FUNCTION(hw_thd, p) {
 
 		// Decommission check
 		if (!m_config->is_decommissioned &&
-				bms_if_get_humitidy() >= S_DECOMMISSION_HUM &&
-				bms_if_get_humidity_sensor_temp() >= S_DECOMMISSION_TEMP) {
+				bms_if_get_humsens_hum_pcb() >= S_DECOMMISSION_HUM &&
+				bms_if_get_humsens_temp_pcb() >= S_DECOMMISSION_TEMP) {
 			m_config->is_decommissioned = true;
 			hw_psw_switch_off(true);
 		}

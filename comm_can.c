@@ -553,8 +553,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 		}
 
 		send_index = 0;
-		buffer_append_float16(buffer, bms_if_get_humidity_sensor_temp(), 1e2, &send_index);
-		buffer_append_float16(buffer, bms_if_get_humitidy(), 1e2, &send_index);
+		buffer_append_float16(buffer, bms_if_get_humsens_temp_pcb(), 1e2, &send_index);
+		buffer_append_float16(buffer, bms_if_get_humsens_hum_pcb(), 1e2, &send_index);
 		buffer_append_float16(buffer, bms_if_get_temp_ic(), 1e2, &send_index); // Put IC temp here instead of making mew msg
 		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_HUM << 8), buffer, send_index);
 
