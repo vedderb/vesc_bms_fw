@@ -382,13 +382,16 @@ float hw_temp_cell_max(void) {
 }
 
 void hw_send_data(void(*reply_func)(unsigned char *data, unsigned int len)) {
-	uint8_t buffer[8]; int32_t len = 0;
-	append_hw_data_to_buffer(buffer, &len);
-	reply_func(buffer, len);
+	uint8_t buffer[8];
+	int32_t len = 0;
+	buffer[0] = COMM_BMS_HW_DATA;
+	append_hw_data_to_buffer(&buffer[1], &len);
+	reply_func(buffer, (1 + len));
 }
 
 void hw_send_can_data(void) {
-	uint8_t buffer[8]; int32_t len = 0;
+	uint8_t buffer[8];
+	int32_t len = 0;
 	append_hw_data_to_buffer(buffer, &len);
 	comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_HW_DATA_1 << 8), buffer, len);
 }
