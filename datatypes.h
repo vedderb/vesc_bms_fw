@@ -203,6 +203,11 @@ typedef struct {
 	// BMS configuration structure
 	uint32_t config_init_flag;
 	main_config_t config;
+
+	// Pad just in case as flash_helper_write_data rounds length down to
+	// closest multiple of 8.
+	volatile uint32_t pad1;
+	volatile uint32_t pad2;
 } backup_data;
 
 typedef struct {
@@ -343,7 +348,10 @@ typedef enum {
 	CAN_PACKET_BMS_HW_DATA_5,
 	CAN_PACKET_BMS_AH_WH_CHG_TOTAL,
 	CAN_PACKET_BMS_AH_WH_DIS_TOTAL,
+	CAN_PACKET_UPDATE_PID_POS_OFFSET,
+	CAN_PACKET_POLL_ROTOR_POS,
 	CAN_PACKET_BMS_BOOT,
+	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
 } CAN_PACKET_ID;
 
 // Communication commands
