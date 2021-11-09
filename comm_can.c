@@ -473,13 +473,18 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 }
 
 static THD_FUNCTION(cancom_status_thread, arg) {
+	int32_t send_index;
+	uint8_t buffer[8];
 	(void)arg;
+
 	chRegSetThreadName("CAN status");
 
+	memset(buffer, 0, sizeof(buffer));
+	buffer[0] = backup.config.controller_id;
+	/* Transmit bms boot frame to notify the nodes on the bus that the bms has booted */
+	comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_BOOT << 8), buffer, 1);
 	for(;;) {
-		int32_t send_index = 0;
-		uint8_t buffer[8];
-
+		send_index = 0;
 		buffer_append_float32_auto(buffer, bms_if_get_v_tot(), &send_index);
 		buffer_append_float32_auto(buffer, bms_if_get_v_charge(), &send_index);
 		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_V_TOT << 8), buffer, send_index);
