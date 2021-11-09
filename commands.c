@@ -491,7 +491,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_MAP_PINS_NRF5X:
 	case COMM_BM_MEM_READ:
 	case COMM_BM_MEM_WRITE:
-	case COMM_BALANCE_SELFTEST:
+	case COMM_BMS_BLNC_SELFTEST:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len + 1;
@@ -704,7 +704,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 		} break;
 #endif
 
-		case COMM_BALANCE_SELFTEST: {
+		case COMM_BMS_BLNC_SELFTEST: {
 			int32_t ind = 0;
 
 			chMtxLock(&send_buffer_mutex);
