@@ -252,4 +252,32 @@ void hw_send_data(void(*reply_func)(unsigned char *data, unsigned int len));
 void hw_send_can_data(void);
 bool hw_charger_detected(void);
 
+// Run-time configurable HW-limits		(min, max)
+#define HW_LIM_MAX_BAL_CHANNEL			0, HW_MAX_BAL_CH
+#define HW_LIM_CHARGE_START				0, 4.20
+#define HW_LIM_CHARGE_MIN				0, 4.20
+#define HW_LIM_CHARGE_END				0, 4.21
+#define HW_LIM_T_CHARGE_MIN				1, 44
+#define HW_LIM_T_CHARGE_MAX				0, 45
+#define HW_LIM_MAX_CHRG_CURR			1, 50
+#define HW_LIM_T_BAL_LIM_START			0, 60
+#define HW_LIM_T_BAL_LIM_END			0, 80
+#define HW_LIM_VC_BALANCE_MIN			2.2, 4.20
+#define HW_LIM_VC_BALANCE_START			0, 1
+#define HW_LIM_VC_BALANCE_END			0.001, 5
+#define HW_LIM_MAX_BAL_CH				1, 13
+#define HW_LIM_MAX_BALANCE_CURR			0, 10
+#define HW_LIM_ENTER_SLEEP_CURR			0, 20
+#define HW_LIM_SLEEP_CNT				1, INT32_MAX
+#define HW_LIM_STATUS_MSG_RATE_HZ		1, 10
+
+// Compile-time configurable HW-limits
+#define HW_LIM_EXT_SHUNT_RES			CONF_EXT_SHUNT_RES, CONF_EXT_SHUNT_RES
+#define HW_LIM_EXT_SHUNT_GAIN			CONF_EXT_SHUNT_GAIN, CONF_EXT_SHUNT_GAIN
+#define HW_LIM_EXT_PCH_R_TOP			CONF_EXT_PCH_R_TOP, CONF_EXT_PCH_R_TOP
+#define HW_LIM_EXT_PCH_R_BOT			CONF_EXT_PCH_R_BOTTOM, CONF_EXT_PCH_R_BOTTOM
+#define HW_LIM_SOC_FILTER_CONST			CONF_SOC_FILTER_CONST, CONF_SOC_FILTER_CONST
+#define HW_LIM_CONTROLLER_ID			HW_DEFAULT_ID, HW_DEFAULT_ID
+#define HW_LIM_T_CHARGE_MON_EN			CONF_T_CHARGE_MON_EN, CONF_T_CHARGE_MON_EN
+
 #endif /* HWCONF_HW_RBAT_H_ */
