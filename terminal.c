@@ -206,6 +206,31 @@ void terminal_process_string(char *str) {
 		commands_printf("Hum1: %.2f (temp: %.2f)", bms_if_get_humitidy(), bms_if_get_humidity_sensor_temp());
 		commands_printf("Hum2: %.2f (temp: %.2f)", bms_if_get_humitidy_2(), bms_if_get_humidity_sensor_temp_2());
 		commands_printf(" ");
+	} else if (strcmp(argv[0], "bms_get_values") == 0) {
+		commands_printf("\n\nBms values\n================================");
+		commands_printf("V tot: %.2f V charge: %.2f", bms_if_get_v_tot(), bms_if_get_v_charge());
+		commands_printf("I in: %.2f I in_ic: %.2f", bms_if_get_i_in(), bms_if_get_i_in_ic());
+		commands_printf("Ah: %.2f Wh: %.2f", bms_if_get_ah_cnt(), bms_if_get_wh_cnt());
+		commands_printf("Ah charge tot: %.2f discharge tot: %.2f", bms_if_get_ah_cnt_chg_total(),
+			bms_if_get_ah_cnt_dis_total());
+		commands_printf("Wh charge tot: %.2f discharge tot: %.2f", bms_if_get_wh_cnt_chg_total(),
+			bms_if_get_wh_cnt_dis_total());
+
+		commands_printf("Cell\tV\tBalancing");
+		for (int i = backup.config.cell_first_index;
+		i < (backup.config.cell_num + backup.config.cell_first_index);i++) {
+			commands_printf("%d\t%.2f\t%s", i, bms_if_get_v_cell(i),
+				(bms_if_is_balancing_cell(i) ? "Yes" : "No"));
+		}
+		commands_printf("\nTemp\tdeg C");
+		for (int i = 0;i < HW_ADC_TEMP_SENSORS;i++) {
+			commands_printf("%d\t%.2f", i, bms_if_get_temp(i));
+		}
+		commands_printf("Ic\t%.2f\n", bms_if_get_temp_ic());
+		commands_printf("Hum: %.2f temp: %.2f", bms_if_get_humitidy(), bms_if_get_humidity_sensor_temp());
+		commands_printf("Highest cell temp: %.2f", HW_TEMP_CELLS_MAX());
+		commands_printf("Soc: %.2f Soh: %.2f", bms_if_get_soc(), bms_if_get_soh());
+		commands_printf("Can id: 0x%X", backup.config.controller_id);
 	}
 
 	// The help command
@@ -252,6 +277,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("hum");
 		commands_printf("  Print humidity sensor readings.");
+
+		commands_printf("bms_get_values");
+		commands_printf("  Print bms data readings.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

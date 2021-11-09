@@ -59,6 +59,7 @@ static thread_t *blocking_tp;
 // Function pointers
 static void(* volatile send_func)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_blocking)(unsigned char *data, unsigned int len) = 0;
+static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
 
 void commands_init(void) {
 	chMtxObjectInit(&send_buffer_mutex);
@@ -335,6 +336,18 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		bms_if_force_balance(data[0]);
 		break;
 
+	case COMM_GET_EXT_HUM_TMP: {
+		int32_t ind = 0;
+		uint8_t send_buffer[12];
+
+		send_buffer[ind++] = packet_id;
+
+		buffer_append_float32(send_buffer, bms_if_get_humitidy_2(), 1e2, &ind);
+		buffer_append_float32(send_buffer, bms_if_get_humidity_sensor_temp_2(), 1e2, &ind);
+
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_GET_CUSTOM_CONFIG:
 	case COMM_GET_CUSTOM_CONFIG_DEFAULT: {
 		main_config_t *conf = mempools_alloc_conf();
@@ -475,6 +488,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		HW_SEND_DATA(reply_func);
 	} break;
 
+	case COMM_CUSTOM_APP_DATA: {
+		if (appdata_func) {
+			appdata_func(data, len);
+		}
+	} break;
+
 		// Blocking commands. Only one of them runs at any given time, in their
 		// own thread. If other blocking commands come before the previous one has
 		// finished, they are discarded.
@@ -491,7 +510,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_MAP_PINS_NRF5X:
 	case COMM_BM_MEM_READ:
 	case COMM_BM_MEM_WRITE:
-	case COMM_BALANCE_SELFTEST:
+	case COMM_BMS_BLNC_SELFTEST:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len + 1;
@@ -530,6 +549,24 @@ void commands_printf(const char* format, ...) {
 	}
 
 	chMtxUnlock(&print_mutex);
+}
+
+void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int len)) {
+	appdata_func = func;
+}
+
+void commands_send_app_data(unsigned char *data, unsigned int len) {
+	int32_t index = 0;
+
+	if (len > PACKET_MAX_PL_LEN)
+		return;
+
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[index++] = COMM_CUSTOM_APP_DATA;
+	memcpy(send_buffer_global + index, data, len);
+	index += len;
+	commands_send_packet(send_buffer_global, index);
+	chMtxUnlock(&send_buffer_mutex);
 }
 
 static THD_FUNCTION(blocking_thread, arg) {
@@ -704,7 +741,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 		} break;
 #endif
 
-		case COMM_BALANCE_SELFTEST: {
+		case COMM_BMS_BLNC_SELFTEST: {
 			int32_t ind = 0;
 
 			chMtxLock(&send_buffer_mutex);
