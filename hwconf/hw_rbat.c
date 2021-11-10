@@ -33,6 +33,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define MAX_RESP_BUF_LEN  		16
+
 // Types
 typedef enum {
 	CONN_STATE_UNPLUGGED = 0,
@@ -42,7 +44,7 @@ typedef enum {
 } CONN_STATE;
 
 typedef enum {
-	CMD_DUMMY = 0,
+	CMD_SET_DECOMM_STATE = 0,
 	NUM_COMMANDS,
 } CMD;
 
@@ -90,16 +92,32 @@ static volatile float m_soc_override = -1.0;
 static volatile hw_config *m_config = (hw_config*)&backup.hw_config[0];
 
 static void app_data_cmd_handler(unsigned char *data, unsigned int len) {
-	uint8_t buf[2];
+	uint8_t resp_buf[MAX_RESP_BUF_LEN];
+	int32_t idx;
 	CMD cmd;
 
 	if (!data || !len)
 		return;
 
 	cmd = data[0];
-	buf[0] = cmd;
-	buf[1] = RSP_INVALID_CMD;
-	commands_send_app_data(buf, sizeof(buf));
+	data++;
+	idx = 0;
+
+	switch (cmd) {
+	case CMD_SET_DECOMM_STATE:
+		m_config->is_decommissioned = !!data[0];
+
+		resp_buf[idx++] = cmd;
+		resp_buf[idx++] = RSP_OK;
+		break;
+	default:
+		resp_buf[idx++] = cmd;
+		resp_buf[idx++] = RSP_INVALID_CMD;
+		break;
+	}
+
+	if (idx)
+		commands_send_app_data(resp_buf, idx);
 }
 
 void hw_board_init(void) {
