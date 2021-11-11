@@ -46,8 +46,16 @@ typedef enum {
 } CONN_STATE;
 
 typedef enum {
+	RELAY_MAIN = 0,
+	RELAY_PCH,
+	NUM_RELAYS,
+} RELAY;
+
+typedef enum {
 	CMD_SET_DECOMM_STATE = 0,
 	CMD_GET_CONN_STATE,
+	CMD_GET_RELAY_STATE,
+	CMD_SET_RELAY_STATE,
 	NUM_COMMANDS,
 } CMD;
 
@@ -55,6 +63,7 @@ typedef enum {
 	RSP_OK = 0,
 	RSP_INVALID_CMD,
 	RSP_INVALID_ARG,
+	RSP_DECOMM,
 	NUM_RESPONSES,
 } RSP;
 
@@ -99,6 +108,7 @@ static volatile hw_config *m_config = (hw_config*)&backup.hw_config[0];
 static void app_data_cmd_handler(unsigned char *data, unsigned int len) {
 	uint8_t resp_buf[MAX_RESP_BUF_LEN];
 	int32_t idx;
+	bool on_flag;
 	CMD cmd;
 
 	if (!data || !len)
@@ -117,6 +127,37 @@ static void app_data_cmd_handler(unsigned char *data, unsigned int len) {
 	case CMD_GET_CONN_STATE:
 		resp_buf[idx++] = cmd;
 		buffer_append_int16(resp_buf, (uint16_t)m_conn_state, &idx);
+		break;
+	case CMD_GET_RELAY_STATE:
+		resp_buf[idx++] = cmd;
+		resp_buf[idx++] = HW_RELAY_MAIN_IS_ON();
+		resp_buf[idx++] = HW_RELAY_PCH_IS_ON();
+		break;
+	case CMD_SET_RELAY_STATE:
+		resp_buf[idx++] = cmd;
+		if (m_config->is_decommissioned) {
+			resp_buf[idx++] = RSP_DECOMM;
+			break;
+		}
+
+		if (len != CMD_SET_RELAY_NBR_ARGS || data[0] >= NUM_RELAYS) {
+			resp_buf[idx++] = RSP_INVALID_ARG;
+			break;
+		}
+
+		on_flag = !!data[1];
+		if ((RELAY)data[0] == RELAY_MAIN) {
+			if (on_flag) {
+				HW_RELAY_MAIN_ON();
+				m_terminal_override_psw = true;
+			} else {
+				HW_RELAY_MAIN_OFF();
+				m_terminal_override_psw = false;
+			}
+		} else {
+			on_flag ? HW_RELAY_PCH_ON() : HW_RELAY_PCH_OFF();
+		}
+		resp_buf[idx++] = RSP_OK;
 		break;
 	default:
 		resp_buf[idx++] = cmd;
