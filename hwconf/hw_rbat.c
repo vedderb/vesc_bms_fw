@@ -45,6 +45,7 @@ typedef enum {
 
 typedef enum {
 	CMD_SET_DECOMM_STATE = 0,
+	CMD_GET_CONN_STATE,
 	NUM_COMMANDS,
 } CMD;
 
@@ -109,6 +110,10 @@ static void app_data_cmd_handler(unsigned char *data, unsigned int len) {
 
 		resp_buf[idx++] = cmd;
 		resp_buf[idx++] = RSP_OK;
+		break;
+	case CMD_GET_CONN_STATE:
+		resp_buf[idx++] = cmd;
+		buffer_append_int16(resp_buf, (uint16_t)m_conn_state, &idx);
 		break;
 	default:
 		resp_buf[idx++] = cmd;
