@@ -407,7 +407,7 @@ static void append_hw_data_to_buffer(uint8_t *buffer, int32_t *len) {
 
 	buffer_append_float16(buffer, pwr_get_vfuse(), 1e2, len);
 	buffer_append_float16(buffer, pwr_get_vcharge(), 1e2, len);
-	buffer_append_float16(buffer, HW_GET_V_MOIST_SENSE(), 1e4, len);
+	buffer_append_float16(buffer, HW_GET_V_MOIST_SENSE(), 1e3, len);
 
 	/*
 	 * State bitfield
