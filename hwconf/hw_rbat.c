@@ -131,7 +131,7 @@ static void app_data_cmd_handler(unsigned char *data, unsigned int len) {
 		break;
 	case CMD_GET_CONN_STATE:
 		resp_buf[idx++] = cmd;
-		buffer_append_int16(resp_buf, (uint16_t)m_conn_state, &idx);
+		resp_buf[idx++] = m_conn_state;
 		break;
 	case CMD_GET_RELAY_STATE:
 		resp_buf[idx++] = cmd;
