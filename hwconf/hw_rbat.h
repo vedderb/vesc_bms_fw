@@ -185,7 +185,7 @@
 #define NRF5x_SWCLK_PIN			14
 
 // Analog
-#define HW_ADC_TEMP_SENSORS		7
+#define HW_ADC_TEMP_SENSORS		4
 
 #define LINE_V_CHARGE			PAL_LINE(GPIOC, 5)
 #define LINE_V_FUSE				PAL_LINE(GPIOC, 2)
