@@ -46,7 +46,7 @@
 // Settings
 #define HW_CELLS_SERIES			14
 #define CONF_MAX_BAL_CH			5
-#define HW_MAX_BAL_CH			8
+#define HW_MAX_BAL_CH			13
 #define HW_SHUNT_RES			(0.1e-3)
 #if (HW_REV_CHAR == 'A')
 #define HW_SHUNT_AMP_GAIN		(50.0)
@@ -267,7 +267,6 @@ bool hw_charger_detected(void);
 #define HW_LIM_VC_BALANCE_MIN			2.2, 4.20
 #define HW_LIM_VC_BALANCE_START			0, 1
 #define HW_LIM_VC_BALANCE_END			0.001, 5
-#define HW_LIM_MAX_BAL_CH				1, 13
 #define HW_LIM_MAX_BALANCE_CURR			0, 10
 #define HW_LIM_ENTER_SLEEP_CURR			0, 20
 #define HW_LIM_SLEEP_CNT				1, INT32_MAX
