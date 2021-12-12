@@ -86,7 +86,22 @@ static THD_FUNCTION(charge_thd, p) {
 			bms_if_fault_report(FAULT_CODE_CHARGE_OVERTEMP);
 		}
 
-		if (charge_ok() && m_charge_allowed && !m_was_charge_overcurrent) {
+		bms_soc_soh_temp_stat *msg;
+		bool chg_can_ok = true;
+		for (int i = 0;i < CAN_BMS_STATUS_MSGS_TO_STORE;i++) {
+			msg = comm_can_get_bms_soc_soh_temp_stat_index(i);
+
+			if (msg->id >= 0) {
+				if (!msg->is_charge_allowed) {
+					chg_can_ok = false;
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+
+		if (chg_can_ok && charge_ok() && m_charge_allowed && !m_was_charge_overcurrent) {
 			if (!m_is_charging) {
 				sleep_reset();
 				chThdSleepMilliseconds(2000);
