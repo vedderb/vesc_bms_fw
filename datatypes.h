@@ -258,7 +258,8 @@ typedef struct {
 	float soh;
 	bool is_charging;
 	bool is_balancing;
-	bool is_charge_allowed;
+	bool is_charge_allowed; // Based on the setting
+	bool is_charge_ok; // Based on measured voltages/temperatures/currents
 } bms_soc_soh_temp_stat;
 
 typedef struct {

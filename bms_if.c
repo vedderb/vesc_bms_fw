@@ -65,7 +65,7 @@ void bms_if_init(void) {
 	chThdCreateStatic(balance_thd_wa, sizeof(balance_thd_wa), NORMALPRIO, balance_thd, 0);
 }
 
-static bool charge_ok(void) {
+bool bms_if_charge_ok(void) {
 	float max = m_is_charging ? backup.config.vc_charge_end : backup.config.vc_charge_start;
 	return HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
 			m_voltage_cell_min > backup.config.vc_charge_min &&
@@ -92,7 +92,7 @@ static THD_FUNCTION(charge_thd, p) {
 			msg = comm_can_get_bms_soc_soh_temp_stat_index(i);
 
 			if (msg->id >= 0) {
-				if (!msg->is_charge_allowed) {
+				if (!msg->is_charge_ok) {
 					chg_can_ok = false;
 					break;
 				}
@@ -101,11 +101,11 @@ static THD_FUNCTION(charge_thd, p) {
 			}
 		}
 
-		if (chg_can_ok && charge_ok() && m_charge_allowed && !m_was_charge_overcurrent) {
+		if (chg_can_ok && bms_if_charge_ok() && m_charge_allowed && !m_was_charge_overcurrent) {
 			if (!m_is_charging) {
 				sleep_reset();
 				chThdSleepMilliseconds(2000);
-				if (charge_ok()) {
+				if (bms_if_charge_ok()) {
 					m_is_charging = true;
 					CHARGE_ENABLE();
 				}

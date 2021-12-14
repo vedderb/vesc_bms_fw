@@ -24,6 +24,7 @@
 
 // Functions
 void bms_if_init(void);
+bool bms_if_charge_ok(void);
 float bms_if_get_i_in(void);
 float bms_if_get_i_in_ic(void);
 float bms_if_get_v_cell(int cell);

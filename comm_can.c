@@ -579,7 +579,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 		buffer[send_index++] =
 				((bms_if_is_charging() ? 1 : 0) << 0) |
 				((bms_if_is_balancing() ? 1 : 0) << 1) |
-				((bms_if_is_charge_allowed() ? 1 : 0) << 2);
+				((bms_if_is_charge_allowed() ? 1 : 0) << 2) |
+				((bms_if_charge_ok() ? 1 : 0) << 3);
 		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_SOC_SOH_TEMP_STAT << 8), buffer, send_index);
 
 		send_index = 0;
@@ -835,6 +836,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		msg.is_charging = (stat >> 0) & 1;
 		msg.is_balancing = (stat >> 1) & 1;
 		msg.is_charge_allowed = (stat >> 2) & 1;
+		msg.is_charge_ok = (stat >> 3) & 1;
 
 		// Do not go to sleep when some other pack is charging or balancing.
 		if (msg.is_charging || msg.is_balancing) {
