@@ -152,7 +152,8 @@ void terminal_process_string(char *str) {
 				commands_printf("Temp max           : %.2f", (double)msg->t_cell_max);
 				commands_printf("Balancing          : %d", msg->is_balancing);
 				commands_printf("Charging           : %d", msg->is_charging);
-				commands_printf("Charging Allowed   : %d\n", msg->is_charge_allowed);
+				commands_printf("Charging Allowed   : %d", msg->is_charge_allowed);
+				commands_printf("Charging OK        : %d\n", msg->is_charge_ok);
 			}
 		}
 	} else if (strcmp(argv[0], "hw_status") == 0) {
