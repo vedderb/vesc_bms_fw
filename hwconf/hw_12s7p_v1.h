@@ -93,8 +93,7 @@
 #define NTC_RES_2(adc)					((4095.0 / (float)adc) * 10000.0 - 10000.0)
 #define NTC_TEMP_WITH_IND(adc, ind)		(1.0 / ((logf((ind == 5 ? NTC_RES_2(adc) : NTC_RES(adc)) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
-// TODO: Take highest of all temp sensors
-#define HW_TEMP_CELLS_MAX()		bms_if_get_temp(2)
+#define HW_TEMP_CELLS_MAX()		hw_temp_cell_max()
 
 // ADC Channels
 #define ADC_CH_V_CHARGE			ADC_CHANNEL_IN3
@@ -108,5 +107,8 @@
 
 // Other
 #define LINE_CURR_MEASURE_EN	PAL_LINE(GPIOB, 6)
+
+// HW Functions
+float hw_temp_cell_max(void);
 
 #endif /* HWCONF_HW_12S7P_V1_H_ */

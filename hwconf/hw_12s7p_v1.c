@@ -17,3 +17,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#include "bms_if.h"
+
+float hw_temp_cell_max(void) {
+	float res = -250.0;
+
+	for (int i = 1;i < 4;i++) {
+		if (bms_if_get_temp(i) > res) {
+			res = bms_if_get_temp(i);
+		}
+	}
+
+	return res;
+}
