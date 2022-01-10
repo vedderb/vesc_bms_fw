@@ -279,7 +279,9 @@ typedef struct {
 typedef enum {
 	FAULT_CODE_NONE = 0,
 	FAULT_CODE_CHARGE_OVERCURRENT,
-	FAULT_CODE_CHARGE_OVERTEMP
+	FAULT_CODE_CHARGE_OVERTEMP,
+	FAULT_CODE_HUMIDITY,
+	NBR_OF_FAULT_CODES,
 } bms_fault_code;
 
 // Logged fault data
@@ -293,6 +295,7 @@ typedef struct {
 	float temp_ic;
 	float v_cell_min;
 	float v_cell_max;
+	float pcb_humidity;
 } fault_data;
 
 // CAN commands

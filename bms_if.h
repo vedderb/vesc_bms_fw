@@ -22,6 +22,8 @@
 
 #include "conf_general.h"
 
+typedef void (*bms_if_fault_cb) (fault_data *p_data);
+
 // Functions
 void bms_if_init(void);
 bool bms_if_charge_ok(void);
@@ -59,5 +61,6 @@ float bms_if_get_soh(void);
 void bms_if_sleep(void);
 void bms_if_fault_report(bms_fault_code fault);
 bms_fault_code bms_if_fault_now(void);
+void bms_if_register_fault_cb(const bms_if_fault_cb cb);
 
 #endif /* BMS_IF_H_ */
