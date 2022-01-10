@@ -67,16 +67,16 @@ typedef enum {
 	NUM_RESPONSES,
 } RSP;
 
-typedef struct __attribute__((packed)) {
-	// If the battery is decommissioned it is permanently disabled.
-	bool is_decommissioned;
-
+typedef struct {
 	// A timeout means that the charger or jetpack was connected for a long time
 	// without drawing power, leading to switching off the main contactor and entering sleep
 	// mode. If this happens, the battery must be disconnected at least once to reset the
 	// timeout and allow switching on the contactor again.
-	bool did_timeout_charger;
-	bool did_timeout_jetpack;
+	bool		did_timeout_charger;
+	bool		did_timeout_jetpack;
+	// If the battery is decommissioned it is permanently disabled.
+	bool		is_decommissioned;
+	fault_data	fault;
 } hw_config;
 
 // Functions
@@ -104,6 +104,11 @@ static volatile float m_soc_override = -1.0;
 
 // The config is stored in the backup struct so that it is retained while sleeping.
 static volatile hw_config *m_config = (hw_config*)&backup.hw_config[0];
+
+static void fault_data_cb(fault_data * const fault)
+{
+	m_config->fault = *fault;
+}
 
 static void app_data_cmd_handler(unsigned char *data, unsigned int len) {
 	uint8_t resp_buf[MAX_RESP_BUF_LEN];
@@ -225,6 +230,8 @@ void hw_board_init(void) {
 			terminal_set_relay_state);
 
 	commands_set_app_data_handler(app_data_cmd_handler);
+
+	bms_if_register_fault_cb(fault_data_cb);
 
 	chThdSleepMilliseconds(10);
 	update_conn_state();
@@ -512,6 +519,7 @@ static THD_FUNCTION(hw_thd, p) {
 				bms_if_get_humsens_temp_pcb() >= S_DECOMMISSION_TEMP) {
 			m_config->is_decommissioned = true;
 			hw_psw_switch_off(true);
+			bms_if_fault_report(FAULT_CODE_HUMIDITY);
 		}
 
 		// Low voltage check
