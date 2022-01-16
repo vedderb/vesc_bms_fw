@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC BMS firmware.
 
@@ -30,7 +30,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		20
+#define FW_TEST_VERSION_NUMBER		0
 
 // Init codes for the persistent storage. Change the config code when updating the config struct
 // in a way that is not backwards compatible.
