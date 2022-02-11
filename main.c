@@ -148,7 +148,7 @@ int main(void) {
 		backup.config.controller_id = backup.controller_id;
 		backup.config.send_can_status_rate_hz = backup.send_can_status_rate_hz;
 		backup.config.can_baud_rate = backup.can_baud_rate;
-
+		backup.config.battery_type = CONF_BATTERY_TYPE;
 	}
 
 	conf_general_apply_hw_limits((main_config_t*)&backup.config);

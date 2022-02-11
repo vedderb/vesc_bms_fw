@@ -119,6 +119,5 @@ void confparser_set_defaults_main_config_t(main_config_t *conf) {
 	conf->t_bal_lim_end = CONF_T_BAL_LIM_END;
 	conf->t_charge_min = CONF_T_CHARGE_MIN;
 	conf->t_charge_mon_en = CONF_T_CHARGE_MON_EN;
-	conf->battery_type = CONF_BATTERY_TYPE;
 }
 
