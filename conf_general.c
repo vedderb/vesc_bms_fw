@@ -52,7 +52,7 @@ void conf_general_apply_hw_limits(main_config_t *config) {
 	utils_truncate_number_int((int *)&config->t_charge_mon_en, HW_LIM_T_CHARGE_MON_EN);
 #endif
 #ifdef HW_LIM_T_BAL_LIM_START
-	utils_truncate_number(&config->t_bal_lim_end, HW_LIM_T_BAL_LIM_START);
+	utils_truncate_number(&config->t_bal_lim_start, HW_LIM_T_BAL_LIM_START);
 #endif
 #ifdef HW_LIM_T_BAL_LIM_END
 	utils_truncate_number(&config->t_bal_lim_end, HW_LIM_T_BAL_LIM_END);
@@ -65,9 +65,6 @@ void conf_general_apply_hw_limits(main_config_t *config) {
 #endif
 #ifdef HW_LIM_BALANCE_MIN
 	utils_truncate_number(&config->vc_balance_min, HW_LIM_VC_BALANCE_MIN);
-#endif
-#ifdef HW_LIM_MAX_BAL_CH
-	utils_truncate_number_int(&config->max_bal_ch, HW_LIM_MAX_BAL_CH);
 #endif
 #ifdef HW_LIM_MAX_BALANCE_CURR
 	utils_truncate_number(&config->balance_max_current, HW_LIM_MAX_BALANCE_CURR);

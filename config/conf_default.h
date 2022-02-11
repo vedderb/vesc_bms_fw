@@ -158,6 +158,11 @@
 #define CONF_T_CHARGE_MON_EN 1
 #endif
 
+// Application-specific battery type.
+#ifndef CONF_BATTERY_TYPE
+#define CONF_BATTERY_TYPE 0xAA
+#endif
+
 // CONF_DEFAULT_H_
 #endif
 

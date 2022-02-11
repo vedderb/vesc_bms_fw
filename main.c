@@ -48,6 +48,8 @@ __attribute__((section(".ram4"))) volatile backup_data backup;
 #define VAR_INIT_CODE_HW_CONF		VAR_INIT_CODE
 #endif
 
+#define CAN_FRAME_MAX_PL_SIZE		8
+
 int main(void) {
 	halInit();
 	chSysInit();
@@ -193,6 +195,12 @@ int main(void) {
 	sleep_init();
 	timeout_init();
 	selftest_init();
+
+	// Transmit a CAN boot-frame to notify other nodes on the bus about it.
+	comm_can_transmit_eid(
+		backup.config.controller_id | (CAN_PACKET_NOTIFY_BOOT << 8),
+		(uint8_t *)HW_NAME, (strlen(HW_NAME) <= CAN_FRAME_MAX_PL_SIZE) ?
+		strlen(HW_NAME) : CAN_FRAME_MAX_PL_SIZE);
 
 	for(;;) {
 		backup.controller_id = backup.config.controller_id;

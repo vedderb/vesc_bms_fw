@@ -37,6 +37,7 @@
 #define HW_RELAY_PCH_ON()		palSetLine(LINE_RELAY_PCH)
 #define HW_RELAY_PCH_OFF()		palClearLine(LINE_RELAY_PCH)
 #define HW_RELAY_MAIN_IS_ON()	palReadLine(LINE_RELAY_MAIN)
+#define HW_RELAY_PCH_IS_ON()    palReadLine(LINE_RELAY_PCH)
 
 // Macros
 #define CHARGE_ENABLE()			hw_board_chg_en(true)
@@ -45,7 +46,7 @@
 // Settings
 #define HW_CELLS_SERIES			14
 #define CONF_MAX_BAL_CH			5
-#define HW_MAX_BAL_CH			8
+#define HW_MAX_BAL_CH			13
 #define HW_SHUNT_RES			(0.1e-3)
 #if (HW_REV_CHAR == 'A')
 #define HW_SHUNT_AMP_GAIN		(50.0)
@@ -61,8 +62,9 @@
 #define R_CHARGE_BOTTOM			(3e3)
 
 // Config default value overrides
-#define CONF_MAX_CHARGE_CURRENT 	45
-#define CONF_CAN_BAUD_RATE			CAN_BAUD_125K
+#define CONF_MAX_CHARGE_CURRENT			45
+#define CONF_CAN_BAUD_RATE				CAN_BAUD_125K
+#define CONF_SEND_CAN_STATUS_RATE_HZ	1
 
 // Settings specific to this hardware
 
@@ -183,7 +185,7 @@
 #define NRF5x_SWCLK_PIN			14
 
 // Analog
-#define HW_ADC_TEMP_SENSORS		7
+#define HW_ADC_TEMP_SENSORS		4
 
 #define LINE_V_CHARGE			PAL_LINE(GPIOC, 5)
 #define LINE_V_FUSE				PAL_LINE(GPIOC, 2)
@@ -265,7 +267,6 @@ bool hw_charger_detected(void);
 #define HW_LIM_VC_BALANCE_MIN			2.2, 4.20
 #define HW_LIM_VC_BALANCE_START			0, 1
 #define HW_LIM_VC_BALANCE_END			0.001, 5
-#define HW_LIM_MAX_BAL_CH				1, 13
 #define HW_LIM_MAX_BALANCE_CURR			0, 10
 #define HW_LIM_ENTER_SLEEP_CURR			0, 20
 #define HW_LIM_SLEEP_CNT				1, INT32_MAX

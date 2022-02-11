@@ -145,6 +145,9 @@ typedef struct {
 
 	// Enable temperature monitoring during charging
 	bool t_charge_mon_en;
+
+	// Configurable battery type, used for application-specific purposes.
+	uint32_t battery_type;
 } main_config_t;
 
 // Backup data that is retained between boots and firmware updates. When adding new
@@ -276,7 +279,9 @@ typedef struct {
 typedef enum {
 	FAULT_CODE_NONE = 0,
 	FAULT_CODE_CHARGE_OVERCURRENT,
-	FAULT_CODE_CHARGE_OVERTEMP
+	FAULT_CODE_CHARGE_OVERTEMP,
+	FAULT_CODE_HUMIDITY,
+	NBR_OF_FAULT_CODES,
 } bms_fault_code;
 
 // Logged fault data
@@ -290,6 +295,7 @@ typedef struct {
 	float temp_ic;
 	float v_cell_min;
 	float v_cell_max;
+	float pcb_humidity;
 } fault_data;
 
 // CAN commands
@@ -351,7 +357,7 @@ typedef enum {
 	CAN_PACKET_BMS_AH_WH_DIS_TOTAL,
 	CAN_PACKET_UPDATE_PID_POS_OFFSET,
 	CAN_PACKET_POLL_ROTOR_POS,
-	CAN_PACKET_BMS_BOOT,
+	CAN_PACKET_NOTIFY_BOOT,
 	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
 } CAN_PACKET_ID;
 
@@ -500,6 +506,8 @@ typedef enum {
 	COMM_GET_EXT_HUM_TMP,
 	COMM_GET_STATS,
 	COMM_RESET_STATS,
+	COMM_BMS_SET_BATT_TYPE,
+	COMM_BMS_GET_BATT_TYPE,
 } COMM_PACKET_ID;
 
 #endif /* DATATYPES_H_ */

@@ -51,6 +51,8 @@ static volatile bool m_was_charge_overcurrent = false;
 static float m_soc_filtered = 0.0;
 static bool m_soc_filter_init_done = false;
 
+bms_if_fault_cb m_fault_cb = NULL;
+
 // Threads
 static THD_WORKING_AREA(if_thd_wa, 2048);
 static THD_FUNCTION(if_thd, p);
@@ -589,8 +591,12 @@ void bms_if_fault_report(bms_fault_code fault) {
 	f.temp_ic = bms_if_get_temp_ic();
 	f.v_cell_min = bms_if_get_v_cell_min();
 	f.v_cell_max = bms_if_get_v_cell_max();
+	f.pcb_humidity = bms_if_get_humsens_hum_pcb();
 
 	terminal_add_fault_data(&f);
+
+	if (m_fault_cb)
+		m_fault_cb(&f);
 }
 
 bms_fault_code bms_if_fault_now(void) {
@@ -601,4 +607,9 @@ bms_fault_code bms_if_fault_now(void) {
 	}
 
 	return res;
+}
+
+void bms_if_register_fault_cb(const bms_if_fault_cb cb)
+{
+	m_fault_cb = cb;
 }

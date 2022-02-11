@@ -30,26 +30,53 @@
 #include "ltc6813.h"
 #include "comm_can.h"
 
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#define MAX_RESP_BUF_LEN  		16
+#define CMD_SET_RELAY_NBR_ARGS	3
 
 // Types
 typedef enum {
 	CONN_STATE_UNPLUGGED = 0,
 	CONN_STATE_JETPACK,
-	CONN_STATE_CHARGER
+	CONN_STATE_CHARGER,
+	NUM_CONN_STATES,
 } CONN_STATE;
 
-typedef struct __attribute__((packed)) {
-	// If the battery is decommissioned it is permanently disabled.
-	bool is_decommissioned;
+typedef enum {
+	RELAY_MAIN = 0,
+	RELAY_PCH,
+	NUM_RELAYS,
+} RELAY;
 
+typedef enum {
+	CMD_SET_DECOMM_STATE = 0,
+	CMD_GET_CONN_STATE,
+	CMD_GET_RELAY_STATE,
+	CMD_SET_RELAY_STATE,
+	NUM_COMMANDS,
+} CMD;
+
+typedef enum {
+	RSP_OK = 0,
+	RSP_INVALID_CMD,
+	RSP_INVALID_ARG,
+	RSP_DECOMM,
+	NUM_RESPONSES,
+} RSP;
+
+typedef struct {
 	// A timeout means that the charger or jetpack was connected for a long time
 	// without drawing power, leading to switching off the main contactor and entering sleep
 	// mode. If this happens, the battery must be disconnected at least once to reset the
 	// timeout and allow switching on the contactor again.
-	bool did_timeout_charger;
-	bool did_timeout_jetpack;
+	bool		did_timeout_charger;
+	bool		did_timeout_jetpack;
+	// If the battery is decommissioned it is permanently disabled.
+	bool		is_decommissioned;
+	fault_data	fault;
 } hw_config;
 
 // Functions
@@ -57,6 +84,8 @@ static void append_hw_data_to_buffer(uint8_t *buffer, int32_t *len);
 static void update_conn_state(void);
 static void terminal_psw_set(int argc, const char **argv);
 static void terminal_info(int argc, const char **argv);
+static void terminal_get_relay_state(int argc, const char **argv);
+static void terminal_set_relay_state(int argc, const char **argv);
 
 // Threads
 static THD_WORKING_AREA(hw_thd_wa, 2048);
@@ -75,6 +104,75 @@ static volatile float m_soc_override = -1.0;
 
 // The config is stored in the backup struct so that it is retained while sleeping.
 static volatile hw_config *m_config = (hw_config*)&backup.hw_config[0];
+
+static void fault_data_cb(fault_data * const fault)
+{
+	m_config->fault = *fault;
+}
+
+static void app_data_cmd_handler(unsigned char *data, unsigned int len) {
+	uint8_t resp_buf[MAX_RESP_BUF_LEN];
+	int32_t idx;
+	bool on_flag;
+	CMD cmd;
+
+	if (!data || !len)
+		return;
+
+	cmd = data[0];
+	data++;
+	idx = 0;
+
+	switch (cmd) {
+	case CMD_SET_DECOMM_STATE:
+		m_config->is_decommissioned = !!data[0];
+		resp_buf[idx++] = cmd;
+		resp_buf[idx++] = RSP_OK;
+		break;
+	case CMD_GET_CONN_STATE:
+		resp_buf[idx++] = cmd;
+		resp_buf[idx++] = m_conn_state;
+		break;
+	case CMD_GET_RELAY_STATE:
+		resp_buf[idx++] = cmd;
+		resp_buf[idx++] = HW_RELAY_MAIN_IS_ON();
+		resp_buf[idx++] = HW_RELAY_PCH_IS_ON();
+		break;
+	case CMD_SET_RELAY_STATE:
+		resp_buf[idx++] = cmd;
+		if (m_config->is_decommissioned) {
+			resp_buf[idx++] = RSP_DECOMM;
+			break;
+		}
+
+		if (len != CMD_SET_RELAY_NBR_ARGS || data[0] >= NUM_RELAYS) {
+			resp_buf[idx++] = RSP_INVALID_ARG;
+			break;
+		}
+
+		on_flag = !!data[1];
+		if ((RELAY)data[0] == RELAY_MAIN) {
+			if (on_flag) {
+				HW_RELAY_MAIN_ON();
+				m_terminal_override_psw = true;
+			} else {
+				HW_RELAY_MAIN_OFF();
+				m_terminal_override_psw = false;
+			}
+		} else {
+			on_flag ? HW_RELAY_PCH_ON() : HW_RELAY_PCH_OFF();
+		}
+		resp_buf[idx++] = RSP_OK;
+		break;
+	default:
+		resp_buf[idx++] = cmd;
+		resp_buf[idx++] = RSP_INVALID_CMD;
+		break;
+	}
+
+	if (idx)
+		commands_send_app_data(resp_buf, idx);
+}
 
 void hw_board_init(void) {
 	chMtxObjectInit(&m_sw_mutex);
@@ -118,6 +216,22 @@ void hw_board_init(void) {
 			"Print HW info",
 			0,
 			terminal_info);
+
+	terminal_register_command_callback(
+			"rbat_get_relays",
+			"Print state of relays",
+			0,
+			terminal_get_relay_state);
+
+	terminal_register_command_callback(
+			"rbat_set_relay",
+			"Set state of relay",
+			"[main or pch] [on or off]",
+			terminal_set_relay_state);
+
+	commands_set_app_data_handler(app_data_cmd_handler);
+
+	bms_if_register_fault_cb(fault_data_cb);
 
 	chThdSleepMilliseconds(10);
 	update_conn_state();
@@ -268,13 +382,16 @@ float hw_temp_cell_max(void) {
 }
 
 void hw_send_data(void(*reply_func)(unsigned char *data, unsigned int len)) {
-	uint8_t buffer[8]; int32_t len = 0;
-	append_hw_data_to_buffer(buffer, &len);
-	reply_func(buffer, len);
+	uint8_t buffer[8];
+	int32_t len = 0;
+	buffer[0] = COMM_BMS_HW_DATA;
+	append_hw_data_to_buffer(&buffer[1], &len);
+	reply_func(buffer, (1 + len));
 }
 
 void hw_send_can_data(void) {
-	uint8_t buffer[8]; int32_t len = 0;
+	uint8_t buffer[8];
+	int32_t len = 0;
 	append_hw_data_to_buffer(buffer, &len);
 	comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_HW_DATA_1 << 8), buffer, len);
 }
@@ -290,7 +407,7 @@ static void append_hw_data_to_buffer(uint8_t *buffer, int32_t *len) {
 
 	buffer_append_float16(buffer, pwr_get_vfuse(), 1e2, len);
 	buffer_append_float16(buffer, pwr_get_vcharge(), 1e2, len);
-	buffer_append_float16(buffer, HW_GET_V_MOIST_SENSE(), 1e4, len);
+	buffer_append_float16(buffer, HW_GET_V_MOIST_SENSE(), 1e3, len);
 
 	/*
 	 * State bitfield
@@ -405,6 +522,7 @@ static THD_FUNCTION(hw_thd, p) {
 				bms_if_get_humsens_temp_pcb() >= S_DECOMMISSION_TEMP) {
 			m_config->is_decommissioned = true;
 			hw_psw_switch_off(true);
+			bms_if_fault_report(FAULT_CODE_HUMIDITY);
 		}
 
 		// Low voltage check
@@ -481,5 +599,46 @@ static void terminal_info(int argc, const char **argv) {
 	case CONN_STATE_CHARGER:
 		commands_printf("CONN_STATE_CHARGER\n");
 		break;
+	default:
+		commands_printf("Invalid CONN_STATE\n");
+		break;
 	}
+}
+
+static void terminal_get_relay_state(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	commands_printf("Main relay: %s", (HW_RELAY_MAIN_IS_ON() ? "On" : "Off"));
+	commands_printf("Precharge relay: %s\n", (HW_RELAY_PCH_IS_ON() ? "On" : "Off"));
+}
+
+static void terminal_set_relay_state(int argc, const char **argv) {
+	if (argc == 3) {
+		commands_printf("rbat_set_relay: %s %s\n", argv[1], argv[2]);
+
+		if (strcmp(argv[1], "pch") == 0) {
+			if (strcmp(argv[2], "on") == 0) {
+				HW_RELAY_PCH_ON();
+				return;
+			}
+			if (strcmp(argv[2], "off") == 0) {
+				HW_RELAY_PCH_OFF();
+				return;
+			}
+		} else 	if (strcmp(argv[1], "main") == 0) {
+			if (strcmp(argv[2], "on") == 0) {
+				m_terminal_override_psw = true;
+				HW_RELAY_MAIN_ON();
+				return;
+			}
+			if (strcmp(argv[2], "off") == 0) {
+				m_terminal_override_psw = false;
+				HW_RELAY_MAIN_OFF();
+				return;
+			}
+		}
+	}
+
+	commands_printf("Invalid arguments");
 }
