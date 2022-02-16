@@ -47,6 +47,12 @@ can_status_msg_5 *comm_can_get_status_msg_5_id(int id);
 bms_soc_soh_temp_stat *comm_can_get_bms_soc_soh_temp_stat_index(int index);
 bms_soc_soh_temp_stat *comm_can_get_bms_soc_soh_temp_stat_id(int id);
 bms_soc_soh_temp_stat *comm_can_get_bms_stat_v_cell_min(void);
+
+// IO Board
+void comm_can_io_board_set_output_digital(int id, int channel, bool on);
+void comm_can_io_board_set_output_pwm(int id, int channel, float duty);
+
+// Power switch
 psw_status *comm_can_get_psw_status_index(int index);
 psw_status *comm_can_get_psw_status_id(int id);
 void comm_can_psw_switch(int id, bool is_on, bool plot);

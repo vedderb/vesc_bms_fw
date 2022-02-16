@@ -30,7 +30,7 @@
 #define FW_VERSION_MAJOR			6
 #define FW_VERSION_MINOR			00
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		1
+#define FW_TEST_VERSION_NUMBER		2
 
 // Init codes for the persistent storage. Change the config code when updating the config struct
 // in a way that is not backwards compatible.

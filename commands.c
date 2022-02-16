@@ -466,7 +466,23 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		chMtxUnlock(&terminal_mutex);
 		break;
 
-		// Power switch
+	case COMM_IO_BOARD_SET_PWM: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		int channel = buffer_get_int16(data, &ind);
+		float duty = buffer_get_float32_auto(data, &ind);
+		comm_can_io_board_set_output_pwm(id, channel, duty);
+	} break;
+
+	case COMM_IO_BOARD_SET_DIGITAL: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		int channel = buffer_get_int16(data, &ind);
+		bool on = data[ind++];
+		comm_can_io_board_set_output_digital(id, channel, on);
+	} break;
+
+	// Power switch
 	case COMM_PSW_GET_STATUS: {
 		int32_t ind = 0;
 		bool by_id = data[ind++];

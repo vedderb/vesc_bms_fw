@@ -344,6 +344,27 @@ bms_soc_soh_temp_stat *comm_can_get_bms_stat_v_cell_min(void) {
 	return &bms_stat_v_cell_min;
 }
 
+void comm_can_io_board_set_output_digital(int id, int channel, bool on) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = channel;
+	buffer[send_index++] = 1;
+	buffer[send_index++] = on ? 1 : 0;
+
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_IO_BOARD_SET_OUTPUT_DIGITAL << 8), buffer, send_index);
+}
+
+void comm_can_io_board_set_output_pwm(int id, int channel, float duty) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = channel;
+	buffer_append_float16(buffer, duty, 1e3, &send_index);
+
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_IO_BOARD_SET_OUTPUT_PWM << 8), buffer, send_index);
+}
+
 psw_status *comm_can_get_psw_status_index(int index) {
 	if (index < CAN_STATUS_MSGS_TO_STORE) {
 		return &psw_stat[index];
