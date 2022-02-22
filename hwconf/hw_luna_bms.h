@@ -87,14 +87,30 @@
 #define BQ76940_LRD_PIN			0
 
 // Analog
+#ifdef BQ76940_SDA_GPIO
+#define EN_B					PAL_LINE(GPIOC, 2)
+#endif
+
+#ifdef HDC1080_SDA_GPIO
 #define LINE_V_CHARGE			PAL_LINE(GPIOC, 2)
+#endif
+
 #define LINE_CURRENT			PAL_LINE(GPIOC, 3)
 #define LINE_TEMP_0				PAL_LINE(GPIOC, 1)
 #define LINE_TEMP_1				PAL_LINE(GPIOC, 0)
 #define LINE_TEMP_2				PAL_LINE(GPIOC, 4)
 #define LINE_TEMP_3				PAL_LINE(GPIOC, 5)
 #define LINE_TEMP_4				PAL_LINE(GPIOF, 3)
+
+#ifdef BQ76940_SDA_GPIO
+#define EN_A					PAL_LINE(GPIOB, 1)
+#endif
+
+#ifdef HDC1080_SDA_GPIO
 #define LINE_TEMP_5				PAL_LINE(GPIOB, 1)
+#endif
+
+#define ON_CANBUS				PAL_LINE(GPIOB, 7)
 
 #define LINE_TEMP_0_EN			PAL_LINE(GPIOB, 5)
 #define LINE_TEMP_1_EN			PAL_LINE(GPIOC, 8)

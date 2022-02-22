@@ -23,8 +23,10 @@
 // SYS_STATUS bits
 #define NUM_REG			55
 #define ADC_EN			0x10
+#define ADC_DIS			0x00
 #define TS_ON			0x08
 #define CC_EN			0x40
+#define CC_DIS			0x00
 #define SYS_STAT_DEVICE_XREADY	0x20
 #define SYS_STAT_OVRD_ALERT		0x10
 #define SYS_STAT_UV		0x08
@@ -192,5 +194,6 @@ void bq_discharge_enable(void);
 void bq_discharge_disable(void);
 void bq_charge_enable(void);
 void bq_charge_disable(void);
+void sleep_bq76940();
 
 #endif /* BQ76940_H_ */

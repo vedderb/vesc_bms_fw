@@ -66,7 +66,10 @@
 
 #ifndef ADC_CH_V_FUSE
 #define ADC_CH_V_FUSE			ADC_CH_V_CHARGE
+#ifdef HDC1080_SDA_GPIO
 #define LINE_V_FUSE				LINE_V_CHARGE
+#endif
+
 #endif
 
 #ifndef HW_INIT_HOOK

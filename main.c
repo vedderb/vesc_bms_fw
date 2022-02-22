@@ -148,6 +148,14 @@ int main(void) {
 
 	conf_general_apply_hw_limits((main_config_t*)&backup.config);
 
+	palSetLineMode(EN_A, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetLineMode(EN_B, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetLineMode(ON_CANBUS, PAL_MODE_OUTPUT_PUSHPULL);
+
+	LED_OFF(EN_A);
+	LED_OFF(EN_B);
+	LED_ON(ON_CANBUS);
+
 	palSetLineMode(LINE_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_LED_GREEN, PAL_MODE_OUTPUT_PUSHPULL);
 
