@@ -260,7 +260,7 @@ static const USBEndpointConfig ep2config = {
 		NULL
 };
 
-static volatile int configured_cnt = 0;
+static volatile int configured_cnt = 0; //Originally it was 0
 
 /*
  * Handles the USB driver global events.

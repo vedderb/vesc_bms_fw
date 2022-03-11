@@ -23,6 +23,9 @@
 #include "bms_if.h"
 #include "bq76940.h"
 #include "main.h"
+#include "stm32l4xx_hal.h"
+
+
 
 // Private variables
 static volatile int m_sleep_timer = 200;
@@ -80,26 +83,20 @@ static void go_to_sleep(void) {
 
 	timeout_configure_IWDT_slowest();
 
-/*
-	// Select low power mode: SHUTDOWN
-	PWR->CR1 &= ~PWR_CR1_LPMS;
-	PWR->CR1 |= PWR_CR1_LPMS_SHUTDOWN;
-
-	// Set SLEEPDEEP bit of Cortex system control register
-	SCB->SCR |= (uint32_t)SCB_SCR_SLEEPDEEP_Msk;
-
-	// Clear all the wakeup flags
-	PWR->SCR = PWR_SCR_CSBF | PWR_SCR_CWUF;
-
-	// Enter to the SHUTDOWN mode
-	__WFI();
-*/
-
 	RTCWakeup wakeupspec;
 	wakeupspec.wutr = ((uint32_t)4) << 16; // select 1 Hz clock source
-	wakeupspec.wutr |= 50; // Period will be 5+1 seconds.
+	wakeupspec.wutr |= 5; // Period will be 5+1 seconds.
 	rtcSTM32SetPeriodicWakeup(&RTCD1, &wakeupspec);
 
+//////////////////////////////////////////////////////////////////////
+	//Set enable internal wakeup line
+	//PWR->CR3 |= PWR_CR3_EIWUL;
+	//Enable Wakeup pin (PA2)
+	//PWR->CR3 |= PWR_CR3_EWUP4;
+	//Select rising edge to wakeup
+	//PWR->CR4 |= PWR_SR1_WUF4;
+///////////////////////////////////////////////////////////////////////
+	/* Enter STANDBY mode */
 	PWR->CR1 |= PWR_CR1_LPMS_STANDBY;
 	PWR->CR3 |= PWR_CR3_RRS; // Keep ram4 during standby
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
@@ -115,8 +112,7 @@ static THD_FUNCTION(sleep_thread, arg) {
 	bool usb_conf_reset = false;
 
 	for(;;) {
-		//go_to_sleep(); //for testing
-		if (m_sleep_timer > 0) {
+		 if (m_sleep_timer > 0) {
 			m_sleep_timer--;
 
 			static int blink = 0;
@@ -135,14 +131,13 @@ static THD_FUNCTION(sleep_thread, arg) {
 
 		} else {
 			LED_OFF(LINE_LED_GREEN);
-//#ifdef MODE_DEBUG
 			go_to_sleep();
-//#endif
 		}
 
 		if (!usb_conf_reset && usb_cdc_configured_cnt() > 0) {
 			m_sleep_timer = 240000;
 			usb_conf_reset = true;
+			LED_ON(LINE_LED_RED);
 		}
 
 		timeout_feed_WDT(THREAD_SLEEP);

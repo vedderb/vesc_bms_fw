@@ -162,8 +162,9 @@ void pwr_init(void) {
 #endif
 	palSetLineMode(LINE_TEMP_6_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	TEMP_MEASURE_ON();
-
+#ifdef HDC1080_SDA_GPIO
 	CURR_MEASURE_ON();
+#endif
 	HW_CAN_ON();
 
 #ifdef LINE_BQ_CHG_EN

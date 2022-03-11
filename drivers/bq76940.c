@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-
 #include "i2c_bb.h"
 #include "bq76940.h"
 #include "bms_if.h"
@@ -26,6 +25,8 @@
 #include "utils.h"
 #include "main.h"
 #include "math.h"
+#include "stm32l4xx_hal.h"
+#include "sleep.h"
 
 #ifdef HW_HAS_BQ76940
 
@@ -101,6 +102,8 @@ uint8_t bq76940_init(
 		stm32_gpio_t *lrd_gpio, int lrd_pin,
 		float shunt_res) {
 
+	palEnablePadEvent(GPIOA, 2U, PAL_EVENT_MODE_RISING_EDGE);
+
 	bq76940.alert_gpio = alert_gpio;
 	bq76940.alert_pin = alert_pin;
 	bq76940.lrd_gpio = lrd_gpio;
@@ -175,24 +178,27 @@ uint8_t bq76940_init(
 	chThdSleepMilliseconds(10);
 	write_reg(BQ_SYS_STAT,0xFF);
 	chThdSleepMilliseconds(10);
+
 	bq_discharge_enable();
+	bq_charge_enable();
+
 	chThdSleepMilliseconds(40);
 	read_reg(BQ_SYS_STAT);
 
 	/////////////////////////////////////////////////// provisional
-    /*if(status_pin_discharge){
-		uint8_t data = read_reg(BQ_SYS_CTRL2);
-		data = data | 0x02;
-		write_reg(BQ_SYS_CTRL2, data);
-	}
-	else{
-		uint8_t data = read_reg(BQ_SYS_CTRL2);
-		data = (data & 0xFD);
-		write_reg(BQ_SYS_CTRL2, data);
-	}*/
+    //if(status_pin_discharge){
+	//	uint8_t data = read_reg(BQ_SYS_CTRL2);
+	//	data = data | 0x03;
+	//	write_reg(BQ_SYS_CTRL2, data);
+	//}
+	//else{
+		//uint8_t data = read_reg(BQ_SYS_CTRL2);
+		//data = (data & 0xFD);
+		//write_reg(BQ_SYS_CTRL2, data);
+	//}
     ////////////////////////////////////////////////////provisional
 
-	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), LOWPRIO, sample_thread, NULL);
+	chThdCreateStatic(sample_thread_wa, sizeof(sample_thread_wa), HIGHPRIO, sample_thread, NULL);
 
 	return error; // 0 if successful
 }
@@ -206,9 +212,17 @@ static THD_FUNCTION(sample_thread, arg) {
 
 		chThdSleepMilliseconds(20);
 
+		//provisional
+		//wake up BQ76940
 		write_reg(BQ_SYS_CTRL1, (ADC_EN | TS_ON));
-		write_reg(BQ_SYS_CTRL2, CC_EN);	// sets ALERT at 250ms interval to high
-		if ( READ_ALERT() ) {
+		//
+
+		//chThdSleepMilliseconds(250);
+		palWaitPadTimeout(GPIOA, 2U, TIME_INFINITE);
+
+
+		//provisional
+//		if ( READ_ALERT() ) {
 			//Clear Alert
 			uint8_t sys_stat = read_reg(BQ_SYS_STAT);
 			write_reg(BQ_SYS_STAT,0xFF);
@@ -223,8 +237,8 @@ static THD_FUNCTION(sample_thread, arg) {
 				i = 0;
 			}
 
-			toggle_pin_charge(); //if only if the status of pin charge toggle
-			status_load_removal_discharge();
+			//toggle_pin_charge(); //if only if the status of pin charge toggle
+			//status_load_removal_discharge();
 			chThdSleepMilliseconds(30);
 			balance(m_discharge_state);
 			iin_measure(&i_in);	
@@ -251,7 +265,8 @@ static THD_FUNCTION(sample_thread, arg) {
 			}
 
 		}
-	}
+	//}
+
 }
 
 uint8_t write_reg(uint8_t reg, uint16_t val) {
@@ -400,14 +415,20 @@ float bq_get_current(void){
 
 void bq_discharge_enable(void){
 	status_pin_discharge = true;
-	status_pin_charge = true;
+
+	uint8_t data = read_reg(BQ_SYS_CTRL2);
+	data = data | 0x02;
+	write_reg(BQ_SYS_CTRL2, data);
 
 	return;
 }
 
 void bq_discharge_disable(void){
 	status_pin_discharge = false;
-	status_pin_charge = false;
+
+	uint8_t data = read_reg(BQ_SYS_CTRL2);
+	data = data & 0xFD;
+	write_reg(BQ_SYS_CTRL2, data);
 
 	return;
 }
@@ -415,11 +436,19 @@ void bq_discharge_disable(void){
 void bq_charge_enable(void){
 	status_pin_charge = true;
 
+	uint8_t data = read_reg(BQ_SYS_CTRL2);
+	data = data | 0x01;
+	write_reg(BQ_SYS_CTRL2, data);
+
 	return;
 }
 
 void bq_charge_disable(void){
 	status_pin_charge = false;
+
+	uint8_t data = read_reg(BQ_SYS_CTRL2);
+	data = data & 0xFE;
+	write_reg(BQ_SYS_CTRL2, data);
 
 	return;
 }
@@ -563,9 +592,11 @@ void   print_state_SOC()
 
 void sleep_bq76940()
 {
-	int error;
+	write_reg(BQ_SYS_CTRL1, (ADC_DIS | TS_ON));
+	//write_reg(BQ_SYS_CTRL2, CC_DIS);
+	//Shutdown everything frontend
+	//write_reg(BQ_SYS_CTRL1, 0x01);
+	//write_reg(BQ_SYS_CTRL1, 0x02);
 
-	error |= write_reg(BQ_SYS_CTRL1, (ADC_DIS | TS_ON));
-	error |= write_reg(BQ_SYS_CTRL2, CC_DIS);	// sets ALERT at 250ms interval to high
 }
 #endif
