@@ -30,7 +30,7 @@
 #define FW_VERSION_MAJOR			6
 #define FW_VERSION_MINOR			00
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		2
+#define FW_TEST_VERSION_NUMBER		0
 
 // Init codes for the persistent storage. Change the config code when updating the config struct
 // in a way that is not backwards compatible.
@@ -44,12 +44,17 @@
 
 //#define HW_HEADER					"hw_18s_light.h"
 //#define HW_SOURCE					"hw_18s_light.c"
+//#define HW_18S_LIGHT_MK2
+#define HW_18S_LIGHT_LMP
 
 //#define HW_HEADER					"hw_stormcore_bms.h"
 //#define HW_SOURCE					"hw_stormcore_bms.c"
 
 //#define HW_HEADER					"hw_rbat.h"
 //#define HW_SOURCE					"hw_rbat.c"
+
+//#define HW_HEADER					"hw_lb.h"
+//#define HW_SOURCE					"hw_lb.c"
 #endif
 
 /*

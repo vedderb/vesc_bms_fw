@@ -256,58 +256,61 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_BMS_GET_VALUES: {
 		int32_t ind = 0;
-		uint8_t send_buffer[128];
 
-		send_buffer[ind++] = packet_id;
+		chMtxLock(&send_buffer_mutex);
 
-		buffer_append_float32(send_buffer, bms_if_get_v_tot(), 1e6, &ind);
-		buffer_append_float32(send_buffer, bms_if_get_v_charge(), 1e6, &ind);
-		buffer_append_float32(send_buffer, bms_if_get_i_in(), 1e6, &ind);
-		buffer_append_float32(send_buffer, bms_if_get_i_in_ic(), 1e6, &ind);
-		buffer_append_float32(send_buffer, bms_if_get_ah_cnt(), 1e3, &ind);
-		buffer_append_float32(send_buffer, bms_if_get_wh_cnt(), 1e3, &ind);
+		send_buffer_global[ind++] = packet_id;
+
+		buffer_append_float32(send_buffer_global, bms_if_get_v_tot(), 1e6, &ind);
+		buffer_append_float32(send_buffer_global, bms_if_get_v_charge(), 1e6, &ind);
+		buffer_append_float32(send_buffer_global, bms_if_get_i_in(), 1e6, &ind);
+		buffer_append_float32(send_buffer_global, bms_if_get_i_in_ic(), 1e6, &ind);
+		buffer_append_float32(send_buffer_global, bms_if_get_ah_cnt(), 1e3, &ind);
+		buffer_append_float32(send_buffer_global, bms_if_get_wh_cnt(), 1e3, &ind);
 
 		// Cell voltages
-		send_buffer[ind++] = backup.config.cell_num;
+		send_buffer_global[ind++] = backup.config.cell_num;
 		for (int i = backup.config.cell_first_index;i <
 		(backup.config.cell_num + backup.config.cell_first_index);i++) {
-			buffer_append_float16(send_buffer, bms_if_get_v_cell(i), 1e3, &ind);
+			buffer_append_float16(send_buffer_global, bms_if_get_v_cell(i), 1e3, &ind);
 		}
 
 		// Balancing state
 		for (int i = backup.config.cell_first_index;i <
 		(backup.config.cell_num + backup.config.cell_first_index);i++) {
-			send_buffer[ind++] = bms_if_is_balancing_cell(i);
+			send_buffer_global[ind++] = bms_if_is_balancing_cell(i);
 		}
 
 		// Temperatures
-		send_buffer[ind++] = HW_ADC_TEMP_SENSORS;
-		for (int i = 0;i < HW_ADC_TEMP_SENSORS;i++) {
-			buffer_append_float16(send_buffer, bms_if_get_temp(i), 1e2, &ind);
+		send_buffer_global[ind++] = HW_TEMP_SENSORS;
+		for (int i = 0;i < HW_TEMP_SENSORS;i++) {
+			buffer_append_float16(send_buffer_global, bms_if_get_temp(i), 1e2, &ind);
 		}
-		buffer_append_float16(send_buffer, bms_if_get_temp_ic(), 1e2, &ind);
+		buffer_append_float16(send_buffer_global, bms_if_get_temp_ic(), 1e2, &ind);
 
 		// Humidity
-		buffer_append_float16(send_buffer, bms_if_get_humsens_temp_pcb(), 1e2, &ind);
-		buffer_append_float16(send_buffer, bms_if_get_humsens_hum_pcb(), 1e2, &ind);
+		buffer_append_float16(send_buffer_global, bms_if_get_humsens_temp_pcb(), 1e2, &ind);
+		buffer_append_float16(send_buffer_global, bms_if_get_humsens_hum_pcb(), 1e2, &ind);
 
 		// Highest cell temperature
-		buffer_append_float16(send_buffer, HW_TEMP_CELLS_MAX(), 1e2, &ind);
+		buffer_append_float16(send_buffer_global, HW_TEMP_CELLS_MAX(), 1e2, &ind);
 
 		// State of charge and state of health
-		buffer_append_float16(send_buffer, bms_if_get_soc(), 1e3, &ind);
-		buffer_append_float16(send_buffer, bms_if_get_soh(), 1e3, &ind);
+		buffer_append_float16(send_buffer_global, bms_if_get_soc(), 1e3, &ind);
+		buffer_append_float16(send_buffer_global, bms_if_get_soh(), 1e3, &ind);
 
 		// CAN ID
-		send_buffer[ind++] = backup.config.controller_id;
+		send_buffer_global[ind++] = backup.config.controller_id;
 
 		// Total charge and discharge counters
-		buffer_append_float32_auto(send_buffer, bms_if_get_ah_cnt_chg_total(), &ind);
-		buffer_append_float32_auto(send_buffer, bms_if_get_wh_cnt_chg_total(), &ind);
-		buffer_append_float32_auto(send_buffer, bms_if_get_ah_cnt_dis_total(), &ind);
-		buffer_append_float32_auto(send_buffer, bms_if_get_wh_cnt_dis_total(), &ind);
+		buffer_append_float32_auto(send_buffer_global, bms_if_get_ah_cnt_chg_total(), &ind);
+		buffer_append_float32_auto(send_buffer_global, bms_if_get_wh_cnt_chg_total(), &ind);
+		buffer_append_float32_auto(send_buffer_global, bms_if_get_ah_cnt_dis_total(), &ind);
+		buffer_append_float32_auto(send_buffer_global, bms_if_get_wh_cnt_dis_total(), &ind);
 
-		reply_func(send_buffer, ind);
+		chMtxUnlock(&send_buffer_mutex);
+
+		reply_func(send_buffer_global, ind);
 	} break;
 
 	case COMM_BMS_GET_BATT_TYPE: {
@@ -464,6 +467,10 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		chMtxLock(&terminal_mutex);
 		terminal_process_string((char*)data);
 		chMtxUnlock(&terminal_mutex);
+		break;
+
+	case COMM_REBOOT:
+		NVIC_SystemReset();
 		break;
 
 	case COMM_IO_BOARD_SET_PWM: {

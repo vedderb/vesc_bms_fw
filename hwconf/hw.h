@@ -58,6 +58,10 @@
 #define HW_ADC_TEMP_SENSORS		6
 #endif
 
+#ifndef HW_TEMP_SENSORS
+#define HW_TEMP_SENSORS			HW_ADC_TEMP_SENSORS
+#endif
+
 #ifndef ADC_CH_TEMP6
 #define ADC_CH_TEMP6			ADC_CH_TEMP5
 #define LINE_TEMP_6				LINE_TEMP_5
@@ -65,12 +69,22 @@
 #endif
 
 #ifndef ADC_CH_V_FUSE
+#ifdef ADC_CH_V_CHARGE
 #define ADC_CH_V_FUSE			ADC_CH_V_CHARGE
 #define LINE_V_FUSE				LINE_V_CHARGE
+#endif
 #endif
 
 #ifndef HW_INIT_HOOK
 #define HW_INIT_HOOK()
+#endif
+
+#ifndef HW_SLEEP_HOOK
+#define HW_SLEEP_HOOK()
+#endif
+
+#ifndef HW_STAY_AWAKE_HOOK
+#define HW_STAY_AWAKE_HOOK()
 #endif
 
 #ifndef LINE_CAN_EN
@@ -104,11 +118,19 @@
 #endif
 
 #ifndef HW_CHARGER_DETECTED
-#define HW_CHARGER_DETECTED()	false
+#define HW_CHARGER_DETECTED()	true
 #endif
 
 #ifndef NTC_TEMP_WITH_IND
 #define NTC_TEMP_WITH_IND(adc, ind) NTC_TEMP(adc)
+#endif
+
+#ifndef BUZZER_ON
+#define BUZZER_ON()
+#endif
+
+#ifndef BUZZER_OFF
+#define BUZZER_OFF()
 #endif
 
 // Functions

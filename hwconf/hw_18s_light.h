@@ -34,7 +34,13 @@
 #ifndef HWCONF_HW_18S_LIGHT_H_
 #define HWCONF_HW_18S_LIGHT_H_
 
+#ifdef HW_18S_LIGHT_MK2
+#define HW_NAME					"18s_light_mk2"
+#elif defined(HW_18S_LIGHT_LMP)
+#define HW_NAME					"18s_light_lmp"
+#else
 #define HW_NAME					"18s_light"
+#endif
 
 #define HW_NO_CH0_TEST
 
@@ -55,14 +61,23 @@
 #define HW_CELLS_SERIES			18
 #define HW_MAX_BAL_CH			10
 #define HW_SHUNT_RES			(1.0e-3)
+#if defined(HW_18S_LIGHT_LMP)
+#define HW_SHUNT_AMP_GAIN		(20.0)
+#else
 #define HW_SHUNT_AMP_GAIN		(50.0)
+#endif
 #define V_REG					3.3
-#define R_CHARGE_TOP			(316e3 + 2.5e3 + 100.0)
+#define R_CHARGE_TOP			(520e3 + 2.5e3 + 100.0)
 #define R_CHARGE_BOTTOM			(10e3)
 
 // LEDs
+#if defined(HW_18S_LIGHT_MK2) || defined(HW_18S_LIGHT_LMP)
+#define LINE_LED_RED			PAL_LINE(GPIOA, 9)
+#define LINE_LED_GREEN			PAL_LINE(GPIOA, 10)
+#else
 #define LINE_LED_RED			PAL_LINE(GPIOA, 0)
 #define LINE_LED_GREEN			PAL_LINE(GPIOA, 2)
+#endif
 
 // BQ76200
 #define LINE_BQ_CHG_EN			PAL_LINE(GPIOB, 0)
@@ -85,20 +100,38 @@
 #define HW_CAN_DEV				CAND1
 #define HW_CAN_AF				9
 
+// Buzzer
+#define BUZZER_LINE				PAL_LINE(GPIOA, 3)
+#define BUZZER_AF				2
+#define BUZZER_PWM				PWMD5
+#define BUZZER_FREQ_HZ			4000
+#define BUZZER_ON()				pwmEnableChannel(&BUZZER_PWM, 3, PWM_PERCENTAGE_TO_WIDTH(&BUZZER_PWM, 5000))
+#define BUZZER_OFF()			pwmEnableChannel(&BUZZER_PWM, 3, PWM_PERCENTAGE_TO_WIDTH(&BUZZER_PWM, 0))
+
 // Analog
 #define LINE_V_CHARGE			PAL_LINE(GPIOC, 2)
 #define LINE_CURRENT			PAL_LINE(GPIOC, 3)
 #define LINE_TEMP_0				PAL_LINE(GPIOC, 1)
+#if defined(HW_18S_LIGHT_MK2) || defined(HW_18S_LIGHT_LMP)
+#define LINE_TEMP_1				PAL_LINE(GPIOA, 0)
+#define LINE_TEMP_2				PAL_LINE(GPIOA, 2)
+#else
 #define LINE_TEMP_1				PAL_LINE(GPIOC, 0)
 #define LINE_TEMP_2				PAL_LINE(GPIOC, 0)
+#endif
 #define LINE_TEMP_3				PAL_LINE(GPIOC, 0)
 #define LINE_TEMP_4				PAL_LINE(GPIOC, 0)
 #define LINE_TEMP_5				PAL_LINE(GPIOC, 0)
 
 #define LINE_TEMP_0_EN			PAL_LINE(GPIOB, 5)
 #define LINE_TEMP_1_EN			PAL_LINE(GPIOB, 13)
+#if defined(HW_18S_LIGHT_MK2) || defined(HW_18S_LIGHT_LMP)
+#define LINE_TEMP_2_EN			PAL_LINE(GPIOC, 8)
+#define LINE_TEMP_3_EN			PAL_LINE(GPIOC, 9)
+#else
 #define LINE_TEMP_2_EN			PAL_LINE(GPIOB, 13)
 #define LINE_TEMP_3_EN			PAL_LINE(GPIOB, 13)
+#endif
 #define LINE_TEMP_4_EN			PAL_LINE(GPIOB, 13)
 #define LINE_TEMP_5_EN			PAL_LINE(GPIOB, 13)
 
@@ -114,8 +147,13 @@
 #define ADC_CH_CURRENT			ADC_CHANNEL_IN4
 #define ADC_CH_TEMP0			ADC_CHANNEL_IN2 // Next to STM32
 #define ADC_CH_TEMP1			ADC_CHANNEL_IN1 // Ext
+#if defined(HW_18S_LIGHT_MK2) || defined(HW_18S_LIGHT_LMP)
+#define ADC_CH_TEMP2			ADC_CHANNEL_IN5 // Ext
+#define ADC_CH_TEMP3			ADC_CHANNEL_IN7 // Ext
+#else
 #define ADC_CH_TEMP2			ADC_CHANNEL_IN1 // Ext
 #define ADC_CH_TEMP3			ADC_CHANNEL_IN1 // Ext
+#endif
 #define ADC_CH_TEMP4			ADC_CHANNEL_IN1 // Ext
 #define ADC_CH_TEMP5			ADC_CHANNEL_IN1 // Ext
 

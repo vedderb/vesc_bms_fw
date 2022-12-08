@@ -552,17 +552,17 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_BAL << 8), buffer, send_index);
 
 		int temp_now = 0;
-		while (temp_now < HW_ADC_TEMP_SENSORS) {
+		while (temp_now < HW_TEMP_SENSORS) {
 			send_index = 0;
 			buffer[send_index++] = temp_now;
-			buffer[send_index++] = HW_ADC_TEMP_SENSORS;
-			if (temp_now < HW_ADC_TEMP_SENSORS) {
+			buffer[send_index++] = HW_TEMP_SENSORS;
+			if (temp_now < HW_TEMP_SENSORS) {
 				buffer_append_float16(buffer, bms_if_get_temp(temp_now++), 1e2, &send_index);
 			}
-			if (temp_now < HW_ADC_TEMP_SENSORS) {
+			if (temp_now < HW_TEMP_SENSORS) {
 				buffer_append_float16(buffer, bms_if_get_temp(temp_now++), 1e2, &send_index);
 			}
-			if (temp_now < HW_ADC_TEMP_SENSORS) {
+			if (temp_now < HW_TEMP_SENSORS) {
 				buffer_append_float16(buffer, bms_if_get_temp(temp_now++), 1e2, &send_index);
 			}
 			comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_TEMPS << 8), buffer, send_index);

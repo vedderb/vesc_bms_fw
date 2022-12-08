@@ -39,6 +39,7 @@ void sleep_init(void) {
 
 void sleep_reset(void) {
 	m_sleep_timer = backup.config.sleep_timeout_reset_ms;
+	HW_STAY_AWAKE_HOOK();
 }
 
 int sleep_time_left(void) {
@@ -65,6 +66,9 @@ static void go_to_sleep(void) {
 	LED_OFF(LINE_LED_GREEN);
 
 	bms_if_sleep();
+
+	HW_SLEEP_HOOK();
+	CURR_MEASURE_OFF();
 
 	for (volatile int i = 0;i < 1000;i++) {
 		__NOP();
@@ -122,6 +126,7 @@ static THD_FUNCTION(sleep_thread, arg) {
 		if (!usb_conf_reset && usb_cdc_configured_cnt() > 0) {
 			m_sleep_timer = 240000;
 			usb_conf_reset = true;
+			HW_STAY_AWAKE_HOOK();
 		}
 
 		timeout_feed_WDT(THREAD_SLEEP);

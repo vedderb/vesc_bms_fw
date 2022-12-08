@@ -30,8 +30,27 @@ static volatile float m_v_charge = 0.0;
 static volatile float m_v_fuse = 0.0;
 static volatile float m_i_in = 0.0;
 static volatile float m_temps[HW_ADC_TEMP_SENSORS] = {0.0};
+static volatile float m_temp_volts[HW_ADC_TEMP_SENSORS] = {0.0};
 
 static THD_WORKING_AREA(adc_thd_wa, 2048);
+
+#ifdef ADC_CH_V_CHARGE
+#define ADC_CHx_V_CHARGE ADC_CH_V_CHARGE
+#else
+#define ADC_CHx_V_CHARGE 0
+#endif
+
+#ifdef ADC_CH_CURRENT
+#define ADC_CHx_CURRENT ADC_CH_CURRENT
+#else
+#define ADC_CHx_CURRENT 0
+#endif
+
+#ifdef ADC_CH_V_FUSE
+#define ADC_CHx_V_FUSE ADC_CH_V_FUSE
+#else
+#define ADC_CHx_V_FUSE 0
+#endif
 
 const ADCConversionGroup adcgrpcfg1 = {
 		.circular     = false,
@@ -54,15 +73,31 @@ const ADCConversionGroup adcgrpcfg1 = {
 				ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_92P5)
 		},
 		.sqr          = {
-				ADC_SQR1_SQ1_N(ADC_CHANNEL_IN0) | ADC_SQR1_SQ2_N(ADC_CH_V_CHARGE) |
-				ADC_SQR1_SQ3_N(ADC_CH_CURRENT) | ADC_SQR1_SQ4_N(ADC_CH_TEMP0),
+				ADC_SQR1_SQ1_N(ADC_CHANNEL_IN0) | ADC_SQR1_SQ2_N(ADC_CHx_V_CHARGE) |
+				ADC_SQR1_SQ3_N(ADC_CHx_CURRENT) | ADC_SQR1_SQ4_N(ADC_CH_TEMP0),
 				ADC_SQR2_SQ5_N(ADC_CH_TEMP1) | ADC_SQR2_SQ6_N(ADC_CH_TEMP2) |
 				ADC_SQR2_SQ7_N(ADC_CH_TEMP3) | ADC_SQR2_SQ8_N(ADC_CH_TEMP4) |
 				ADC_SQR2_SQ9_N(ADC_CH_TEMP5),
-				ADC_SQR3_SQ10_N(ADC_CH_TEMP6) | ADC_SQR3_SQ11_N(ADC_CH_V_FUSE),
+				ADC_SQR3_SQ10_N(ADC_CH_TEMP6) | ADC_SQR3_SQ11_N(ADC_CHx_V_FUSE),
 				0U
 		}
 };
+
+#ifdef BUZZER_LINE
+static PWMConfig pwmcfg = {
+		1000000,
+		1000000 / BUZZER_FREQ_HZ,
+		0,
+		{
+				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
+				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
+				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
+				{PWM_OUTPUT_ACTIVE_HIGH, NULL}
+		},
+		0,
+		0
+};
+#endif
 
 static THD_FUNCTION(adc_thd, p) {
 	(void)p;
@@ -106,15 +141,24 @@ static THD_FUNCTION(adc_thd, p) {
 			temps[j] /= (float)num_samp;
 		}
 
+#if defined(ADC_CH_V_CHARGE) || defined(ADC_CH_CURRENT) || defined(ADC_CH_V_FUSE)
 		uint16_t vrefint_cal = *((uint16_t*)((uint32_t)0x1FFF75AA));
 		float vdda = (3.0 * (float)vrefint_cal) / (float)ref;
+#endif
 
+#ifdef ADC_CH_V_CHARGE
 		m_v_charge = (v_ch / (4095 / vdda)) * ((R_CHARGE_TOP + R_CHARGE_BOTTOM) / R_CHARGE_BOTTOM);
+#endif
+#ifdef ADC_CH_CURRENT
 		m_i_in = -((3.3 * ((i_in / 4095.0))) - 1.65) * (1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res);
+#endif
+#ifdef ADC_CH_V_FUSE
 		m_v_fuse = (v_fuse / (4095 / vdda)) * ((R_CHARGE_TOP + R_CHARGE_BOTTOM) / R_CHARGE_BOTTOM);
+#endif
 
 		for (int j = 0;j < HW_ADC_TEMP_SENSORS;j++) {
 			m_temps[j] = NTC_TEMP_WITH_IND(temps[j], j);
+			m_temp_volts[j] = 3.3 * temps[j] / 4095.0;
 		}
 
 		chThdSleepMilliseconds(1);
@@ -138,9 +182,15 @@ void pwr_init(void) {
 	BQ_PCHG_OFF();
 #endif
 
+#ifdef LINE_V_CHARGE
 	palSetLineMode(LINE_V_CHARGE, PAL_MODE_INPUT_ANALOG);
+#endif
+#ifdef LINE_V_FUSE
 	palSetLineMode(LINE_V_FUSE, PAL_MODE_INPUT_ANALOG);
+#endif
+#ifdef LINE_CURRENT
 	palSetLineMode(LINE_CURRENT, PAL_MODE_INPUT_ANALOG);
+#endif
 	palSetLineMode(LINE_TEMP_0, PAL_MODE_INPUT_ANALOG);
 	palSetLineMode(LINE_TEMP_1, PAL_MODE_INPUT_ANALOG);
 	palSetLineMode(LINE_TEMP_2, PAL_MODE_INPUT_ANALOG);
@@ -166,6 +216,12 @@ void pwr_init(void) {
 	BQ_PMON_ON();
 #endif
 
+#ifdef BUZZER_LINE
+	pwmStart(&BUZZER_PWM, &pwmcfg);
+	palSetLineMode(BUZZER_LINE, PAL_MODE_ALTERNATE(BUZZER_AF));
+	BUZZER_OFF();
+#endif
+
 	chThdSleepMilliseconds(10);
 
 	chThdCreateStatic(adc_thd_wa, sizeof(adc_thd_wa), NORMALPRIO, adc_thd, 0);
@@ -189,4 +245,12 @@ float pwr_get_temp(int sensor) {
 	}
 
 	return m_temps[sensor];
+}
+
+float pwr_get_temp_volt(int sensor) {
+	if (sensor < 0 || sensor >= HW_ADC_TEMP_SENSORS) {
+		return -1.0;
+	}
+
+	return m_temp_volts[sensor];
 }

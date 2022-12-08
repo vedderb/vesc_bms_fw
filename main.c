@@ -27,6 +27,7 @@
 #include "bms_if.h"
 #include "hdc1080.h"
 #include "sht30.h"
+#include "shtc3.h"
 #include "confparser.h"
 #include "commands.h"
 #include "timeout.h"
@@ -186,6 +187,11 @@ int main(void) {
 #ifdef SHT30_SDA_GPIO
 	sht30_init(SHT30_SDA_GPIO, SHT30_SDA_PIN,
 			SHT30_SCL_GPIO, SHT30_SCL_PIN);
+#endif
+
+#ifdef SHTC3_SDA_GPIO
+	shtc3_init(SHTC3_SDA_GPIO, SHTC3_SDA_PIN,
+			SHTC3_SCL_GPIO, SHTC3_SCL_PIN);
 #endif
 
 #ifdef HW_UART_DEV

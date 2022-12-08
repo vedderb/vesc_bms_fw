@@ -224,7 +224,7 @@ void terminal_process_string(char *str) {
 				(bms_if_is_balancing_cell(i) ? "Yes" : "No"));
 		}
 		commands_printf("\nTemp\tdeg C");
-		for (int i = 0;i < HW_ADC_TEMP_SENSORS;i++) {
+		for (int i = 0;i < HW_TEMP_SENSORS;i++) {
 			commands_printf("%d\t%.2f", i, bms_if_get_temp(i));
 		}
 		commands_printf("Ic\t%.2f\n", bms_if_get_temp_ic());

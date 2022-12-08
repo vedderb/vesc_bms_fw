@@ -24,6 +24,7 @@
 #include "utils.h"
 #include "hdc1080.h"
 #include "sht30.h"
+#include "shtc3.h"
 #include "comm_can.h"
 #include "timeout.h"
 #include "sleep.h"
@@ -81,6 +82,12 @@ static THD_FUNCTION(charge_thd, p) {
 
 	int no_charge_cnt = 0;
 
+#ifdef ADC_CH_CURRENT
+	float chg_current = m_i_in_filter;
+#else
+	float chg_current = m_i_in_filter_ic;
+#endif
+
 	for (;;) {
 		if (m_is_charging && HW_TEMP_CELLS_MAX() >= backup.config.t_charge_max &&
 				backup.config.t_charge_mon_en) {
@@ -119,7 +126,7 @@ static THD_FUNCTION(charge_thd, p) {
 
 		chThdSleepMilliseconds(10);
 
-		if (m_i_in_filter > -0.5 && m_is_charging && !HW_CHARGER_DETECTED()) {
+		if (chg_current > -0.5 && m_is_charging && !HW_CHARGER_DETECTED()) {
 			no_charge_cnt++;
 
 			if (no_charge_cnt > 100) {
@@ -133,7 +140,7 @@ static THD_FUNCTION(charge_thd, p) {
 		}
 
 		if (m_is_charging) {
-			if (fabsf(m_i_in_filter) > backup.config.max_charge_current) {
+			if (fabsf(chg_current) > backup.config.max_charge_current) {
 				m_was_charge_overcurrent = true;
 				m_is_charging = false;
 				CHARGE_DISABLE();
@@ -312,14 +319,29 @@ static THD_FUNCTION(if_thd, p) {
 	chThdSleepMilliseconds(2000);
 
 	for(;;) {
-		float ltc_curr_adc = ltc_last_gpio_voltage(LTC_GPIO_CURR_MON);
-		float i_bms_ic = -(ltc_curr_adc - 1.65 + backup.ic_i_sens_v_ofs) *
+		float ltc_curr_adc = ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) - 1.65;
+#ifdef LTC_GPIO_CURR_MON_2
+		ltc_curr_adc += ltc_last_gpio_voltage(LTC_GPIO_CURR_MON_2) - 1.65;
+#endif
+
+#ifdef LTC_INVERT_CURRENT
+		ltc_curr_adc = -ltc_curr_adc;
+#endif
+
+		float i_bms_ic = -(ltc_curr_adc + backup.ic_i_sens_v_ofs) *
 					(1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res) * IC_ISENSE_I_GAIN_CORR;
 		float i_adc = pwr_get_iin();
 
-		if (ltc_curr_adc <= 0.0) {
+#ifdef LTC_GPIO_CURR_MON_2
+		if (ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) <= 0.0 ||
+				ltc_last_gpio_voltage(LTC_GPIO_CURR_MON_2) < 0.0) {
 			i_bms_ic = 0.0;
 		}
+#else
+		if (ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) <= 0.0) {
+			i_bms_ic = 0.0;
+		}
+#endif
 
 		if (backup.config.i_measure_mode == I_MEASURE_MODE_VESC) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -431,7 +453,11 @@ float bms_if_get_v_charge(void) {
 }
 
 float bms_if_get_temp(int sensor) {
+#ifdef HW_GET_TEMP
+	return HW_GET_TEMP(sensor);
+#else
 	return pwr_get_temp(sensor);
+#endif
 }
 
 float bms_if_get_temp_ic(void) {
@@ -524,7 +550,16 @@ void bms_if_zero_current_offset(void) {
 	float samples = 0.0;
 
 	for (int i = 0;i < 20;i++) {
-		ofs_avg -= ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) - 1.65;
+		float ltc_curr_adc = ltc_last_gpio_voltage(LTC_GPIO_CURR_MON) - 1.65;
+#ifdef LTC_GPIO_CURR_MON_2
+		ltc_curr_adc += ltc_last_gpio_voltage(LTC_GPIO_CURR_MON_2) - 1.65;
+#endif
+
+#ifdef LTC_INVERT_CURRENT
+		ltc_curr_adc = -ltc_curr_adc;
+#endif
+
+		ofs_avg -= ltc_curr_adc;
 		samples += 1.0;
 		chThdSleepMilliseconds(100);
 	}
@@ -538,6 +573,8 @@ float bms_if_get_humsens_hum_pcb(void) {
 	return hdc1080_get_hum();
 #elif defined(SHT30_SDA_GPIO)
 	return sht30_get_hum();
+#elif defined(SHTC3_SDA_GPIO)
+	return shtc3_get_hum();
 #else
 	return 0.0;
 #endif
@@ -548,6 +585,8 @@ float bms_if_get_humsens_temp_pcb(void) {
 	return hdc1080_get_temp();
 #elif defined(SHT30_SDA_GPIO)
 	return sht30_get_temp();
+#elif defined(SHTC3_SDA_GPIO)
+	return shtc3_get_temp();
 #else
 	return 0.0;
 #endif
