@@ -123,6 +123,11 @@
 #define CONF_EXT_PCH_R_BOTTOM 10000
 #endif
 
+// Min Charge Current
+#ifndef CONF_MIN_CHARGE_CURRENT
+#define CONF_MIN_CHARGE_CURRENT 0.5
+#endif
+
 // Max Charge Current
 #ifndef CONF_MAX_CHARGE_CURRENT
 #define CONF_MAX_CHARGE_CURRENT 16
@@ -156,11 +161,6 @@
 // Charge Temp Mon
 #ifndef CONF_T_CHARGE_MON_EN
 #define CONF_T_CHARGE_MON_EN 1
-#endif
-
-// Application-specific battery type.
-#ifndef CONF_BATTERY_TYPE
-#define CONF_BATTERY_TYPE 0xAA
 #endif
 
 // CONF_DEFAULT_H_

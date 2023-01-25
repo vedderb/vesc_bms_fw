@@ -25,11 +25,13 @@
 #include "hdc1080.h"
 #include "sht30.h"
 #include "shtc3.h"
+#include "bme280_if.h"
 #include "comm_can.h"
 #include "timeout.h"
 #include "sleep.h"
 #include "terminal.h"
 #include "flash_helper.h"
+#include "commands.h"
 
 #include <math.h>
 
@@ -82,13 +84,13 @@ static THD_FUNCTION(charge_thd, p) {
 
 	int no_charge_cnt = 0;
 
+	for (;;) {
 #ifdef ADC_CH_CURRENT
-	float chg_current = m_i_in_filter;
+		float chg_current = m_i_in_filter;
 #else
-	float chg_current = m_i_in_filter_ic;
+		float chg_current = m_i_in_filter_ic;
 #endif
 
-	for (;;) {
 		if (m_is_charging && HW_TEMP_CELLS_MAX() >= backup.config.t_charge_max &&
 				backup.config.t_charge_mon_en) {
 			bms_if_fault_report(FAULT_CODE_CHARGE_OVERTEMP);
@@ -126,7 +128,7 @@ static THD_FUNCTION(charge_thd, p) {
 
 		chThdSleepMilliseconds(10);
 
-		if (chg_current > -0.5 && m_is_charging && !HW_CHARGER_DETECTED()) {
+		if (fabsf(chg_current) < backup.config.min_charge_current && m_is_charging && !HW_CHARGER_DETECTED()) {
 			no_charge_cnt++;
 
 			if (no_charge_cnt > 100) {
@@ -575,6 +577,8 @@ float bms_if_get_humsens_hum_pcb(void) {
 	return sht30_get_hum();
 #elif defined(SHTC3_SDA_GPIO)
 	return shtc3_get_hum();
+#elif defined(BME280_SDA_GPIO)
+	return bme280_if_get_hum();
 #else
 	return 0.0;
 #endif
@@ -587,17 +591,35 @@ float bms_if_get_humsens_temp_pcb(void) {
 	return sht30_get_temp();
 #elif defined(SHTC3_SDA_GPIO)
 	return shtc3_get_temp();
+#elif defined(BME280_SDA_GPIO)
+	return bme280_if_get_temp();
+#else
+	return 0.0;
+#endif
+}
+
+float bms_if_get_humsens_pres_pcb(void) {
+#if defined(BME280_SDA_GPIO)
+	return bme280_if_get_pres();
 #else
 	return 0.0;
 #endif
 }
 
 float bms_if_get_humsens_hum_ext(void) {
+#if defined(BME280_SDA_GPIO)
+	return bme280_if_get_hum();
+#else
 	return sht30_get_hum();
+#endif
 }
 
 float bms_if_get_humsens_temp_ext(void) {
+#if defined(BME280_SDA_GPIO)
+	return bme280_if_get_temp();
+#else
 	return sht30_get_temp();
+#endif
 }
 
 float bms_if_get_soc(void) {

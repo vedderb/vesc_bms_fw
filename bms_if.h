@@ -54,6 +54,7 @@ void bms_if_force_balance(bool bal_en);
 void bms_if_zero_current_offset(void);
 float bms_if_get_humsens_hum_pcb(void);
 float bms_if_get_humsens_temp_pcb(void);
+float bms_if_get_humsens_pres_pcb(void);
 float bms_if_get_humsens_hum_ext(void);
 float bms_if_get_humsens_temp_ext(void);
 float bms_if_get_soc(void);

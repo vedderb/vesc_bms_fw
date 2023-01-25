@@ -49,6 +49,12 @@ bms_soc_soh_temp_stat *comm_can_get_bms_soc_soh_temp_stat_id(int id);
 bms_soc_soh_temp_stat *comm_can_get_bms_stat_v_cell_min(void);
 
 // IO Board
+io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index);
+io_board_adc_values *comm_can_get_io_board_adc_1_4_id(int id);
+io_board_adc_values *comm_can_get_io_board_adc_5_8_index(int index);
+io_board_adc_values *comm_can_get_io_board_adc_5_8_id(int id);
+io_board_digial_inputs *comm_can_get_io_board_digital_in_index(int index);
+io_board_digial_inputs *comm_can_get_io_board_digital_in_id(int id);
 void comm_can_io_board_set_output_digital(int id, int channel, bool on);
 void comm_can_io_board_set_output_pwm(int id, int channel, float duty);
 

@@ -12,6 +12,7 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;TODO&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</description>
             <cDefine></cDefine>
             <valString>main_config_t</valString>
+            <maxLen>0</maxLen>
         </config_name>
         <hw_name>
             <longName>VESC BMS</longName>
@@ -534,6 +535,28 @@ p, li { white-space: pre-wrap; }
             <suffix> kΩ</suffix>
             <vTx>9</vTx>
         </ext_pch_r_bot>
+        <min_charge_current>
+            <longName>Min Charge Current</longName>
+            <type>1</type>
+            <transmittable>1</transmittable>
+            <description>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Roboto'; ; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Stop charging and disable charge port when the charge current goes below this value.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</description>
+            <cDefine>CONF_MIN_CHARGE_CURRENT</cDefine>
+            <editorDecimalsDouble>2</editorDecimalsDouble>
+            <editorScale>1</editorScale>
+            <editAsPercentage>0</editAsPercentage>
+            <maxDouble>999</maxDouble>
+            <minDouble>0</minDouble>
+            <showDisplay>0</showDisplay>
+            <stepDouble>0.01</stepDouble>
+            <valDouble>0.5</valDouble>
+            <vTxDoubleScale>1</vTxDoubleScale>
+            <suffix> A</suffix>
+            <vTx>9</vTx>
+        </min_charge_current>
         <max_charge_current>
             <longName>Max Charge Current</longName>
             <type>1</type>
@@ -710,6 +733,7 @@ p, li { white-space: pre-wrap; }
         <ser>ext_shunt_gain</ser>
         <ser>ext_pch_r_top</ser>
         <ser>ext_pch_r_bot</ser>
+        <ser>min_charge_current</ser>
         <ser>max_charge_current</ser>
         <ser>sleep_timeout_reset_ms</ser>
         <ser>soc_filter_const</ser>
@@ -739,6 +763,7 @@ p, li { white-space: pre-wrap; }
                     <param>t_charge_min</param>
                     <param>t_charge_max</param>
                     <param>t_charge_mon_en</param>
+                    <param>min_charge_current</param>
                     <param>max_charge_current</param>
                 </subgroupParams>
             </subgroup>

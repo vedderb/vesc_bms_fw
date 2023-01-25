@@ -204,8 +204,9 @@ void terminal_process_string(char *str) {
 		flash_helper_store_backup_data();
 		commands_printf("Done!\n");
 	} else if (strcmp(argv[0], "hum") == 0) {
-		commands_printf("Hum1: %.2f (temp: %.2f)", bms_if_get_humsens_hum_pcb(), bms_if_get_humsens_temp_pcb());
-		commands_printf("Hum2: %.2f (temp: %.2f)", bms_if_get_humsens_hum_ext(), bms_if_get_humsens_temp_ext());
+		commands_printf("Hum1     : %.2f %% (temp: %.2f degC)", bms_if_get_humsens_hum_pcb(), bms_if_get_humsens_temp_pcb());
+		commands_printf("Hum2     : %.2f %% (temp: %.2f degC)", bms_if_get_humsens_hum_ext(), bms_if_get_humsens_temp_ext());
+		commands_printf("Pressure : %.2f Pa", bms_if_get_humsens_pres_pcb());
 		commands_printf(" ");
 	} else if (strcmp(argv[0], "bms_get_values") == 0) {
 		commands_printf("\n\nBms values\n================================");

@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2023 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC BMS firmware.
 
@@ -17,17 +17,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef SLEEP_H_
-#define SLEEP_H_
+#ifndef BME280_IF_H_
+#define BME280_IF_H_
 
-#include "ch.h"
-#include "hal.h"
-#include "conf_general.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 // Functions
-void sleep_init(void);
-void sleep_reset(void);
-int sleep_time_left(void);
-int sleep_set_timer(int time);
+void bme280_if_init(
+		stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin);
+float bme280_if_get_hum(void);
+float bme280_if_get_temp(void);
+float bme280_if_get_pres(void);
 
-#endif /* SLEEP_H_ */
+#endif /* BME280_IF_H_ */

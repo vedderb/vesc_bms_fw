@@ -23,6 +23,8 @@
 #include "commands.h"
 #include "ltc6813.h"
 #include "main.h"
+#include "sleep.h"
+#include "comm_can.h"
 #include <stdio.h>
 
 // Threads
@@ -33,13 +35,14 @@ static THD_FUNCTION(hw_thd_mon, p);
 
 // Private variables
 static float m_temps[HW_TEMP_SENSORS];
-static float m_v_charge = 0.0;
+static int can_fault_cnt = 0;
+static bool awake_block = false;
 
 // Private functions
 static void terminal_mc_en(int argc, const char **argv);
 static void terminal_buzzer_test(int argc, const char **argv);
 static void terminal_hw_info(int argc, const char **argv);
-static void terminal_set_v_charge(int argc, const char **argv);
+static void terminal_test_if_conn(int argc, const char **argv);
 
 void hw_board_init(void) {
 	palSetLineMode(LINE_CAN_EN, PAL_MODE_OUTPUT_PUSHPULL);
@@ -48,10 +51,12 @@ void hw_board_init(void) {
 	palClearLine(LINE_MC_EN);
 	palClearLine(LINE_BATT_OUT_EN);
 	palClearLine(LINE_12V_EN);
+	palClearLine(LINE_ESP_EN);
 
 	palSetLineMode(LINE_MC_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_BATT_OUT_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_12V_EN, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetLineMode(LINE_ESP_EN, PAL_MODE_OUTPUT_PUSHPULL);
 
 	palSetLineMode(LINE_SR_SER, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_SR_RCLK, PAL_MODE_OUTPUT_PUSHPULL);
@@ -83,21 +88,27 @@ void hw_board_init(void) {
 			terminal_hw_info);
 
 	terminal_register_command_callback(
-			"set_v_charge",
-			"Set Charger Voltage Emulation",
-			"[volts]",
-			terminal_set_v_charge);
+			"test_if_conn",
+			"Test if interface is connected",
+			NULL,
+			terminal_test_if_conn);
 }
 
 void hw_board_sleep(void) {
 	palClearLine(LINE_BATT_OUT_EN);
 	palClearLine(LINE_12V_EN);
 	palClearLine(LINE_MC_EN);
+	palClearLine(LINE_ESP_EN);
 }
 
 void hw_stay_awake(void) {
+	if (awake_block) {
+		return;
+	}
+
 	palSetLine(LINE_MC_EN);
 	palSetLine(LINE_12V_EN);
+	palSetLine(LINE_ESP_EN);
 }
 
 static void shift_out_data(uint16_t bits) {
@@ -190,6 +201,12 @@ static THD_FUNCTION(hw_thd, p) {
 
 	for(;;) {
 		for (int i = 0;i < 12;i++) {
+			// T Charge
+			m_temps[0] = pwr_get_temp(4);
+
+			// Check and clear possible CAN-faults
+			hw_clear_can_fault();
+
 			uint16_t bits = 0xFFFF & ~(1 << i);
 			shift_out_data(bits);
 			chThdSleepMilliseconds(10);
@@ -203,7 +220,7 @@ static THD_FUNCTION(hw_thd, p) {
 				set_temp_lines(lm_adc, lm_hi, lm_hi, lm_hi);
 				chThdSleepMilliseconds(delay_ms);
 				float v_hi = pwr_get_temp_volt(0);
-				m_temps[i * 4 + 0] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
+				m_temps[i * 4 + 1] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
 			}
 
 			{
@@ -213,7 +230,7 @@ static THD_FUNCTION(hw_thd, p) {
 				set_temp_lines(lm_hi, lm_adc, lm_hi, lm_hi);
 				chThdSleepMilliseconds(delay_ms);
 				float v_hi = pwr_get_temp_volt(1);
-				m_temps[i * 4 + 1] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
+				m_temps[i * 4 + 2] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
 			}
 
 			{
@@ -223,7 +240,7 @@ static THD_FUNCTION(hw_thd, p) {
 				set_temp_lines(lm_hi, lm_hi, lm_adc, lm_hi);
 				chThdSleepMilliseconds(delay_ms);
 				float v_hi = pwr_get_temp_volt(2);
-				m_temps[i * 4 + 2] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
+				m_temps[i * 4 + 3] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
 			}
 
 			{
@@ -233,7 +250,7 @@ static THD_FUNCTION(hw_thd, p) {
 				set_temp_lines(lm_hi, lm_hi, lm_hi, lm_adc);
 				chThdSleepMilliseconds(delay_ms);
 				float v_hi = pwr_get_temp_volt(3);
-				m_temps[i * 4 + 3] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
+				m_temps[i * 4 + 4] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
 			}
 		}
 	}
@@ -244,6 +261,12 @@ static THD_FUNCTION(hw_thd_mon, p) {
 	chRegSetThreadName("HW Mon");
 
 	for(;;) {
+		io_board_adc_values *adc = comm_can_get_io_board_adc_1_4_index(0);
+
+		if (UTILS_AGE_S(0) > 1.0 && adc && UTILS_AGE_S(adc->rx_time) < 0.1) {
+			sleep_reset();
+		}
+
 		if (hw_temp_cell_max() > 60.0) {
 			BUZZER_ON();
 			chThdSleepMilliseconds(500);
@@ -273,10 +296,6 @@ float hw_get_temp(int sensor) {
 	} else {
 		return -1.0;
 	}
-}
-
-float hw_get_v_charge(void) {
-	return m_v_charge;
 }
 
 static void terminal_mc_en(int argc, const char **argv) {
@@ -314,21 +333,100 @@ static void terminal_hw_info(int argc, const char **argv) {
 	float i1 = (v1 - 1.65) * (1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res);
 	float i2 = (v2 - 1.65) * (1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res);
 
-	commands_printf("I1: %.3f A (%.3f V)", i1, v1);
-	commands_printf("I2: %.3f A (%.3f V)\n", i2, v2);
+	commands_printf("I1        : %.3f A (%.3f V)", i1, v1);
+	commands_printf("I2        : %.3f A (%.3f V)\n", i2, v2);
+	commands_printf("CAN faults: %d", can_fault_cnt);
 }
 
-static void terminal_set_v_charge(int argc, const char **argv) {
-	if (argc == 2) {
-		float vch = -1;
-		sscanf(argv[1], "%f", &vch);
+static void terminal_test_if_conn(int argc, const char **argv) {
+	(void)argc; (void)argv;
+	hw_test_if_conn(true);
+}
 
-		if (vch >= 0.0 && vch < 52.0) {
-			m_v_charge = vch;
-			commands_printf("OK\n");
+bool hw_test_if_conn(bool print) {
+	bool res = false;
+
+	awake_block = true;
+	palClearLine(LINE_12V_EN);
+	palClearLine(LINE_MC_EN);
+
+	if (print) {
+		commands_printf("Disabling power...");
+		chThdSleepMilliseconds(2000);
+	}
+
+	awake_block = false;
+	palSetLine(LINE_12V_EN);
+	palSetLine(LINE_MC_EN);
+
+	if (print) {
+		commands_printf("Enabling power...");
+		commands_printf("Waiting for interface response...");
+	}
+
+	systime_t t_start = chVTGetSystemTimeX();
+
+	io_board_adc_values *adc = 0;
+
+	for (int i = 0;i < 200; i++) {
+		adc = comm_can_get_io_board_adc_1_4_index(0);
+
+		if (adc && UTILS_AGE_S(adc->rx_time) < 0.1) {
+			res = true;
+			break;
+		}
+
+		chThdSleepMilliseconds(1);
+	}
+
+	if (print) {
+		if (res) {
+			commands_printf("Interface woke up in %.2f seconds!", UTILS_AGE_S(t_start));
+		} else {
+			commands_printf("Waiting for interface timed out.");
+		}
+
+		commands_printf(" ");
+	}
+
+	return res;
+}
+
+void hw_clear_can_fault(void) {
+	for (int i = 0;i < 50;i++) {
+		chThdSleep(1);
+		if (palReadLine(LINE_CAN_RX) != 0) {
 			return;
 		}
 	}
 
-	commands_printf("Invalid arguments\n");
+	palSetLineMode(LINE_CAN_TX, PAL_MODE_OUTPUT_PUSHPULL);
+
+	for (int i = 0;i < 150;i++) {
+		palSetLine(LINE_CAN_TX);
+		chThdSleep(1);
+		palClearLine(LINE_CAN_TX);
+		chThdSleep(1);
+	}
+
+	can_fault_cnt++;
+
+	palSetLineMode(LINE_CAN_TX, PAL_MODE_ALTERNATE(HW_CAN_AF));
+}
+
+void hw_test_wake_up(void) {
+	if (hw_test_if_conn(false)) {
+		sleep_reset();
+
+		for (int i = 0;i < 2;i++) {
+			BUZZER_ON();
+			chThdSleepMilliseconds(100);
+			BUZZER_OFF();
+			chThdSleepMilliseconds(100);
+		}
+	} else {
+		if (sleep_time_left() < 300) {
+			sleep_set_timer(0);
+		}
+	}
 }

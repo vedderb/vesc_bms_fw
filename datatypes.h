@@ -128,6 +128,9 @@ typedef struct {
 	// Reset sleep timeout to this value at events that prevent sleeping
 	int sleep_timeout_reset_ms;
 
+	// Stop charging when the charge current goes below this value
+	float min_charge_current;
+
 	// Maximum allowed charging current
 	float max_charge_current;
 
@@ -250,6 +253,18 @@ typedef struct {
 	float v_in;
 	int32_t tacho_value;
 } can_status_msg_5;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float adc_voltages[4];
+} io_board_adc_values;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	uint64_t inputs;
+} io_board_digial_inputs;
 
 typedef struct {
 	int id;

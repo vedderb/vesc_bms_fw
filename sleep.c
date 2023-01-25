@@ -46,6 +46,10 @@ int sleep_time_left(void) {
 	return m_sleep_timer;
 }
 
+void sleep_set_timer(int time) {
+	m_sleep_timer = time;
+}
+
 static void go_to_sleep(void) {
 	chSysLock();
 

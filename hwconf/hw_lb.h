@@ -20,16 +20,6 @@
 #ifndef HWCONF_HW_LB_H_
 #define HWCONF_HW_LB_H_
 
-/*
- * TODO:
- * * Clock pins
- * * Power reg pull down
- * * CAN standby pull up
- * * Charge mosfet heatsink
- * * Charge mosfet temp sense?
- * * Add barometer
- */
-
 #define HW_NAME					"lb"
 
 // HW-specific
@@ -37,7 +27,8 @@
 #define HW_SLEEP_HOOK()			hw_board_sleep()
 #define HW_STAY_AWAKE_HOOK()	hw_stay_awake()
 #define HW_GET_TEMP(sensor)		hw_get_temp(sensor)
-#define HW_GET_V_CHARGE()		hw_get_v_charge()
+#define HW_TEST_WAKE_UP()		hw_test_wake_up()
+#define HW_TEST_USB_AT_BOOT		false
 
 #define HW_CAN_ON()				palClearLine(LINE_CAN_EN)
 #define HW_CAN_OFF()			palSetLine(LINE_CAN_EN)
@@ -53,8 +44,8 @@
 #define HW_SHUNT_RES			(0.2e-3)
 #define HW_SHUNT_AMP_GAIN		(20.0)
 #define V_REG					3.3
-#define R_CHARGE_TOP			(520e3 + 2.5e3 + 100.0)
-#define R_CHARGE_BOTTOM			(10e3)
+#define R_CHARGE_TOP			(39.0e3)
+#define R_CHARGE_BOTTOM			(2.2e3)
 
 // LEDs
 #define LINE_LED_RED			PAL_LINE(GPIOA, 0)
@@ -81,6 +72,12 @@
 #define SHTC3_SDA_PIN			7
 #define SHTC3_SCL_GPIO			GPIOB
 #define SHTC3_SCL_PIN			6
+
+// BME280 (temp/humidity/pressure)
+#define BME280_SDA_GPIO			GPIOB
+#define BME280_SDA_PIN			12
+#define BME280_SCL_GPIO			GPIOB
+#define BME280_SCL_PIN			11
 
 // Buzzer
 #define BUZZER_LINE				PAL_LINE(GPIOA, 3)
@@ -109,40 +106,43 @@
 #define LINE_SR_SCLK			PAL_LINE(GPIOC, 6)
 
 // Analog
+#define LINE_V_CHARGE			PAL_LINE(GPIOB, 1)
 #define LINE_TEMP_0				PAL_LINE(GPIOC, 0)
 #define LINE_TEMP_1				PAL_LINE(GPIOC, 2)
 #define LINE_TEMP_2				PAL_LINE(GPIOC, 1)
 #define LINE_TEMP_3				PAL_LINE(GPIOC, 3)
-#define LINE_TEMP_4				PAL_LINE(GPIOB, 3)
-#define LINE_TEMP_5				PAL_LINE(GPIOB, 3)
+#define LINE_TEMP_4				PAL_LINE(GPIOB, 0)
+#define LINE_TEMP_5				PAL_LINE(GPIOB, 0)
 
-#define LINE_TEMP_0_EN			PAL_LINE(GPIOC, 12)
-#define LINE_TEMP_1_EN			PAL_LINE(GPIOC, 12)
-#define LINE_TEMP_2_EN			PAL_LINE(GPIOC, 12)
-#define LINE_TEMP_3_EN			PAL_LINE(GPIOC, 12)
-#define LINE_TEMP_4_EN			PAL_LINE(GPIOC, 12)
-#define LINE_TEMP_5_EN			PAL_LINE(GPIOC, 12)
+#define LINE_TEMP_0_EN			PAL_LINE(GPIOC, 13)
+#define LINE_TEMP_1_EN			PAL_LINE(GPIOC, 13)
+#define LINE_TEMP_2_EN			PAL_LINE(GPIOC, 13)
+#define LINE_TEMP_3_EN			PAL_LINE(GPIOC, 13)
+#define LINE_TEMP_4_EN			PAL_LINE(GPIOC, 13)
+#define LINE_TEMP_5_EN			PAL_LINE(GPIOC, 13)
 
 #define NTC_RES(adc)					(10000.0 / ((4095.0 / (float)adc) - 1.0))
 #define NTC_TEMP_FROM_RES(res)			(1.0 / ((logf(res / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 #define NTC_TEMP_WITH_IND(adc, ind)		NTC_TEMP_FROM_RES(NTC_RES(adc))
 
-#define HW_TEMP_SENSORS			48
+#define HW_TEMP_SENSORS			49
 #define HW_TEMP_CELLS_MAX()		hw_temp_cell_max()
 
 // ADC Channels
+#define ADC_CH_V_CHARGE			ADC_CHANNEL_IN16
 #define ADC_CH_TEMP0			ADC_CHANNEL_IN1
 #define ADC_CH_TEMP1			ADC_CHANNEL_IN3
 #define ADC_CH_TEMP2			ADC_CHANNEL_IN2
 #define ADC_CH_TEMP3			ADC_CHANNEL_IN4
-#define ADC_CH_TEMP4			ADC_CHANNEL_IN4
-#define ADC_CH_TEMP5			ADC_CHANNEL_IN4
+#define ADC_CH_TEMP4			ADC_CHANNEL_IN15
+#define ADC_CH_TEMP5			ADC_CHANNEL_IN15
 
 // Other
 #define LINE_CURR_MEASURE_EN	PAL_LINE(GPIOC, 7)
 #define LINE_MC_EN				PAL_LINE(GPIOC, 8)
 #define LINE_BATT_OUT_EN		PAL_LINE(GPIOC, 9)
 #define LINE_12V_EN				PAL_LINE(GPIOA, 8)
+#define LINE_ESP_EN				PAL_LINE(GPIOC, 12)
 
 // HW Functions
 void hw_board_init(void);
@@ -151,5 +151,8 @@ void hw_stay_awake(void);
 float hw_temp_cell_max(void);
 float hw_get_temp(int sensor);
 float hw_get_v_charge(void);
+bool hw_test_if_conn(bool print);
+void hw_clear_can_fault(void);
+void hw_test_wake_up(void);
 
 #endif /* HWCONF_HW_LB_H_ */

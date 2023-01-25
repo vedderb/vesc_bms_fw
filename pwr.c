@@ -166,8 +166,6 @@ static THD_FUNCTION(adc_thd, p) {
 }
 
 void pwr_init(void) {
-	HW_INIT_HOOK();
-
 #ifdef LINE_BQ_CHG_EN
 	palSetLineMode(LINE_BQ_CHG_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_BQ_CP_EN, PAL_MODE_OUTPUT_PUSHPULL);

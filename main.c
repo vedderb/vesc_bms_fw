@@ -28,6 +28,7 @@
 #include "hdc1080.h"
 #include "sht30.h"
 #include "shtc3.h"
+#include "bme280_if.h"
 #include "confparser.h"
 #include "commands.h"
 #include "timeout.h"
@@ -152,6 +153,8 @@ int main(void) {
 		backup.config.battery_type = CONF_BATTERY_TYPE;
 	}
 
+	HW_INIT_HOOK();
+
 	conf_general_apply_hw_limits((main_config_t*)&backup.config);
 
 	palSetLineMode(LINE_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
@@ -165,9 +168,13 @@ int main(void) {
 	commands_init();
 	comm_usb_init();
 
-	// Only wait for USB every 3 boots
-	if (backup.usb_cnt >= 3) {
-		chThdSleepMilliseconds(500);
+	// Only wait for USB every 4 boots
+	if (backup.usb_cnt >= 4) {
+#if HW_TEST_USB_AT_BOOT
+		if (chVTGetSystemTimeX() < TIME_MS2I(580)) {
+			chThdSleepUntil(TIME_MS2I(600));
+		}
+#endif
 		backup.usb_cnt = 0;
 	} else {
 		backup.usb_cnt++;
@@ -178,6 +185,17 @@ int main(void) {
 	bms_if_init();
 	comm_can_init();
 	comm_can_set_baud(backup.config.can_baud_rate);
+
+	// Test wakeup every other boot
+	if (backup.usb_cnt % 2 == 0) {
+		HW_TEST_WAKE_UP();
+	}
+
+#ifdef HW_UART_DEV
+	comm_uart_init();
+#endif
+
+	sleep_init();
 
 #ifdef HDC1080_SDA_GPIO
 	hdc1080_init(HDC1080_SDA_GPIO, HDC1080_SDA_PIN,
@@ -194,11 +212,11 @@ int main(void) {
 			SHTC3_SCL_GPIO, SHTC3_SCL_PIN);
 #endif
 
-#ifdef HW_UART_DEV
-	comm_uart_init();
+#ifdef BME280_SDA_GPIO
+	bme280_if_init(BME280_SDA_GPIO, BME280_SDA_PIN,
+			BME280_SCL_GPIO, BME280_SCL_PIN);
 #endif
 
-	sleep_init();
 	timeout_init();
 	selftest_init();
 

@@ -118,7 +118,7 @@
 #endif
 
 #ifndef HW_CHARGER_DETECTED
-#define HW_CHARGER_DETECTED()	true
+#define HW_CHARGER_DETECTED()	false
 #endif
 
 #ifndef NTC_TEMP_WITH_IND
@@ -131,6 +131,18 @@
 
 #ifndef BUZZER_OFF
 #define BUZZER_OFF()
+#endif
+
+// Hook to run function at boot that performs a test
+// to determine if hardware should stay awake.
+#ifndef HW_TEST_WAKE_UP
+#define HW_TEST_WAKE_UP()
+#endif
+
+// Test if USB is connected at boot and stay awake if it is. This
+// takes a bit of time and will consume more average sleep power.
+#ifndef HW_TEST_USB_AT_BOOT
+#define HW_TEST_USB_AT_BOOT		true
 #endif
 
 // Functions

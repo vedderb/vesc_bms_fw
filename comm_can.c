@@ -42,6 +42,9 @@ static can_status_msg_4 stat_msgs_4[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_5 stat_msgs_5[CAN_STATUS_MSGS_TO_STORE];
 static bms_soc_soh_temp_stat bms_stat_msgs[CAN_BMS_STATUS_MSGS_TO_STORE];
 static bms_soc_soh_temp_stat bms_stat_v_cell_min;
+static io_board_adc_values io_board_adc_1_4[CAN_STATUS_MSGS_TO_STORE];
+static io_board_adc_values io_board_adc_5_8[CAN_STATUS_MSGS_TO_STORE];
+static io_board_digial_inputs io_board_digital_in[CAN_STATUS_MSGS_TO_STORE];
 static psw_status psw_stat[CAN_STATUS_MSGS_TO_STORE];
 
 static mutex_t can_mtx;
@@ -92,6 +95,10 @@ void comm_can_init(void) {
 		stat_msgs_3[i].id = -1;
 		stat_msgs_4[i].id = -1;
 		stat_msgs_5[i].id = -1;
+
+		io_board_adc_1_4[i].id = -1;
+		io_board_adc_5_8[i].id = -1;
+		io_board_digital_in[i].id = -1;
 
 		psw_stat[i].id = -1;
 	}
@@ -342,6 +349,72 @@ bms_soc_soh_temp_stat *comm_can_get_bms_soc_soh_temp_stat_id(int id) {
 
 bms_soc_soh_temp_stat *comm_can_get_bms_stat_v_cell_min(void) {
 	return &bms_stat_v_cell_min;
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE && io_board_adc_1_4[index].id >= 0) {
+		return &io_board_adc_1_4[index];
+	} else {
+		return 0;
+	}
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_1_4_id(int id) {
+	if (id == 255 && io_board_adc_1_4[0].id >= 0) {
+		return &io_board_adc_1_4[0];
+	}
+
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (io_board_adc_1_4[i].id == id) {
+			return &io_board_adc_1_4[i];
+		}
+	}
+
+	return 0;
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_5_8_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE && io_board_adc_5_8[index].id >= 0) {
+		return &io_board_adc_5_8[index];
+	} else {
+		return 0;
+	}
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_5_8_id(int id) {
+	if (id == 255 && io_board_adc_5_8[0].id >= 0) {
+		return &io_board_adc_5_8[0];
+	}
+
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (io_board_adc_5_8[i].id == id) {
+			return &io_board_adc_5_8[i];
+		}
+	}
+
+	return 0;
+}
+
+io_board_digial_inputs *comm_can_get_io_board_digital_in_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &io_board_digital_in[index];
+	} else {
+		return 0;
+	}
+}
+
+io_board_digial_inputs *comm_can_get_io_board_digital_in_id(int id) {
+	if (id == 255 && io_board_digital_in[0].id >= 0) {
+		return &io_board_digital_in[0];
+	}
+
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (io_board_digital_in[i].id == id) {
+			return &io_board_digital_in[i];
+		}
+	}
+
+	return 0;
 }
 
 void comm_can_io_board_set_output_digital(int id, int channel, bool on) {
@@ -833,6 +906,58 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				stat_tmp_5->rx_time = chVTGetSystemTime();
 				stat_tmp_5->tacho_value = buffer_get_int32(data8, &ind);
 				stat_tmp_5->v_in = (float)buffer_get_int16(data8, &ind) / 1e1;
+				break;
+			}
+		}
+		break;
+
+	case CAN_PACKET_IO_BOARD_ADC_1_TO_4:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			io_board_adc_values *msg = &io_board_adc_1_4[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTimeX();
+				ind = 0;
+				int j = 0;
+				while (ind < len) {
+					msg->adc_voltages[j++] = buffer_get_float16(data8, 1e2, &ind);
+				}
+				break;
+			}
+		}
+		break;
+
+	case CAN_PACKET_IO_BOARD_ADC_5_TO_8:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			io_board_adc_values *msg = &io_board_adc_5_8[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTimeX();
+				ind = 0;
+				int j = 0;
+				while (ind < len) {
+					msg->adc_voltages[j++] = buffer_get_float16(data8, 1e2, &ind);
+				}
+				break;
+			}
+		}
+		break;
+
+	case CAN_PACKET_IO_BOARD_DIGITAL_IN:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			io_board_digial_inputs *msg = &io_board_digital_in[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTimeX();
+				msg->inputs = 0;
+				ind = 0;
+				while (ind < len) {
+					msg->inputs |= (uint64_t)data8[ind] << (ind * 8);
+					ind++;
+				}
 				break;
 			}
 		}
