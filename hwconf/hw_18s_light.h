@@ -67,7 +67,7 @@
 #define HW_SHUNT_AMP_GAIN		(50.0)
 #endif
 #define V_REG					3.3
-#define R_CHARGE_TOP			(520e3 + 2.5e3 + 100.0)
+#define R_CHARGE_TOP			(316e3 + 2.5e3 + 100.0)
 #define R_CHARGE_BOTTOM			(10e3)
 
 // LEDs
