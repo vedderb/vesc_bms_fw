@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 - 2024 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC BMS firmware.
 
@@ -53,6 +53,7 @@ static volatile bool m_bal_ok = false;
 static volatile bool m_was_charge_overcurrent = false;
 static float m_soc_filtered = 0.0;
 static bool m_soc_filter_init_done = false;
+static volatile int m_no_charge_cnt = 0;
 
 bms_if_fault_cb m_fault_cb = NULL;
 
@@ -81,8 +82,6 @@ bool bms_if_charge_ok(void) {
 static THD_FUNCTION(charge_thd, p) {
 	(void)p;
 	chRegSetThreadName("Charge");
-
-	int no_charge_cnt = 0;
 
 	for (;;) {
 #ifdef ADC_CH_CURRENT
@@ -129,16 +128,16 @@ static THD_FUNCTION(charge_thd, p) {
 		chThdSleepMilliseconds(10);
 
 		if (fabsf(chg_current) < backup.config.min_charge_current && m_is_charging && !HW_CHARGER_DETECTED()) {
-			no_charge_cnt++;
+			m_no_charge_cnt++;
 
-			if (no_charge_cnt > 100) {
-				no_charge_cnt = 0;
+			if (m_no_charge_cnt > 100) {
+				m_no_charge_cnt = 0;
 				m_is_charging = false;
 				CHARGE_DISABLE();
 				chThdSleepMilliseconds(5000);
 			}
 		} else {
-			no_charge_cnt = 0;
+			m_no_charge_cnt = 0;
 		}
 
 		if (m_is_charging) {
@@ -500,6 +499,10 @@ bool bms_if_is_charge_allowed(void) {
 
 void bms_if_set_charge_allowed(bool allowed) {
 	m_charge_allowed = allowed;
+
+	if (allowed) {
+		m_no_charge_cnt = 0;
+	}
 }
 
 bool bms_if_is_charging(void) {

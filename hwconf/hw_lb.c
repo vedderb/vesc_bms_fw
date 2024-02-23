@@ -35,14 +35,16 @@ static THD_FUNCTION(hw_thd_mon, p);
 
 // Private variables
 static float m_temps[HW_TEMP_SENSORS];
-static int can_fault_cnt = 0;
 static bool awake_block = false;
+static float temp_v_lo[12][4] = {{-1.0}};
+static float temp_v_hi[12][4] = {{-1.0}};
 
 // Private functions
 static void terminal_mc_en(int argc, const char **argv);
 static void terminal_buzzer_test(int argc, const char **argv);
 static void terminal_hw_info(int argc, const char **argv);
 static void terminal_test_if_conn(int argc, const char **argv);
+static void terminal_reset_pwr(int argc, const char **argv);
 
 void hw_board_init(void) {
 	palSetLineMode(LINE_CAN_EN, PAL_MODE_OUTPUT_PUSHPULL);
@@ -51,11 +53,13 @@ void hw_board_init(void) {
 	palClearLine(LINE_MC_EN);
 	palClearLine(LINE_BATT_OUT_EN);
 	palClearLine(LINE_12V_EN);
+	palSetLine(LINE_12V_SENSE_EN);
 	palClearLine(LINE_ESP_EN);
 
 	palSetLineMode(LINE_MC_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_BATT_OUT_EN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetLineMode(LINE_12V_EN, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetLineMode(LINE_12V_SENSE_EN, PAL_MODE_OUTPUT_OPENDRAIN);
 	palSetLineMode(LINE_ESP_EN, PAL_MODE_OUTPUT_PUSHPULL);
 
 	palSetLineMode(LINE_SR_SER, PAL_MODE_OUTPUT_PUSHPULL);
@@ -92,11 +96,18 @@ void hw_board_init(void) {
 			"Test if interface is connected",
 			NULL,
 			terminal_test_if_conn);
+
+	terminal_register_command_callback(
+			"reset_pwr",
+			"Reset power rails",
+			NULL,
+			terminal_reset_pwr);
 }
 
 void hw_board_sleep(void) {
 	palClearLine(LINE_BATT_OUT_EN);
 	palClearLine(LINE_12V_EN);
+	palSetLine(LINE_12V_SENSE_EN);
 	palClearLine(LINE_MC_EN);
 	palClearLine(LINE_ESP_EN);
 }
@@ -107,7 +118,6 @@ void hw_stay_awake(void) {
 	}
 
 	palSetLine(LINE_MC_EN);
-	palSetLine(LINE_12V_EN);
 	palSetLine(LINE_ESP_EN);
 }
 
@@ -204,9 +214,6 @@ static THD_FUNCTION(hw_thd, p) {
 			// T Charge
 			m_temps[0] = pwr_get_temp(4);
 
-			// Check and clear possible CAN-faults
-			hw_clear_can_fault();
-
 			uint16_t bits = 0xFFFF & ~(1 << i);
 			shift_out_data(bits);
 			chThdSleepMilliseconds(10);
@@ -217,9 +224,11 @@ static THD_FUNCTION(hw_thd, p) {
 				set_temp_lines(lm_adc, lm_lo, lm_lo, lm_lo);
 				chThdSleepMilliseconds(delay_ms);
 				float v_lo = pwr_get_temp_volt(0);
+				temp_v_lo[i][0] = v_lo;
 				set_temp_lines(lm_adc, lm_hi, lm_hi, lm_hi);
 				chThdSleepMilliseconds(delay_ms);
 				float v_hi = pwr_get_temp_volt(0);
+				temp_v_hi[i][0] = v_hi;
 				m_temps[i * 4 + 1] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
 			}
 
@@ -227,9 +236,11 @@ static THD_FUNCTION(hw_thd, p) {
 				set_temp_lines(lm_lo, lm_adc, lm_lo, lm_lo);
 				chThdSleepMilliseconds(delay_ms);
 				float v_lo = pwr_get_temp_volt(1);
+				temp_v_lo[i][1] = v_lo;
 				set_temp_lines(lm_hi, lm_adc, lm_hi, lm_hi);
 				chThdSleepMilliseconds(delay_ms);
 				float v_hi = pwr_get_temp_volt(1);
+				temp_v_hi[i][1] = v_hi;
 				m_temps[i * 4 + 2] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
 			}
 
@@ -237,9 +248,11 @@ static THD_FUNCTION(hw_thd, p) {
 				set_temp_lines(lm_lo, lm_lo, lm_adc, lm_lo);
 				chThdSleepMilliseconds(delay_ms);
 				float v_lo = pwr_get_temp_volt(2);
+				temp_v_lo[i][2] = v_lo;
 				set_temp_lines(lm_hi, lm_hi, lm_adc, lm_hi);
 				chThdSleepMilliseconds(delay_ms);
 				float v_hi = pwr_get_temp_volt(2);
+				temp_v_hi[i][2] = v_hi;
 				m_temps[i * 4 + 3] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
 			}
 
@@ -247,9 +260,11 @@ static THD_FUNCTION(hw_thd, p) {
 				set_temp_lines(lm_lo, lm_lo, lm_lo, lm_adc);
 				chThdSleepMilliseconds(delay_ms);
 				float v_lo = pwr_get_temp_volt(3);
+				temp_v_lo[i][3] = v_lo;
 				set_temp_lines(lm_hi, lm_hi, lm_hi, lm_adc);
 				chThdSleepMilliseconds(delay_ms);
 				float v_hi = pwr_get_temp_volt(3);
+				temp_v_hi[i][3] = v_hi;
 				m_temps[i * 4 + 4] = NTC_TEMP_FROM_RES((10e3 * v_lo) / (3.3 - v_hi));
 			}
 		}
@@ -267,13 +282,21 @@ static THD_FUNCTION(hw_thd_mon, p) {
 			sleep_reset();
 		}
 
-		if (hw_temp_cell_max() > 60.0) {
+		sleep_reset();
+
+		if (hw_temp_cell_max() > 60.0 && 0) {
 			BUZZER_ON();
 			chThdSleepMilliseconds(500);
 			BUZZER_OFF();
 			chThdSleepMilliseconds(500);
 		} else {
 			chThdSleepMilliseconds(1);
+		}
+
+		// Disable 12V output in case there is a short
+		if (!awake_block && hw_get_v_12v() < 5.0) {
+			palClearLine(LINE_12V_EN);
+			palSetLine(LINE_12V_SENSE_EN);
 		}
 	}
 }
@@ -333,9 +356,20 @@ static void terminal_hw_info(int argc, const char **argv) {
 	float i1 = (v1 - 1.65) * (1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res);
 	float i2 = (v2 - 1.65) * (1.0 / HW_SHUNT_AMP_GAIN) * (1.0 / backup.config.ext_shunt_res);
 
-	commands_printf("I1        : %.3f A (%.3f V)", i1, v1);
-	commands_printf("I2        : %.3f A (%.3f V)\n", i2, v2);
-	commands_printf("CAN faults: %d", can_fault_cnt);
+	commands_printf("I1         : %.3f A (%.3f V)", i1, v1);
+	commands_printf("I2         : %.3f A (%.3f V)\n", i2, v2);
+	commands_printf("12 V Port  : %.2f V", hw_get_v_12v());
+	commands_printf("Charge Port: %.2f V", pwr_get_vcharge());
+	commands_printf("Chg Port   : %d\n", palReadLine(LINE_BATT_OUT_EN));
+
+	commands_printf("Index  ADC1_LO_HI  ADC2_LO_HI  ADC3_LO_HI  ADC4_LO_HI");
+	for (int i = 0; i < 12;i++) {
+		commands_printf("%2d     %.2f--%.2f  %.2f--%.2f  %.2f--%.2f  %.2f--%.2f", i,
+				temp_v_lo[i][0], temp_v_hi[i][0],
+				temp_v_lo[i][1], temp_v_hi[i][1],
+				temp_v_lo[i][2], temp_v_hi[i][2],
+				temp_v_lo[i][3], temp_v_hi[i][3]);
+	}
 }
 
 static void terminal_test_if_conn(int argc, const char **argv) {
@@ -347,31 +381,55 @@ bool hw_test_if_conn(bool print) {
 	bool res = false;
 
 	awake_block = true;
+
 	palClearLine(LINE_12V_EN);
-	palClearLine(LINE_MC_EN);
+	palSetLine(LINE_12V_SENSE_EN);
+	chThdSleepMilliseconds(100);
 
 	if (print) {
 		commands_printf("Disabling power...");
 		chThdSleepMilliseconds(2000);
 	}
 
+	float v_off = hw_get_v_12v();
+
+	palClearLine(LINE_12V_SENSE_EN);
+	chThdSleepMilliseconds(100);
+
+	float v_sense = hw_get_v_12v();
+	bool sense_short = true;
+
+	if (v_sense > 1.0) {
+		sense_short = false;
+		palSetLine(LINE_12V_EN);
+		chThdSleepMilliseconds(100);
+	}
+
+	float v_on = hw_get_v_12v();
+
+	palSetLine(LINE_12V_SENSE_EN);
+
 	awake_block = false;
-	palSetLine(LINE_12V_EN);
-	palSetLine(LINE_MC_EN);
 
 	if (print) {
-		commands_printf("Enabling power...");
+		commands_printf("Voltage off  : %.2f", v_off);
+		commands_printf("Voltage sense: %.2f", v_sense);
+		commands_printf("Voltage on   : %.2f", v_on);
 		commands_printf("Waiting for interface response...");
+
+		if (sense_short) {
+			commands_printf("Output shorted, could be in charger");
+		}
 	}
 
 	systime_t t_start = chVTGetSystemTimeX();
 
 	io_board_adc_values *adc = 0;
 
-	for (int i = 0;i < 200; i++) {
+	for (int i = 0;i < 250; i++) {
 		adc = comm_can_get_io_board_adc_1_4_index(0);
 
-		if (adc && UTILS_AGE_S(adc->rx_time) < 0.1) {
+		if (adc && UTILS_AGE_S(adc->rx_time) < 0.7) {
 			res = true;
 			break;
 		}
@@ -392,26 +450,24 @@ bool hw_test_if_conn(bool print) {
 	return res;
 }
 
-void hw_clear_can_fault(void) {
-	for (int i = 0;i < 50;i++) {
-		chThdSleep(1);
-		if (palReadLine(LINE_CAN_RX) != 0) {
-			return;
-		}
-	}
+static void terminal_reset_pwr(int argc, const char **argv) {
+	(void)argc; (void)argv;
 
-	palSetLineMode(LINE_CAN_TX, PAL_MODE_OUTPUT_PUSHPULL);
+	awake_block = true;
+	palClearLine(LINE_12V_EN);
+	palClearLine(LINE_MC_EN);
+	palClearLine(LINE_ESP_EN);
+	palSetLine(LINE_CURR_MEASURE_EN);
 
-	for (int i = 0;i < 150;i++) {
-		palSetLine(LINE_CAN_TX);
-		chThdSleep(1);
-		palClearLine(LINE_CAN_TX);
-		chThdSleep(1);
-	}
+	commands_printf("Disabling power...");
+	chThdSleepMilliseconds(2000);
+	commands_printf("Enabling power power");
 
-	can_fault_cnt++;
-
-	palSetLineMode(LINE_CAN_TX, PAL_MODE_ALTERNATE(HW_CAN_AF));
+	awake_block = false;
+	palClearLine(LINE_CURR_MEASURE_EN);
+	palSetLine(LINE_12V_EN);
+	palSetLine(LINE_MC_EN);
+	palSetLine(LINE_ESP_EN);
 }
 
 void hw_test_wake_up(void) {
@@ -429,4 +485,8 @@ void hw_test_wake_up(void) {
 			sleep_set_timer(0);
 		}
 	}
+}
+
+float hw_get_v_12v(void) {
+	return pwr_get_temp_volt(5) / 2.2 * (39.0 + 2.2);
 }

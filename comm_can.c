@@ -645,6 +645,7 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 		buffer_append_float16(buffer, bms_if_get_humsens_temp_pcb(), 1e2, &send_index);
 		buffer_append_float16(buffer, bms_if_get_humsens_hum_pcb(), 1e2, &send_index);
 		buffer_append_float16(buffer, bms_if_get_temp_ic(), 1e2, &send_index); // Put IC temp here instead of making mew msg
+		buffer_append_float16(buffer, bms_if_get_humsens_pres_pcb(), 1e-1, &send_index);
 		comm_can_transmit_eid(backup.config.controller_id | ((uint32_t)CAN_PACKET_BMS_HUM << 8), buffer, send_index);
 
 		/*

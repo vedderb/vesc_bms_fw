@@ -21,6 +21,7 @@
 #define HWCONF_HW_LB_H_
 
 #define HW_NAME					"lb"
+#define HW_DEFAULT_ID			20
 
 // HW-specific
 #define HW_INIT_HOOK()			hw_board_init()
@@ -67,12 +68,6 @@
 #define HW_CAN_AF				9
 #define LINE_CAN_EN				PAL_LINE(GPIOB, 10)
 
-// SHTC3 (temp/humidity)
-#define SHTC3_SDA_GPIO			GPIOB
-#define SHTC3_SDA_PIN			7
-#define SHTC3_SCL_GPIO			GPIOB
-#define SHTC3_SCL_PIN			6
-
 // BME280 (temp/humidity/pressure)
 #define BME280_SDA_GPIO			GPIOB
 #define BME280_SDA_PIN			12
@@ -93,13 +88,6 @@
 #define NRF5x_SWCLK_GPIO		GPIOC
 #define NRF5x_SWCLK_PIN			11
 
-// UART
-#define LINE_UART_RX			PAL_LINE(GPIOA, 10)
-#define LINE_UART_TX			PAL_LINE(GPIOA, 9)
-#define HW_UART_DEV				SD1
-#define HW_UART_AF				7
-#define CONF_UART_BAUD_RATE		115200
-
 // Temp and led shift register
 #define LINE_SR_SER				PAL_LINE(GPIOC, 4)
 #define LINE_SR_RCLK			PAL_LINE(GPIOC, 5)
@@ -112,7 +100,7 @@
 #define LINE_TEMP_2				PAL_LINE(GPIOC, 1)
 #define LINE_TEMP_3				PAL_LINE(GPIOC, 3)
 #define LINE_TEMP_4				PAL_LINE(GPIOB, 0)
-#define LINE_TEMP_5				PAL_LINE(GPIOB, 0)
+#define LINE_TEMP_5				PAL_LINE(GPIOA, 2)
 
 #define LINE_TEMP_0_EN			PAL_LINE(GPIOC, 13)
 #define LINE_TEMP_1_EN			PAL_LINE(GPIOC, 13)
@@ -135,13 +123,14 @@
 #define ADC_CH_TEMP2			ADC_CHANNEL_IN2
 #define ADC_CH_TEMP3			ADC_CHANNEL_IN4
 #define ADC_CH_TEMP4			ADC_CHANNEL_IN15
-#define ADC_CH_TEMP5			ADC_CHANNEL_IN15
+#define ADC_CH_TEMP5			ADC_CHANNEL_IN7 // 12V Out
 
 // Other
 #define LINE_CURR_MEASURE_EN	PAL_LINE(GPIOC, 7)
 #define LINE_MC_EN				PAL_LINE(GPIOC, 8)
 #define LINE_BATT_OUT_EN		PAL_LINE(GPIOC, 9)
 #define LINE_12V_EN				PAL_LINE(GPIOA, 8)
+#define LINE_12V_SENSE_EN		PAL_LINE(GPIOA, 9)
 #define LINE_ESP_EN				PAL_LINE(GPIOC, 12)
 
 // HW Functions
@@ -152,7 +141,7 @@ float hw_temp_cell_max(void);
 float hw_get_temp(int sensor);
 float hw_get_v_charge(void);
 bool hw_test_if_conn(bool print);
-void hw_clear_can_fault(void);
 void hw_test_wake_up(void);
+float hw_get_v_12v(void);
 
 #endif /* HWCONF_HW_LB_H_ */
