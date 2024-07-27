@@ -94,7 +94,7 @@ void terminal_process_string(char *str) {
 		do {
 			commands_printf("%.8lx %4lu %4lu %9s %14s %lu (%.1f %%)",
 					(uint32_t)tp,
-					(uint32_t)tp->prio, (uint32_t)(tp->refs - 1),
+					(uint32_t)tp->hdr.pqueue.prio, (uint32_t)(tp->refs - 1),
 					states[tp->state], tp->name, (uint32_t)tp->time,
 					(double)(100.0 * (float)tp->time / (float)chVTGetSystemTimeX()));
 			tp = chRegNextThread(tp);
@@ -380,4 +380,3 @@ void terminal_unregister_callback(void(*cbf)(int argc, const char **argv)) {
 		}
 	}
 }
-

@@ -87,7 +87,7 @@ endif
 PROJECT = vesc_bms
 
 # Imported source files and paths
-CHIBIOS = ChibiOS_20.3.0
+CHIBIOS = ChibiOS_20.3.4
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk

@@ -21,6 +21,7 @@
 #define SELFTEST_H_
 
 #include <stdio.h>
+#include <stdint.h>
 
 // Functions
 void selftest_init(void);
