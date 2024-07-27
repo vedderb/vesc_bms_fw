@@ -232,7 +232,7 @@ UINCDIR =
 ULIBDIR =
 
 # List all user libraries here
-ULIBS = -lm --specs=nosys.specs
+ULIBS = -lm --specs=nosys.specs --specs=nano.specs
 
 #
 # End of user defines
