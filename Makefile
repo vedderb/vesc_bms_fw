@@ -3,10 +3,44 @@
 # NOTE: Can be overridden externally.
 #
 
+
+ifndef GIT_COMMIT_HASH
+  GIT_COMMIT_HASH := $(shell git rev-parse --short HEAD)
+endif
+
+ifndef GIT_BRANCH_NAME
+  GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
+endif
+
+ifdef HW_SRC
+  ifndef HW_HEADER
+    $(error HW_HEADER not defined while HW_SRC was set, you must set both!)
+  endif
+  USE_CUSTOM_HW := 1
+endif
+ifdef HW_HEADER
+  ifndef HW_SRC
+    $(error HW_SRC not defined while HW_HEADER was set, you must set both!)
+  endif
+  USE_CUSTOM_HW := 1
+endif
+
 # Compiler options here.
 ifeq ($(USE_OPT),)
   USE_OPT = -Os -ggdb -fomit-frame-pointer -falign-functions=16 -D_GNU_SOURCE
-  USE_OPT += -DBOARD_OTG_NOVBUSSENS $(build_args)
+  USE_OPT += -DBOARD_OTG_NOVBUSSENS -DGIT_COMMIT_HASH=\"$(GIT_COMMIT_HASH)\" -DGIT_BRANCH_NAME=\"$(GIT_BRANCH_NAME)\"
+  ifdef USER_GIT_COMMIT_HASH
+    USE_OPT += -DUSER_GIT_COMMIT_HASH=\"$(USER_GIT_COMMIT_HASH)\"
+  endif
+  ifdef USER_GIT_BRANCH_NAME
+    USE_OPT += -DUSER_GIT_BRANCH_NAME=\"$(USER_GIT_BRANCH_NAME)\"
+  endif
+  
+  ifneq ($(USE_CUSTOM_HW),)
+    USE_OPT += -DHW_SOURCE="\"$(HW_SRC)\"" -DHW_HEADER="\"$(HW_HEADER)\""
+  endif
+  
+  USE_OPT += $(build_args)
 endif
 
 # C specific options here (added to USE_OPT).
