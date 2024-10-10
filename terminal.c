@@ -54,6 +54,8 @@ static terminal_callback_struct callbacks[CALLBACK_LEN];
 static int callback_write = 0;
 
 void terminal_process_string(char *str) {
+	commands_printf("-> %s\n", str);
+	
 	enum { kMaxArgs = 64 };
 	int argc = 0;
 	char *argv[kMaxArgs];
