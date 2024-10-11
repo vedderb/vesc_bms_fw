@@ -275,6 +275,23 @@ ULIBS = -lm --specs=nosys.specs
 RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk
 include $(RULESPATH)/rules.mk
 
+SRC_SENTINEL := $(BUILDDIR)/hw_src
+HEADER_SENTINEL := $(BUILDDIR)/hw_header
+
+# Update the tracker files if HW_SRC or HW_HEADER has changed to trigger a rebuild
+ifeq ($(shell if [[ -d $(BUILDDIR) ]]; then printf 1; else printf ""; fi),1)
+  ifneq ($(file < $(SRC_SENTINEL)),$(HW_SRC))
+    $(info Updated $(SRC_SENTINEL))
+    $(file > $(SRC_SENTINEL),$(HW_SRC))
+    $(shell touch hwconf/hw.c conf_general.h)
+  endif
+  ifneq ($(file < $(HEADER_SENTINEL)),$(HW_HEADER))
+    $(info Updated $(HEADER_SENTINEL))
+    $(file > $(HEADER_SENTINEL),$(HW_HEADER))
+    $(shell touch hwconf/hw.h conf_general.h)
+  endif
+endif
+
 upload: build/$(PROJECT).bin
 	openocd -f stm32l4_stlinkv2.cfg \
 		-c "program build/$(PROJECT).elf verify reset exit"
