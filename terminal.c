@@ -54,6 +54,8 @@ static terminal_callback_struct callbacks[CALLBACK_LEN];
 static int callback_write = 0;
 
 void terminal_process_string(char *str) {
+	commands_printf("-> %s\n", str);
+	
 	enum { kMaxArgs = 64 };
 	int argc = 0;
 	char *argv[kMaxArgs];
@@ -175,6 +177,17 @@ void terminal_process_string(char *str) {
 		commands_printf("Configuration flash write counter: %d", backup.conf_flash_write_cnt);
 
 		commands_printf(" ");
+	} else if (strcmp(argv[0], "fw_info") == 0) {
+		commands_printf("Git Branch: %s", GIT_BRANCH_NAME);
+		commands_printf("Git Hash  : %s", GIT_COMMIT_HASH);
+	
+#ifdef USER_GIT_BRANCH_NAME
+		commands_printf("User Git Branch: %s", USER_GIT_BRANCH_NAME);
+#endif
+#ifdef USER_GIT_COMMIT_HASH
+		commands_printf("User Git Hash  : %s", USER_GIT_COMMIT_HASH);
+#endif
+		commands_printf(" ");
 	} else if (strcmp(argv[0], "can_scan") == 0) {
 		bool found = false;
 		for (int i = 0;i < 254;i++) {
@@ -264,6 +277,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("hw_status");
 		commands_printf("  Print some hardware status information.");
+		
+		commands_printf("fw_info");
+		commands_printf("  Print detailed firmware info.");
 
 		commands_printf("can_scan");
 		commands_printf("  Scan CAN-bus using ping commands, and print all devices that are found.");
