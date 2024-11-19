@@ -1,0 +1,24 @@
+extraction:
+  cpp:
+    prepare:
+      packages: 
+        - p7zip-full
+    after_prepare:
+    - export GCC=gcc-arm-none-eabi-9-2020-q2-update
+    - export CH_VER=stable_20.3.x
+    - cd ${LGTM_WORKSPACE}
+    - wget -nv https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2 -O compiler.tar.xz
+    - tar xf compiler.tar.xz -C ${LGTM_WORKSPACE}
+    - mv ${LGTM_WORKSPACE}/${GCC} ${LGTM_WORKSPACE}/gcc-arm
+    - curl -L https://github.com/ChibiOS/ChibiOS/archive/${CH_VER}.tar.gz | tar xz
+    - mv ChibiOS-${CH_VER} ChibiOS
+    - cd ChibiOS/ext
+    - for i in *.7z; do 7z x -y $i; done
+    - cd ${LGTM_SRC}/ext
+    - for i in *.7z; do 7z x -y $i; done
+    index:
+      build_command:
+      - export PATH=${LGTM_WORKSPACE}/gcc-arm/bin:${PATH}
+      - export CH_PATH=${LGTM_WORKSPACE}/ChibiOS CHC_PATH=${LGTM_SRC}
+      - ./tools/chbuild.sh testhal/{STM32,NRF51,NRF52,KINETIS}
+      - ./tools/chbuild.sh demos/{STM32,NRF51,NRF52,KINETIS}

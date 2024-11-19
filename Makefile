@@ -121,7 +121,7 @@ endif
 PROJECT = vesc_bms
 
 # Imported source files and paths
-CHIBIOS = ChibiOS_20.3.0
+CHIBIOS = ChibiOS_20.3.4
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -266,7 +266,7 @@ UINCDIR =
 ULIBDIR =
 
 # List all user libraries here
-ULIBS = -lm --specs=nosys.specs
+ULIBS = -lm --specs=nosys.specs --specs=nano.specs
 
 #
 # End of user defines
