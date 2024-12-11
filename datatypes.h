@@ -531,7 +531,37 @@ typedef enum {
 	COMM_LISP_PRINT,
 
 	COMM_BMS_SET_BATT_TYPE,
-	COMM_BMS_GET_BATT_TYPE,
+	COMM_BMS_GET_BATT_TYPE					= 137,
+	
+	// COMM_LISP_REPL_CMD					= 138,
+	// COMM_LISP_STREAM_CODE				= 139,
+
+	// COMM_FILE_LIST						= 140,
+	// COMM_FILE_READ						= 141,
+	// COMM_FILE_WRITE						= 142,
+	// COMM_FILE_MKDIR						= 143,
+	// COMM_FILE_REMOVE						= 144,
+
+	// COMM_LOG_START						= 145,
+	// COMM_LOG_STOP						= 146,
+	// COMM_LOG_CONFIG_FIELD				= 147,
+	// COMM_LOG_DATA_F32					= 148,
+
+	// COMM_SET_APPCONF_NO_STORE			= 149,
+	// COMM_GET_GNSS						= 150,
+
+	// COMM_LOG_DATA_F64					= 151,
+
+	// COMM_LISP_RMSG						= 152,
+
+	//Placeholders for pinlock commands
+	// COMM_PINLOCK1						= 153,
+	// COMM_PINLOCK2						= 154,
+	// COMM_PINLOCK3						= 155,
+
+	// COMM_SHUTDOWN						= 156,
+	
+	COMM_FW_INFO							= 157,
 } COMM_PACKET_ID;
 
 #endif /* DATATYPES_H_ */
