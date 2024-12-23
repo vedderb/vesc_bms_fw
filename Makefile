@@ -5,7 +5,7 @@
 
 
 ifndef GIT_COMMIT_HASH
-  GIT_COMMIT_HASH := $(shell git rev-parse --short HEAD)
+  GIT_COMMIT_HASH := $(shell git rev-parse HEAD)
 endif
 
 ifndef GIT_BRANCH_NAME
