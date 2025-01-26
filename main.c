@@ -184,7 +184,7 @@ int main(void) {
 	ltc_init();
 	bms_if_init();
 	comm_can_init();
-	comm_can_set_baud(backup.config.can_baud_rate);
+	comm_can_set_baud(backup.config.can_baud_rate, 0);
 
 	// Test wakeup every other boot
 	if (backup.usb_cnt % 2 == 0) {

@@ -28,7 +28,8 @@
 
 // Functions
 void comm_can_init(void);
-void comm_can_set_baud(CAN_BAUD baud);
+CAN_BAUD comm_can_kbits_to_baud(int kbits);
+void comm_can_set_baud(CAN_BAUD baud, int delay_msec);
 void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len);
 void comm_can_transmit_sid(uint32_t id, const uint8_t *data, uint8_t len);
 void comm_can_set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
@@ -62,6 +63,7 @@ void comm_can_io_board_set_output_pwm(int id, int channel, float duty);
 psw_status *comm_can_get_psw_status_index(int index);
 psw_status *comm_can_get_psw_status_id(int id);
 void comm_can_psw_switch(int id, bool is_on, bool plot);
+void comm_can_send_update_baud(int kbits, int delay_msec);
 
 bool comm_can_ping(uint8_t controller_id, HW_TYPE *hw_type);
 

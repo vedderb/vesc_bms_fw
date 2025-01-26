@@ -423,7 +423,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			conf_general_apply_hw_limits(conf);
 			backup.config = *conf;
 			flash_helper_store_backup_data();
-			comm_can_set_baud(backup.config.can_baud_rate);
+			comm_can_set_baud(backup.config.can_baud_rate, 0);
 
 			int32_t ind = 0;
 			uint8_t send_buffer[50];
@@ -607,6 +607,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_MEM_READ:
 	case COMM_BM_MEM_WRITE:
 	case COMM_BMS_BLNC_SELFTEST:
+	case COMM_CAN_UPDATE_BAUD_ALL:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len + 1;
@@ -845,6 +846,29 @@ static THD_FUNCTION(blocking_thread, arg) {
 			ind += selftest_serialize_result(send_buffer_global + ind, (sizeof(send_buffer_global) - ind));
 			send_func_blocking(send_buffer_global, ind);
 			chMtxUnlock(&send_buffer_mutex);
+		} break;
+
+		case COMM_CAN_UPDATE_BAUD_ALL: {
+			int32_t ind = 0;
+			uint32_t kbits = buffer_get_int16(data, &ind);
+			uint32_t delay_msec = buffer_get_int16(data, &ind);
+			CAN_BAUD baud = comm_can_kbits_to_baud(kbits);
+			if (baud != CAN_BAUD_INVALID) {
+				for (int i = 0;i < 10;i++) {
+					comm_can_send_update_baud(kbits, delay_msec);
+					chThdSleepMilliseconds(50);
+				}
+
+				comm_can_set_baud(baud, delay_msec);
+				backup.config.can_baud_rate = baud;
+				flash_helper_store_backup_data();
+			}
+			ind = 0;
+			send_buffer[ind++] = packet_id;
+			send_buffer[ind++] = baud != CAN_BAUD_INVALID;
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
 		} break;
 
 		default:

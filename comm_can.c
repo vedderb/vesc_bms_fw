@@ -27,6 +27,7 @@
 #include "utils.h"
 #include "timeout.h"
 #include "sleep.h"
+#include "flash_helper.h"
 
 #include <string.h>
 
@@ -122,7 +123,34 @@ void comm_can_init(void) {
 			cancom_status_thread, NULL);
 }
 
-void comm_can_set_baud(CAN_BAUD baud) {
+CAN_BAUD comm_can_kbits_to_baud(int kbits) {
+	CAN_BAUD new_baud = CAN_BAUD_INVALID;
+	switch (kbits) {
+	case 125: new_baud = CAN_BAUD_125K; break;
+	case 250: new_baud = CAN_BAUD_250K; break;
+	case 500: new_baud = CAN_BAUD_500K; break;
+	case 1000: new_baud = CAN_BAUD_1M; break;
+	case 10: new_baud = CAN_BAUD_10K; break;
+	case 20: new_baud = CAN_BAUD_20K; break;
+	case 50: new_baud = CAN_BAUD_50K; break;
+	case 75: new_baud = CAN_BAUD_75K; break;
+	case 100: new_baud = CAN_BAUD_100K; break;
+	default: new_baud = CAN_BAUD_INVALID; break;
+	}
+	return new_baud;
+}
+
+
+void comm_can_set_baud(CAN_BAUD baud, int delay_msec) {
+	if (baud == CAN_BAUD_INVALID) {
+		return;
+	}
+
+	if (delay_msec > 0) {
+		canStop(&HW_CAN_DEV);
+		chThdSleepMilliseconds(delay_msec);
+	}
+
 	switch (baud) {
 	case CAN_BAUD_125K:	set_timing(31, 14, 3); break;
 	case CAN_BAUD_250K:	set_timing(15, 14, 3); break;
@@ -132,6 +160,7 @@ void comm_can_set_baud(CAN_BAUD baud) {
 	case CAN_BAUD_20K:	set_timing(199, 14, 3); break;
 	case CAN_BAUD_50K:	set_timing(79, 14, 3); break;
 	case CAN_BAUD_75K:	set_timing(118, 5, 1); break; // 74.697...
+	case CAN_BAUD_100K:	set_timing(39, 14, 3); break;
 	default: break;
 	}
 }
@@ -426,6 +455,14 @@ void comm_can_io_board_set_output_digital(int id, int channel, bool on) {
 	buffer[send_index++] = on ? 1 : 0;
 
 	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_IO_BOARD_SET_OUTPUT_DIGITAL << 8), buffer, send_index);
+}
+
+void comm_can_send_update_baud(int kbits, int delay_msec) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer_append_int16(buffer, kbits, &send_index);
+	buffer_append_int16(buffer, delay_msec, &send_index);
+	comm_can_transmit_eid(255 | ((uint32_t)CAN_PACKET_UPDATE_BAUD << 8), buffer, send_index);
 }
 
 void comm_can_io_board_set_output_pwm(int id, int channel, float duty) {
@@ -1026,6 +1063,18 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				ind++;
 				break;
 			}
+		}
+	} break;
+
+	case CAN_PACKET_UPDATE_BAUD: {
+		ind = 0;
+		int kbits = buffer_get_int16(data8, &ind);
+		int delay_msec = buffer_get_int16(data8, &ind);
+		CAN_BAUD baud = comm_can_kbits_to_baud(kbits);
+		if (baud != CAN_BAUD_INVALID) {
+			comm_can_set_baud(baud, delay_msec);
+			backup.config.can_baud_rate = baud;
+			flash_helper_store_backup_data();
 		}
 	} break;
 
