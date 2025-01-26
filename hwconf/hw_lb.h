@@ -20,7 +20,7 @@
 #ifndef HWCONF_HW_LB_H_
 #define HWCONF_HW_LB_H_
 
-#define HW_NAME					"lb"
+#define HW_NAME					"bat-bms-stm"
 #define HW_DEFAULT_ID			20
 
 // HW-specific
@@ -37,8 +37,8 @@
 #define CURR_MEASURE_OFF()		palSetLine(LINE_CURR_MEASURE_EN)
 
 // Macros
-#define CHARGE_ENABLE()			palSetLine(LINE_BATT_OUT_EN);
-#define CHARGE_DISABLE()		palClearLine(LINE_BATT_OUT_EN);
+#define CHARGE_ENABLE()			//palSetLine(LINE_BATT_OUT_EN);
+#define CHARGE_DISABLE()		//palClearLine(LINE_BATT_OUT_EN);
 
 // Settings
 #define HW_CELLS_SERIES			12
@@ -47,6 +47,9 @@
 #define V_REG					3.3
 #define R_CHARGE_TOP			(39.0e3)
 #define R_CHARGE_BOTTOM			(2.2e3)
+#define CONF_MAX_CHARGE_CURRENT			80
+#define CONF_MIN_CHARGE_CURRENT			2
+#define CONF_MIN_CURRENT_AH_WH_CNT      1.5
 
 // LEDs
 #define LINE_LED_RED			PAL_LINE(GPIOA, 0)
@@ -78,6 +81,7 @@
 #define BUZZER_LINE				PAL_LINE(GPIOA, 3)
 #define BUZZER_AF				2
 #define BUZZER_PWM				PWMD5
+#define BUZZER_PWM_FREQ_HZ		1000000
 #define BUZZER_FREQ_HZ			4000
 #define BUZZER_ON()				pwmEnableChannel(&BUZZER_PWM, 3, PWM_PERCENTAGE_TO_WIDTH(&BUZZER_PWM, 5000))
 #define BUZZER_OFF()			pwmEnableChannel(&BUZZER_PWM, 3, PWM_PERCENTAGE_TO_WIDTH(&BUZZER_PWM, 0))
@@ -131,7 +135,7 @@
 #define LINE_BATT_OUT_EN		PAL_LINE(GPIOC, 9)
 #define LINE_12V_EN				PAL_LINE(GPIOA, 8)
 #define LINE_12V_SENSE_EN		PAL_LINE(GPIOA, 9)
-#define LINE_ESP_EN				PAL_LINE(GPIOC, 12)
+#define LINE_ESP_EN				PAL_LINE(GPIOB, 3)
 
 // HW Functions
 void hw_board_init(void);

@@ -26,6 +26,9 @@
 #include "sleep.h"
 #include "comm_can.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include "buzzer.c"
+
 
 // Threads
 static THD_WORKING_AREA(hw_thd_wa, 2048);
@@ -38,9 +41,16 @@ static float m_temps[HW_TEMP_SENSORS];
 static bool awake_block = false;
 static float temp_v_lo[12][4] = {{-1.0}};
 static float temp_v_hi[12][4] = {{-1.0}};
+static bool jet_was_connected = false;
+
+// Melodies
+const char* MEL_JET_CONNECTED = "C5 E5 G5/2";
+const char* MEL_JET_DISCONNECTED = "G5 E5 C5/2";
+const char* MEL_ERROR = "C/1 P/1 C/1";
 
 // Private functions
 static void terminal_mc_en(int argc, const char **argv);
+static void terminal_chg_en(int argc, const char **argv);
 static void terminal_buzzer_test(int argc, const char **argv);
 static void terminal_hw_info(int argc, const char **argv);
 static void terminal_test_if_conn(int argc, const char **argv);
@@ -80,6 +90,12 @@ void hw_board_init(void) {
 			terminal_mc_en);
 
 	terminal_register_command_callback(
+			"chg_en",
+			"Enable charge input",
+			"[en]",
+			terminal_chg_en);
+
+	terminal_register_command_callback(
 			"buzzer_test",
 			"Test the buzzer",
 			NULL,
@@ -104,6 +120,7 @@ void hw_board_init(void) {
 			terminal_reset_pwr);
 }
 
+// Power management
 void hw_board_sleep(void) {
 	palClearLine(LINE_BATT_OUT_EN);
 	palClearLine(LINE_12V_EN);
@@ -116,9 +133,18 @@ void hw_stay_awake(void) {
 	if (awake_block) {
 		return;
 	}
-
 	palSetLine(LINE_MC_EN);
 	palSetLine(LINE_ESP_EN);
+}
+
+void hw_test_wake_up(void) {
+	if (hw_test_if_conn(false)) {
+		sleep_reset();
+	} else {
+		if (sleep_time_left() < 300) {
+			sleep_set_timer(0);
+		}
+	}
 }
 
 static void shift_out_data(uint16_t bits) {
@@ -282,21 +308,29 @@ static THD_FUNCTION(hw_thd_mon, p) {
 			sleep_reset();
 		}
 
+		// Uncomment to disable sleep
 		sleep_reset();
 
 		if (hw_temp_cell_max() > 60.0 && 0) {
-			BUZZER_ON();
-			chThdSleepMilliseconds(500);
-			BUZZER_OFF();
-			chThdSleepMilliseconds(500);
+			play_melody(MEL_ERROR);
 		} else {
 			chThdSleepMilliseconds(1);
 		}
 
-		// Disable 12V output in case there is a short
+		bool jet_is_connected = (adc->rx_time != 0 && (UTILS_AGE_S(adc->rx_time)<0.5));
+		if (jet_is_connected) {
+			if (!jet_was_connected) {
+				jet_was_connected = true;
+				play_melody(MEL_JET_CONNECTED);
+			}
+		} else if (jet_was_connected) {
+			jet_was_connected = false;
+			play_melody(MEL_JET_DISCONNECTED);
+		}
+
+		// Check for IF board and disable 12V output in case there is a short
 		if (!awake_block && hw_get_v_12v() < 5.0) {
-			palClearLine(LINE_12V_EN);
-			palSetLine(LINE_12V_SENSE_EN);
+			hw_test_if_conn(false);
 		}
 	}
 }
@@ -304,7 +338,12 @@ static THD_FUNCTION(hw_thd_mon, p) {
 float hw_temp_cell_max(void) {
 	float res = -250.0;
 
-	for (int i = 1;i < HW_TEMP_SENSORS;i++) {
+	// We skip the first and last four sensors for the purpose of
+	// measuring the cell temperature, because they are close to
+	// components that generate heat, i.e.
+	// fuses and shunts (N-4) and the antenna board (1-5)
+
+	for (int i = 1 + 4; i < HW_TEMP_SENSORS - 4;i++) {
 		if (bms_if_get_temp(i) > res) {
 			res = bms_if_get_temp(i);
 		}
@@ -336,14 +375,24 @@ static void terminal_mc_en(int argc, const char **argv) {
 	commands_printf("Invalid arguments\n");
 }
 
-static void terminal_buzzer_test(int argc, const char **argv) {
-	(void)argc; (void)argv;
+static void terminal_chg_en(int argc, const char **argv) {
+	if (argc == 2) {
+		int en = -1;
+		sscanf(argv[1], "%d", &en);
 
-	for (int i = 0;i < 3;i++) {
-		BUZZER_ON();
-		chThdSleepMilliseconds(500);
-		BUZZER_OFF();
-		chThdSleepMilliseconds(500);
+		if (en >= 0) {
+			palWriteLine(LINE_BATT_OUT_EN, en ? 1 : 0);
+			commands_printf("OK\n");
+			return;
+		}
+	}
+
+	commands_printf("Invalid arguments\n");
+}
+
+static void terminal_buzzer_test(int argc, const char **argv) {
+	for (size_t i = 1; i < (size_t)argc; i++) {
+		play_melody(argv[i]);
 	}
 }
 
@@ -377,13 +426,18 @@ static void terminal_test_if_conn(int argc, const char **argv) {
 	hw_test_if_conn(true);
 }
 
+// Check if interface is connected or we have a short
+// Enables 12v output if output is not shorted
+// Returns true if:
+// - Interface is detected
+// - Output is shorted (could be in charger)
 bool hw_test_if_conn(bool print) {
 	bool res = false;
 
 	awake_block = true;
 
 	palClearLine(LINE_12V_EN);
-	palSetLine(LINE_12V_SENSE_EN);
+	palSetLine(LINE_12V_SENSE_EN); // Disable (active low)
 	chThdSleepMilliseconds(100);
 
 	if (print) {
@@ -393,29 +447,30 @@ bool hw_test_if_conn(bool print) {
 
 	float v_off = hw_get_v_12v();
 
-	palClearLine(LINE_12V_SENSE_EN);
-	chThdSleepMilliseconds(100);
+	palClearLine(LINE_12V_SENSE_EN); // Enable (active low)
+	chThdSleepMilliseconds(100); // Allow time for capacitors charge
 
 	float v_sense = hw_get_v_12v();
 	bool sense_short = true;
 
-	if (v_sense > 1.0) {
+	if (v_sense > 0.5) {
 		sense_short = false;
 		palSetLine(LINE_12V_EN);
-		chThdSleepMilliseconds(100);
+		chThdSleepMilliseconds(100); // Allow time for capacitors charge
+	}else{
+		res = true;
 	}
 
-	float v_on = hw_get_v_12v();
+	float v_after = hw_get_v_12v();
 
-	palSetLine(LINE_12V_SENSE_EN);
+	palSetLine(LINE_12V_SENSE_EN); // Disable
 
 	awake_block = false;
 
 	if (print) {
 		commands_printf("Voltage off  : %.2f", v_off);
 		commands_printf("Voltage sense: %.2f", v_sense);
-		commands_printf("Voltage on   : %.2f", v_on);
-		commands_printf("Waiting for interface response...");
+		commands_printf("Voltage after: %.2f", v_after);
 
 		if (sense_short) {
 			commands_printf("Output shorted, could be in charger");
@@ -426,15 +481,24 @@ bool hw_test_if_conn(bool print) {
 
 	io_board_adc_values *adc = 0;
 
-	for (int i = 0;i < 250; i++) {
-		adc = comm_can_get_io_board_adc_1_4_index(0);
-
-		if (adc && UTILS_AGE_S(adc->rx_time) < 0.7) {
-			res = true;
-			break;
+	// < 0.5 V is a short
+	// > 3.0 V nothing plugged
+	// < 2.5 V and > 0.5 V means something is plugged in
+	if (v_sense > 0.5 && v_sense < 2.5) {
+		if (print){
+			commands_printf("Waiting for interface response...");
 		}
+		// Allow up to 2.0 seconds for IO board to update the adc rx_time
+		while (UTILS_AGE_S(t_start) < 2.0) {
+			adc = comm_can_get_io_board_adc_1_4_index(0);
 
-		chThdSleepMilliseconds(1);
+			if (adc && adc->rx_time > t_start) {
+				res = true;
+				break;
+			}
+
+			chThdSleepMilliseconds(1);
+		}
 	}
 
 	if (print) {
@@ -446,7 +510,6 @@ bool hw_test_if_conn(bool print) {
 
 		commands_printf(" ");
 	}
-
 	return res;
 }
 
@@ -461,7 +524,7 @@ static void terminal_reset_pwr(int argc, const char **argv) {
 
 	commands_printf("Disabling power...");
 	chThdSleepMilliseconds(2000);
-	commands_printf("Enabling power power");
+	commands_printf("Enabling power");
 
 	awake_block = false;
 	palClearLine(LINE_CURR_MEASURE_EN);
@@ -470,22 +533,7 @@ static void terminal_reset_pwr(int argc, const char **argv) {
 	palSetLine(LINE_ESP_EN);
 }
 
-void hw_test_wake_up(void) {
-	if (hw_test_if_conn(false)) {
-		sleep_reset();
 
-		for (int i = 0;i < 2;i++) {
-			BUZZER_ON();
-			chThdSleepMilliseconds(100);
-			BUZZER_OFF();
-			chThdSleepMilliseconds(100);
-		}
-	} else {
-		if (sleep_time_left() < 300) {
-			sleep_set_timer(0);
-		}
-	}
-}
 
 float hw_get_v_12v(void) {
 	return pwr_get_temp_volt(5) / 2.2 * (39.0 + 2.2);
