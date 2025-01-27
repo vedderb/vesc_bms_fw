@@ -1,0 +1,239 @@
+/*!
+@page middleware_log Middleware Change Log
+
+@section USB USB stack for MCUXpresso SDK  
+  The current version of USB stack is 2.7.0.
+  - 2.7.0
+    - Improvement:
+      - Use new feeback solution and low latency playback for usb device speaker demo and unified demos. Add underflow and overflow protection.
+      - Optimize hard code for usb audio demos.
+      - Update Unconstrained Power field in the Sink Capabilities Message according to the external power state.
+    - New features:
+      - Enable USB host video demo for mutilple boards.
+      - Enable USB device MTP demo for mutilple boards.
+      - Add PPS message to usb pd stack.
+  - 2.6.1
+    - Improvement:
+      - rename sdcard as disk for all of sdcard demos. For ramdisk demos, they are not changed.
+      - add wrapper for all of disk demos to support emmc.
+  - 2.6.0
+    - Improvement:
+      - Added more ufi event to support dynamic sdcard capacity.
+      - Passed MISRA-2012 mandatory and required rules.
+        - Except rule 17.2 in host hub and otg stack.
+        - Except rule 5.1, rule 5.4, rule 21.1 and rule 21.2.
+      - Re-implemented USB components and supported NPW.
+      - Improved IP3511 controller driver's cancelling transfer function.
+      - Enabled the audio2.0 defaultly for device audio demos.
+      - Enabled the host audio2.0 function in host audio class driver and host audio speaker demo.
+    - New features:
+      - enable two USB controllers in one USB host mouse demo which named as host_hid_mouse_dual.
+      - enable UAC 5.1 for usb device audio speaker demo. 
+  - 2.5.0
+    - Improvement:
+      - Integrated sdk components (OSA, Timer, GPIO and serial_manager) to USB stack and demos.
+      - Improved the ip3511 driver throughput.
+      - Improved audio initialization codes after SDK audio drivers update.
+      - Improved auido to support the audio2.0 in win10.
+      - Add one "enumeration fail" callback event to host stack.
+  - 2.4.2
+    - Improvement:
+      - Put the USB controller data and transfer buffer to noncache section, removed the setting that sets the whole ocram and sdram as noncached.
+      - Separated composite audio examples' channel,sample rate,format parameters from commom macro to in dedicated macro and out dedicated macro.
+      - replaced USB_PrepareData with USB_AudioRecorderGetBuffer.
+  - 2.4.1
+    - New features:
+      - Added enumeration fail callback to host stack when the attached device's enumeration failed.
+  - 2.4.0
+    - Improvement:
+      - Device Charger Detection (DCD) software architecture was refactored.
+    - New features:
+      - Enabled Device Charger Detection (DCD) on RT1060.
+      - Enabled Device Charger Detection on RT600.
+      - Enabled host battery charger function on RT600.
+  - 2.3.0
+    - New features:
+      - Added host video camera support.
+        example: usb_host_video_camera
+      - Added a new device example.
+        example: usb_device_composite_cdc_hid_audio_unified
+  - 2.2.0
+    - New features:
+      - Added device DFU support. 
+      - Supported OM13790DOCK on LPCXpresso54018.
+      - Added multiple logical unit support in msc class driver, updated usb_device_lba_information_struct_t to support this.
+      - Supported multiple transfers for host ISO on IP3516HS.
+    - Bug fixes:
+      - Fixed device ip3511 prime data length than maxpacket size issue.
+      - Initialized interval attribute in usb_device_endpoint_struct_t/usb_device_endpoint_init_struct_t.
+      - Removed unnecessary header file in device CDC class driver, removed unnecessary usb_echo, and added DEBUG macro for necessary usb_echo in device CDC class driver.
+      - Fixed device IP3511HS unfinished interrupt transfer missing issue.
+  - 2.1.0
+    - New features:
+      - Added host RNDIS support. 
+        example: lwip_dhcp_usb
+      - Enabled USB 3.0 support on device stack.
+      - Power Delivery feature:
+        Added OM13790HOST support;
+        Added auto policy feature;
+        Printed e-marked cable information; 
+  - 2.0.1
+    - Bug fixes:
+      - Fixed some USB issues:
+        Fixed MSC CV test failed in MSC examples.
+      - Changed audio codec interfaces.
+
+  - 2.0.0
+    - New features:
+      - PTN5110N support.
+    - Bug fix:
+      - Added some comments, fixed some minor USB issues.
+
+  - 1.9.0
+    - New features:
+      - Examples:
+        - usb_pd_alt_mode_dp_host
+
+  - 1.8.2
+    - Updated license.
+
+  - 1.8.1
+    - Bug fix:
+      - Verified some hardware issues, support aruba_flashless.
+
+  - 1.8.0
+    - New features:
+      - Examples:
+        - usb_device_composite_cdc_vcom_cdc_vcom
+        - usb_device_composite_hid_audio_unified
+        - usb_pd_sink_battery
+        - Changed usb_pd_battery to usb_pd_charger_battery.
+    - Bug fix:
+      - Code clean up, removed some irrelevant code.
+
+  - 1.7.0
+    - New features:
+      - USB PD stack support.
+
+    - Examples:
+      - usb_pd
+      - usb_pd_battery
+      - usb_pd_source_charger
+
+  - 1.6.3
+    - Bug fix:
+      -IP3511_HS driver control transfer sequence issue, enabled 3511 ip cv test.
+
+  - 1.6.2
+    - New features:
+      - Multi instance support.
+
+  - 1.6.1
+    - New features:
+    - Changed the struct variable address method for device_video_virtual_camera and host_phdc_manager.
+
+  - 1.6.0
+    - New features:
+      - Supported Device Charger Detect feature on usb_device_hid_mouse.
+
+  - 1.5.0
+    - New features:
+      - Supported controllers
+        - OHCI (Full Speed, Host mode)
+        - IP3516 (High Speed, Host mode)
+        - IP3511 (High Speed, Device mode)
+
+      - Examples:
+        - usb_lpm_device_hid_mouse
+        - usb_lpm_device_hid_mouse_lite
+        - usb_lpm_host_hid_mouse
+
+  - 1.4.0
+    - New features:
+      - Examples:
+        - usb_device_hid_mouse/freertos_static
+        - usb_suspend_resume_device_hid_mouse_lite
+
+  - 1.3.0
+    - New features:
+      - Supported roles
+        - OTG
+
+      - Supported classes
+        - CDC RNDIS
+
+      - Examples
+        - usb_otg_hid_mouse
+        - usb_device_cdc_vnic
+        - usb_suspend_resume_device_hid_mouse
+        - usb_suspend_resume_host_hid_mouse
+
+  - 1.2.0
+    - New features:
+      - Supported controllers
+        - LPC IP3511 (Full Speed, Device mode)
+
+  - 1.1.0
+    - Bug fix:
+      - Fixed some issues in USB certification.
+      - Changed VID and Manufacturer string to NXP.
+
+    - New features:
+      - Supported classes
+        - Pinter
+
+      - Examples:
+        - usb_device_composite_cdc_msc_sdcard
+        - usb_device_printer_virtual_plain_text
+        - usb_host_printer_plain_text
+
+  - 1.0.1
+    - Bug fix:
+      - Improved the efficiency of device audio speaker by changing the transfer mode from interrupt to DMA, thus providing the ability to eliminate the periodic noise.
+
+  - 1.0.0
+    - New features:
+      - Supported roles
+        - Device
+        - Host
+
+      - Supported controllers:
+        - KHCI (Full Speed)
+        - EHCI (High Speed)
+
+      - Supported classes:
+        - AUDIO
+        - CCID
+        - CDC
+        - HID
+        - MSC
+        - PHDC
+        - VIDEO
+
+      - Examples:
+        - usb_device_audio_generator
+        - usb_device_audio_speaker
+        - usb_device_ccid_smart_card
+        - usb_device_cdc_vcom
+        - usb_device_cdc_vnic
+        - usb_device_composite_cdc_msc
+        - usb_device_composite_hid_audio
+        - usb_device_composite_hid_mouse_hid_keyboard
+        - usb_device_hid_generic
+        - usb_device_hid_mouse
+        - usb_device_msc_ramdisk
+        - usb_device_msc_sdcard
+        - usb_device_phdc_weighscale
+        - usb_device_video_flexio_ov7670
+        - usb_device_video_virtual_camera
+        - usb_host_audio_speaker
+        - usb_host_cdc
+        - usb_host_hid_generic
+        - usb_host_hid_mouse
+        - usb_host_hid_mouse_keyboard
+        - usb_host_msd_command
+        - usb_host_msd_fatfs
+        - usb_host_phdc_manager
+        - usb_keyboard2mouse
+        - usb_pin_detect_hid_mouse
+*/

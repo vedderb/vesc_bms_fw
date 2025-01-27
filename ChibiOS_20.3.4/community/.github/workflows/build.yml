@@ -1,0 +1,64 @@
+name: build tests
+
+on:
+  push:
+    branches: [ chibios-21.6.x ]
+  pull_request:
+    branches: [ chibios-21.6.x ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: fiam/arm-none-eabi-gcc@v1
+      with:
+        release: '10-2020-q4'
+    - name: setup vars
+      run: |
+        echo "CH_VER=stable_20.3.x" >> $GITHUB_ENV
+        echo "CHC_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+    - name: download Chibios
+      run: |
+        curl -L https://github.com/ChibiOS/ChibiOS/archive/$CH_VER.tar.gz | tar xz
+        echo "CH_PATH=$GITHUB_WORKSPACE/ChibiOS-$CH_VER" >> $GITHUB_ENV
+    - name: decompress ChibiOS ext resources
+      run: |
+        cd $CH_PATH/ext
+        for i in *.7z; do 7z x -y $i; done
+    - name: decompress ChibiOS-Contrib ext resources
+      run: |
+        cd $CHC_PATH/ext
+        for i in *.7z; do 7z x -y $i; done
+    - name: build STM32
+      run: |
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/testhal/STM32
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/demos/STM32
+    - name: build NRF51
+      run: |
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/testhal/NRF51
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/demos/NRF51
+    - name: build NRF52
+      run: |
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/testhal/NRF52
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/demos/NRF52
+    - name: build Kinetis
+      run: |
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/testhal/KINETIS
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/demos/KINETIS
+    - name: build LPC
+      run: |
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/testhal/LPC
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/demos/LPC
+    - name: build HT32
+      run: |
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/testhal/HT32
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/demos/HT32
+    - name: build NUMICRO
+      run: |
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/testhal/NUMICRO
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/demos/NUMICRO
+    - name: build RP
+      run: |
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/testhal/RP
+        $CHC_PATH/tools/chbuild.sh $CHC_PATH/demos/RP

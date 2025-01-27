@@ -1,0 +1,3 @@
+[submodule "ext/mcux-sdk"]
+	path = ext/mcux-sdk
+	url = https://github.com/NXPmicro/mcux-sdk
