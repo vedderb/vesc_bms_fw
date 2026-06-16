@@ -24,10 +24,34 @@
 #include "hal.h"
 #include "conf_general.h"
 
+typedef enum {
+	AWAKE_REASON_INIT = 0,
+	AWAKE_REASON_UNKNOWN,
+	AWAKE_REASON_USB_CONFIGURED_AT_BOOT,
+	AWAKE_REASON_USER_EXTENSION,
+	AWAKE_REASON_HOST_COMMAND,
+	AWAKE_REASON_COMM_ALIVE,
+	AWAKE_REASON_CAN_PING,
+	AWAKE_REASON_CAN_STATUS,
+	AWAKE_REASON_REMOTE_BMS_CHARGE_BALANCE,
+	AWAKE_REASON_CHARGING,
+	AWAKE_REASON_BALANCING_ACTIVE,
+	AWAKE_REASON_CURRENT_ABOVE_SLEEP_THRESHOLD,
+	AWAKE_REASON_CHARGE_OVERCURRENT_HOLD,
+	AWAKE_REASON_CONNECTOR,
+	AWAKE_REASON_IO,
+} awake_reason_t;
+
 // Functions
 void sleep_init(void);
 void sleep_reset(void);
+void sleep_reset_with_reason(awake_reason_t action);
 int sleep_time_left(void);
-int sleep_set_timer(int time);
+void sleep_set_timer(int time);
+void sleep_set_timer_with_reason(int time, awake_reason_t action);
+awake_reason_t sleep_last_action_reason(void);
+const char *sleep_action_to_string(awake_reason_t action);
+systime_t sleep_last_action_time(void);
+int sleep_last_action_target_ms(void);
 
 #endif /* SLEEP_H_ */

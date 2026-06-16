@@ -792,8 +792,6 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 					}
 				}
 
-				sleep_reset();
-
 				switch (commands_send) {
 				case 0:
 					commands_process_packet(rx_buffer, rxbuf_len, send_packet_wrapper);
@@ -871,11 +869,11 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 	switch (cmd) {
 	case CAN_PACKET_PING:
-		sleep_reset();
+		sleep_reset_with_reason(AWAKE_REASON_CAN_PING);
 		break;
 
 	case CAN_PACKET_STATUS:
-		sleep_reset();
+		sleep_reset_with_reason(AWAKE_REASON_CAN_STATUS);
 
 		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 			can_status_msg *stat_tmp = &stat_msgs[i];
@@ -1019,7 +1017,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 		// Do not go to sleep when some other pack is charging or balancing.
 		if (msg.is_charging || msg.is_balancing) {
-			sleep_reset();
+			sleep_reset_with_reason(AWAKE_REASON_REMOTE_BMS_CHARGE_BALANCE);
 		}
 
 		// Find BMS with lowest cell voltage
