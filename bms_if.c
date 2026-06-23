@@ -113,7 +113,7 @@ static THD_FUNCTION(charge_thd, p) {
 		if (chg_can_ok && HW_GET_V_CHARGE() > backup.config.v_charge_detect &&
 				bms_if_charge_ok() && m_charge_allowed && !m_was_charge_overcurrent) {
 			if (!m_is_charging) {
-				sleep_reset();
+				sleep_reset_with_reason(AWAKE_REASON_CHARGING);
 				chThdSleepMilliseconds(2000);
 				if (bms_if_charge_ok() && HW_GET_V_CHARGE() > backup.config.v_charge_detect) {
 					m_is_charging = true;
@@ -148,7 +148,7 @@ static THD_FUNCTION(charge_thd, p) {
 				bms_if_fault_report(FAULT_CODE_CHARGE_OVERCURRENT);
 			}
 
-			sleep_reset();
+			sleep_reset_with_reason(AWAKE_REASON_CHARGING);
 		}
 
 		// Charger must be disconnected and reconnected on charge overcurrent events
@@ -297,7 +297,7 @@ static THD_FUNCTION(balance_thd, p) {
 		}
 
 		if (m_is_balancing) {
-			sleep_reset();
+			sleep_reset_with_reason(AWAKE_REASON_BALANCING_ACTIVE);
 		} else {
 			m_bal_ok = false;
 
@@ -378,7 +378,7 @@ static THD_FUNCTION(if_thd, p) {
 		}
 
 		if (fabsf(bms_if_get_i_in_ic()) > backup.config.min_current_sleep) {
-			sleep_reset();
+			sleep_reset_with_reason(AWAKE_REASON_CURRENT_ABOVE_SLEEP_THRESHOLD);
 		}
 
 		float soc_now = utils_batt_liion_norm_v_to_capacity(utils_map(m_voltage_cell_min, 3.2, 4.2, 0.0, 1.0));
@@ -393,7 +393,7 @@ static THD_FUNCTION(if_thd, p) {
 		if (m_was_charge_overcurrent) {
 			// Prevent sleeping to keep the charge input disabled (as long as the battery does not run too low)
 			if (bms_if_get_soc() > 0.3) {
-				sleep_reset();
+				sleep_reset_with_reason(AWAKE_REASON_CHARGE_OVERCURRENT_HOLD);
 			}
 
 			// Blink out fault on red LED

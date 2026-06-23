@@ -53,6 +53,18 @@ static volatile int fault_vec_write = 0;
 static terminal_callback_struct callbacks[CALLBACK_LEN];
 static int callback_write = 0;
 
+static void terminal_print_sleep_status(void) {
+	commands_printf("Time until sleep: %.0f s", sleep_time_left() / 1000.0);
+	commands_printf("Sleep reset time: %.0f s", backup.config.sleep_timeout_reset_ms / 1000.0);
+	commands_printf("Last sleep reset reason: %s", sleep_action_to_string(sleep_last_action_reason()));
+
+	if (sleep_last_action_time() != 0) {
+		commands_printf("Last sleep reset age:  %.3f s", (double)UTILS_AGE_S(sleep_last_action_time()));
+	} else {
+		commands_printf("Last sleep reset age:  never");
+	}
+}
+
 void terminal_process_string(char *str) {
 	commands_printf("-> %s\n", str);
 	
@@ -69,6 +81,10 @@ void terminal_process_string(char *str) {
 	if (argc == 0) {
 		commands_printf("No command received\n");
 		return;
+	}
+
+	if (strcmp(argv[0], "sleep_status") != 0) {
+		sleep_reset_with_reason(AWAKE_REASON_HOST_COMMAND);
 	}
 
 	for (int i = 0;i < callback_write;i++) {
@@ -206,6 +222,8 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "uptime") == 0) {
 		commands_printf("Uptime: %.2f s", (double)chVTGetSystemTimeX() / (double)CH_CFG_ST_FREQUENCY);
 		commands_printf("Sleep in: %.2f s", (double)((float)sleep_time_left() / 1000.0));
+	} else if (strcmp(argv[0], "sleep_status") == 0) {
+		terminal_print_sleep_status();
 	} else if (strcmp(argv[0], "reset_cnt_chg_total") == 0) {
 		backup.ah_cnt_chg_total = 0.0;
 		backup.wh_cnt_chg_total = 0.0;
@@ -286,6 +304,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("uptime");
 		commands_printf("  Prints how many seconds have passed since boot.");
+
+		commands_printf("sleep_status");
+		commands_printf("  Print sleep timer status.");
 
 		commands_printf("reset_cnt_chg_total");
 		commands_printf("  Reset charge counters.");
@@ -396,4 +417,3 @@ void terminal_unregister_callback(void(*cbf)(int argc, const char **argv)) {
 		}
 	}
 }
-

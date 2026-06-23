@@ -88,7 +88,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	data++;
 	len--;
 
-	sleep_reset();
+	if (packet_id != COMM_TERMINAL_CMD && packet_id != COMM_TERMINAL_CMD_SYNC) {
+		sleep_reset_with_reason(
+				packet_id == COMM_ALIVE ?
+				AWAKE_REASON_COMM_ALIVE : AWAKE_REASON_HOST_COMMAND);
+	}
 
 	switch (packet_id) {
 	case COMM_FW_VERSION: {
