@@ -167,6 +167,7 @@ static void go_to_sleep(void) {
 	PWR->CR3 |= PWR_CR3_RRS; // Keep ram4 during standby
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 	__WFI();
+	NVIC_SystemReset();
 }
 
 static THD_FUNCTION(sleep_thread, arg) {
